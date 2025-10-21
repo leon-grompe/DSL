@@ -11,30 +11,51 @@ export const removeUnnecessaryArgumentList = (services: SafeDsServices) => {
     return (diagnostic: Diagnostic, document: LangiumDocument, acceptor: CodeActionAcceptor) => {
         const node = locator.getAstNode(document.parseResult.value, diagnostic.data.path);
 
-        if (!isSdsAnnotationCall(node)){
-            /* c8 ignore next 2 */
-            return;
-        }
+        if (isSdsAnnotationCall(node)){
+            const cstNode = node.$cstNode;
         
-        const cstNode = node.$cstNode;
-        
-        if (!cstNode || node.$container.annotationCalls.length > 1) {
-            return;
+            if (!cstNode || !node.annotation?.$refText) {
+                return;
+            }
+
+            const edit: TextEdit = {
+                range: cstNode.range,
+                newText: '@' + node.annotation?.$nodeDescription?.name,
+            }
+
+            acceptor(
+                createQuickfixFromTextEditsToSingleDocument(
+                    'Remove unnecessary argument list.',
+                    diagnostic,
+                    document,
+                    [edit],
+                    true,
+                ),
+            );  
         }
 
-        const edit: TextEdit = {
-            range: cstNode.range,
-            newText: '',
-        }
+        if (isSdsCall(node)) {
+            const cstNode = node.$cstNode;
 
-        acceptor(
-            createQuickfixFromTextEditsToSingleDocument(
-                'Remove unnecessary argument list.',
-                diagnostic,
-                document,
-                [edit],
-                true,
-            ),
-        );    
+            if (!cstNode || node.argumentList.arguments.length > 0) {
+                return;
+            }
+
+            const edit: TextEdit = {
+                range: cstNode.range,
+                newText: node.$cstNode?.text.replace(/[()]/g,''), // leaves spaces :(
+            }
+
+            acceptor(
+                createQuickfixFromTextEditsToSingleDocument(
+                    'Remove unnecessary argument list.',
+                    diagnostic,
+                    document,
+                    [edit],
+                    true,
+                ),
+            );
+        }
+        return;
     };
 }

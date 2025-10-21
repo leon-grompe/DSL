@@ -69,7 +69,7 @@ export const annotationCallArgumentListShouldBeNeeded = (services: SafeDsService
 
         const hasRequiredParameters = getParameters(annotation).some(Parameter.isRequired);
         if (!hasRequiredParameters) {
-            accept('info', 'This argument list can be removed.Annotation', {
+            accept('info', 'This argument list can be removed.', {
                 node: argumentList,
                 code: CODE_STYLE_UNNECESSARY_ARGUMENT_LIST,
                 data: { path: locator.getAstNodePath(node) },
