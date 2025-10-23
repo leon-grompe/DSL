@@ -43,7 +43,8 @@ export const removeUnnecessaryArgumentList = (services: SafeDsServices) => {
 
             const edit: TextEdit = {
                 range: cstNode.range,
-                newText: node.$cstNode?.text.replace(/[()]/g,''), // leaves spaces :(
+                // remove brackets and spaces in brackets
+                newText: node.$cstNode?.text.replace(/\([^)]*\)/g, ""),
             }
 
             acceptor(

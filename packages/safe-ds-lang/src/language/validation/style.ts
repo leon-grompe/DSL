@@ -100,7 +100,7 @@ export const callArgumentListShouldBeNeeded = (services: SafeDsServices) => {
         }
 
         if (isEmpty(getParameters(callable))) {
-            accept('info', 'This argument list can be removed.Callable', {
+            accept('info', 'This argument list can be removed.', {
                 node: argumentList,
                 property: 'arguments',
                 code: CODE_STYLE_UNNECESSARY_ARGUMENT_LIST,
