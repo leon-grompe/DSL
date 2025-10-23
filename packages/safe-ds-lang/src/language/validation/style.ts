@@ -48,6 +48,7 @@ export const CODE_STYLE_UNNECESSARY_UNION_TYPE = 'style/unnecessary-union-type';
 
 export const annotationCallArgumentListShouldBeNeeded = (services: SafeDsServices) => {
     const settingsProvider = services.workspace.SettingsProvider;
+    const locator = services.workspace.AstNodeLocator;
 
     return (node: SdsAnnotationCall, accept: ValidationAcceptor) => {
         if (!settingsProvider.shouldValidateCodeStyle()) {
@@ -71,6 +72,7 @@ export const annotationCallArgumentListShouldBeNeeded = (services: SafeDsService
             accept('info', 'This argument list can be removed.', {
                 node: argumentList,
                 code: CODE_STYLE_UNNECESSARY_ARGUMENT_LIST,
+                data: { path: locator.getAstNodePath(node) },
             });
         }
     };
@@ -78,6 +80,7 @@ export const annotationCallArgumentListShouldBeNeeded = (services: SafeDsService
 
 export const callArgumentListShouldBeNeeded = (services: SafeDsServices) => {
     const settingsProvider = services.workspace.SettingsProvider;
+    const locator = services.workspace.AstNodeLocator;
 
     return (node: SdsCall, accept: ValidationAcceptor) => {
         if (!settingsProvider.shouldValidateCodeStyle()) {
@@ -99,7 +102,9 @@ export const callArgumentListShouldBeNeeded = (services: SafeDsServices) => {
         if (isEmpty(getParameters(callable))) {
             accept('info', 'This argument list can be removed.', {
                 node: argumentList,
+                property: 'arguments',
                 code: CODE_STYLE_UNNECESSARY_ARGUMENT_LIST,
+                data: { path: locator.getAstNodePath(node) },
             });
         }
     };
