@@ -1,5 +1,0 @@
-private  pipeline  myPipeline  { }
-
-// -----------------------------------------------------------------------------
-
-private pipeline myPipeline {}

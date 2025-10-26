@@ -1,5 +1,0 @@
-fun myFunction< T  sub  Int  =  Int >()
-
-// -----------------------------------------------------------------------------
-
-fun myFunction<T sub Int = Int>()

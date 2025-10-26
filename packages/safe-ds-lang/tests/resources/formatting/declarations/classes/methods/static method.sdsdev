@@ -1,9 +1,0 @@
-class MyClass {
-    static  fun  myFunction ( )
-}
-
-// -----------------------------------------------------------------------------
-
-class MyClass {
-    static fun myFunction()
-}

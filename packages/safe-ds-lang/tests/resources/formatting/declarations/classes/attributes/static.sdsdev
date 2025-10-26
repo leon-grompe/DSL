@@ -1,9 +1,0 @@
-class MyClass {
-    static  attr  a :  Int
-}
-
-// -----------------------------------------------------------------------------
-
-class MyClass {
-    static attr a: Int
-}

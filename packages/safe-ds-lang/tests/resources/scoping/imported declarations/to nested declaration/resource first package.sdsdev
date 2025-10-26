@@ -1,9 +1,0 @@
-package tests.scoping.importedDeclarations.toNestedDeclaration.first
-
-class Outer {
-    // $TEST$ target firstPackage_ClassInFirstPackage
-    class »ClassInFirstPackage«
-
-    // $TEST$ target firstPackage_ClassInBothPackages
-    class »ClassInBothPackages«
-}

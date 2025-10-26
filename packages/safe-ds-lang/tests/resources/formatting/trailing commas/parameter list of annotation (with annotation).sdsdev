@@ -1,9 +1,0 @@
-annotation A(@Annotation a: Int ,  b: Int , )
-
-// -----------------------------------------------------------------------------
-
-annotation A(
-    @Annotation
-    a: Int,
-    b: Int,
-)

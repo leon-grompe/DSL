@@ -1,7 +1,0 @@
-package tests.validation.names.coreNames
-
-// $TEST$ error "Names of core declarations must not be used for own declarations."
-annotation »Any«
-
-// $TEST$ no error "Names of core declarations must not be used for own declarations."
-annotation »Any1«

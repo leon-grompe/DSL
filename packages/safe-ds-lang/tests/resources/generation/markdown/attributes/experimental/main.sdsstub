@@ -1,4 +1,0 @@
-package tests.generation.markdown.attributes.experimental
-
-@Experimental
-attr myAttribute1: Int

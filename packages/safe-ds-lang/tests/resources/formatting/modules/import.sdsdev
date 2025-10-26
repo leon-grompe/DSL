@@ -1,6 +1,0 @@
-
-from  myPackage . mySubpackage  import  MyClass
-
-// -----------------------------------------------------------------------------
-
-from myPackage.mySubpackage import MyClass

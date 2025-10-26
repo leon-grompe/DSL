@@ -1,4 +1,0 @@
-package tests.generation.markdown.enums.deprecated
-
-@Deprecated
-enum MyEnum1

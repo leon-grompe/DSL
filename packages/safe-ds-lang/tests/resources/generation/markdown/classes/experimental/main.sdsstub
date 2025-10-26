@@ -1,4 +1,0 @@
-package tests.generation.markdown.classes.experimental
-
-@Experimental
-class MyClass1

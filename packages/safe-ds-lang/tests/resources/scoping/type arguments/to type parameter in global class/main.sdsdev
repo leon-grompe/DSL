@@ -1,9 +1,0 @@
-package tests.scoping.typeArguments.toTypeParameterInGlobalClass
-
-// $TEST$ target t
-class MyClass<»T«>
-
-segment mySegment(
-    // $TEST$ references t
-    p: MyClass<»T« = Int>
-) {}

@@ -1,3 +1,0 @@
-package tests.generation.markdown.attributes.undocumented
-
-attr myAttribute1: Int

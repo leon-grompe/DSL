@@ -1,5 +1,0 @@
-internal  typealias  MyAlias  =  Int
-
-// -----------------------------------------------------------------------------
-
-internal typealias MyAlias = Int

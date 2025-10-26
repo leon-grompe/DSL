@@ -1,9 +1,0 @@
-segment mySegment(
-    x: union < > . InnerClass ?
-) {}
-
-// -----------------------------------------------------------------------------
-
-segment mySegment(
-    x: union<>.InnerClass?
-) {}

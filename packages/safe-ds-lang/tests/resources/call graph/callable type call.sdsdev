@@ -1,6 +1,0 @@
-package tests.callGraph.callableTypeCall
-
-segment mySegment(param: () -> ()) {
-    // $TEST$ ["param"]
-    »param()«;
-}

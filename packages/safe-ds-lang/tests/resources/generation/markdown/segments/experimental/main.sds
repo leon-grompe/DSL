@@ -1,4 +1,0 @@
-package tests.generation.markdown.segments.experimental
-
-@Experimental
-segment mySegment1() {}

@@ -1,9 +1,0 @@
-segment mySegment(
-    x: literal < 1.0 ,  null >
-) {}
-
-// -----------------------------------------------------------------------------
-
-segment mySegment(
-    x: literal<1.0, null>
-) {}

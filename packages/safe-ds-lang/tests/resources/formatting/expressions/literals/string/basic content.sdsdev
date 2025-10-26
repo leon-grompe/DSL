@@ -1,9 +1,0 @@
-pipeline myPipeline {
-    "myString";
-}
-
-// -----------------------------------------------------------------------------
-
-pipeline myPipeline {
-    "myString";
-}

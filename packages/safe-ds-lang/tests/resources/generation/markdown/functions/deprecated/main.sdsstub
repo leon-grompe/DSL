@@ -1,5 +1,0 @@
-package tests.generation.markdown.functions.deprecated
-
-@Deprecated
-@Pure
-fun myFunction1()

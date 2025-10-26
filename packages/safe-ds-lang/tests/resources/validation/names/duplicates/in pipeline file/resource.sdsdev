@@ -1,7 +1,0 @@
-package tests.validation.names.inPipelineFile.other
-
-class UniqueImport
-
-class DuplicateImport
-
-class DuplicateAliasedImport

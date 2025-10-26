@@ -1,7 +1,0 @@
-// Related to https://github.com/Safe-DS/DSL/issues/974
-
-package tests.generator.safeds
-
-pipeline test {
-    val a = Table({"a": []});
-}

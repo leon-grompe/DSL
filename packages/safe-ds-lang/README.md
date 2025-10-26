@@ -1,1 +1,0 @@
-# Safe-DS Language Server

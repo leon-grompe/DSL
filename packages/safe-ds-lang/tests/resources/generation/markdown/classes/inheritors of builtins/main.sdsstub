@@ -1,5 +1,0 @@
-package safeds.lang
-
-class Number
-
-class Float sub Number

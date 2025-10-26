@@ -1,9 +1,0 @@
-segment s(@Annotation a: Int ,  b: Int , ) {}
-
-// -----------------------------------------------------------------------------
-
-segment s(
-    @Annotation
-    a: Int,
-    b: Int,
-) {}

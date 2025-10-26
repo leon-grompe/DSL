@@ -1,4 +1,0 @@
-package tests.validation.other.declarations.pipelines.needNotBePrivate
-
-// $TEST$ info "Pipelines are always private and need no explicit visibility modifier."
-»private« pipeline myPipeline {}

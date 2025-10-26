@@ -1,9 +1,0 @@
-// Related to https://github.com/Safe-DS/DSL/issues/975
-
-package tests.generator.assignment.rhsIsClassCall
-
-class MyClass1()
-
-pipeline testPipeline {
-    val a = MyClass1();
-}

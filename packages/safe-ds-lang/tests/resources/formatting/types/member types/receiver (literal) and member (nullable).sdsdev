@@ -1,9 +1,0 @@
-segment mySegment(
-    x: literal < > . InnerClass ?
-) {}
-
-// -----------------------------------------------------------------------------
-
-segment mySegment(
-    x: literal<>.InnerClass?
-) {}
