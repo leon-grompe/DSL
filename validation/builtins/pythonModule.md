@@ -7,3 +7,4 @@ pythonModuleShouldDifferFromSafeDsPackage
 
 
 ## Assessment
+not relevant. target group is not python stub developer

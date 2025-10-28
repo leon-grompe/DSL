@@ -8,3 +8,4 @@ messageOfConstraintsMustOnlyReferenceConstantParameters
 
 ## Assessment
 Unsure. Could set referenced parameters to constant, but not helpful
+Delete constraint, if mistake
