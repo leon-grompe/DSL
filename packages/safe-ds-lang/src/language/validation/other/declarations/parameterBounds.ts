@@ -23,7 +23,8 @@ export const CODE_PARAMETER_BOUND_RIGHT_OPERAND = 'parameter-bound/right-operand
 export const callArgumentMustRespectParameterBounds = (services: SafeDsServices) => {
     const nodeMapper = services.helpers.NodeMapper;
     const partialEvaluator = services.evaluation.PartialEvaluator;
-
+    const locator = services.workspace.AstNodeLocator;
+    
     return (node: SdsCall, accept: ValidationAcceptor) => {
         const substitutions = partialEvaluator.computeParameterSubstitutionsForCall(node);
 
@@ -50,6 +51,7 @@ export const callArgumentMustRespectParameterBounds = (services: SafeDsServices)
                         node: argument,
                         property: 'value',
                         code: CODE_PARAMETER_BOUND_INVALID_VALUE,
+                        data: { path: locator.getAstNodePath(node) }
                     });
                 }
             }

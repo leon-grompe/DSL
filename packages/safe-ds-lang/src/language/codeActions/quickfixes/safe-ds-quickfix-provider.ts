@@ -1,13 +1,18 @@
 import { Diagnostic } from 'vscode-languageserver';
 import { LangiumDocument } from 'langium';
+
 import { CODE_ARGUMENT_POSITIONAL } from '../../validation/other/expressions/arguments.js';
 import { CODE_STYLE_UNNECESSARY_BODY } from '../../validation/style.js';
 import { CODE_STYLE_UNNECESSARY_ARGUMENT_LIST } from '../../validation/style.js';
+import { CODE_PARAMETER_BOUND_INVALID_VALUE } from '../../validation/other/declarations/parameterBounds.js';
+
 import { SafeDsServices } from '../../safe-ds-module.js';
+import { CodeActionAcceptor } from '../safe-ds-code-action-provider.js';
+
 import { makeArgumentsAssignedToOptionalParametersNamed } from './arguments.js';
 import { removeUnnecessaryBody } from './body.js';
 import { removeUnnecessaryArgumentList } from './argument-list.js';
-import { CodeActionAcceptor } from '../safe-ds-code-action-provider.js';
+import { setCallArgumentToLowerParameterBound } from './parameter-bounds.js';
 
 export class SafeDsQuickfixProvider {
     private readonly registry: QuickfixRegistry;
@@ -17,6 +22,7 @@ export class SafeDsQuickfixProvider {
             [CODE_ARGUMENT_POSITIONAL]: [makeArgumentsAssignedToOptionalParametersNamed(services)],
             [CODE_STYLE_UNNECESSARY_BODY]: [removeUnnecessaryBody(services)],
             [CODE_STYLE_UNNECESSARY_ARGUMENT_LIST]: [removeUnnecessaryArgumentList(services)],
+            [CODE_PARAMETER_BOUND_INVALID_VALUE]: [setCallArgumentToLowerParameterBound(services)],
         };
     }
 

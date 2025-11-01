@@ -1,9 +1,10 @@
 import { Diagnostic, TextEdit } from 'vscode-languageserver';
 import { LangiumDocument } from 'langium';
 import { SafeDsServices } from '../../safe-ds-module.js';
-import { isSdsCall,isSdsCallable, isSdsAnnotationCall, isSdsAnnotationCallList } from '../../generated/ast.js';
+import { isSdsCall, isSdsAnnotationCall } from '../../generated/ast.js';
 import { CodeActionAcceptor } from '../safe-ds-code-action-provider.js';
 import { createQuickfixFromTextEditsToSingleDocument } from '../factories.js';
+
 
 export const removeUnnecessaryArgumentList = (services: SafeDsServices) => {
     const locator = services.workspace.AstNodeLocator;
