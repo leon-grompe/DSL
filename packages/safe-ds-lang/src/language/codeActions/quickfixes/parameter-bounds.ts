@@ -45,9 +45,11 @@ const setToParameterBounds = (nodeMapper: SafeDsNodeMapper, argument: SdsArgumen
     if (!cstNode || paramBounds.length === 0) {
         return [];
     }
-    
+
     // what if upper bound?
-    // what if multiple bounds?
+    // what if multiple bounds? (upper AND lower)
+    // What if multiple bounds for same argument: x > 5 and x >= 10?
+    // what if mutually exclusive bounds? x > 5 and x < 3?
     const result = [];
     for (const bound of paramBounds) {
         if (!bound.leftOperand || !bound.rightOperand.$cstNode || !param)
@@ -64,14 +66,16 @@ const setToParameterBounds = (nodeMapper: SafeDsNodeMapper, argument: SdsArgumen
             result.push(edit);
         }
         if (bound.operator == '>='){
+            const rightOp = bound.rightOperand.$cstNode?.text;
+            
             const edit: TextEdit = {  
                 range: cstNode.range,
-                newText: `${param.name} = ${bound.rightOperand.$cstNode?.text}`,
+                newText: `${param.name} = ${rightOp}`,
                 }
             result.push(edit);
         }
     }
-
+    // problems if multiple bounds
     return result
 }
 /*
