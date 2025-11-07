@@ -1,0 +1,19 @@
+// $TEST$ apply "Remove unnecessary argument list."
+
+package tests.codeActions.quickfixes.removeUnnecessaryArgumentList
+
+@Repeatable
+annotation MyAnnotation()
+
+enum MyTestEnum {
+    VALUE1
+    VALUE2
+}
+
+@MyAnnotation
+
+@MyAnnotation
+pipeline testPipeline {
+
+    val value = MyTestEnum.VALUE1;
+}
