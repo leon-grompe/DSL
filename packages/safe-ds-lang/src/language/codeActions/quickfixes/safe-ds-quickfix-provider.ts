@@ -12,7 +12,8 @@ import { CodeActionAcceptor } from '../safe-ds-code-action-provider.js';
 import { makeArgumentsAssignedToOptionalParametersNamed } from './arguments.js';
 import { removeUnnecessaryBody } from './body.js';
 import { removeUnnecessaryArgumentList } from './argument-list.js';
-import { setCallArgumentToParameterBound } from './parameter-bounds.js';
+import { setArgumentsToParameterBounds } from './parameter-bounds.js';
+
 
 export class SafeDsQuickfixProvider {
     private readonly registry: QuickfixRegistry;
@@ -22,7 +23,7 @@ export class SafeDsQuickfixProvider {
             [CODE_ARGUMENT_POSITIONAL]: [makeArgumentsAssignedToOptionalParametersNamed(services)],
             [CODE_STYLE_UNNECESSARY_BODY]: [removeUnnecessaryBody(services)],
             [CODE_STYLE_UNNECESSARY_ARGUMENT_LIST]: [removeUnnecessaryArgumentList(services)],
-            [CODE_PARAMETER_BOUND_INVALID_VALUE]: [setCallArgumentToParameterBound(services)],
+            [CODE_PARAMETER_BOUND_INVALID_VALUE]: [setArgumentsToParameterBounds(services)],
         };
     }
 
