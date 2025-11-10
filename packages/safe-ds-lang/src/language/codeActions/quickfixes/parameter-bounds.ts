@@ -71,7 +71,7 @@ export const setArgumentsToParameterBounds = (services: SafeDsServices) => {
                 }
 
                 // Check violation and store first viable replacement
-                if (!checkBound(leftOp, operator, rightOp)) {
+                if (!satisifiesBound(leftOp, operator, rightOp)) {
                     hasViolation = true;
                     if (firstViolationReplacement === undefined) {
                         firstViolationReplacement = computeReplacementFromBound(operator, rightOp);
@@ -160,7 +160,7 @@ export const setArgumentsToParameterBounds = (services: SafeDsServices) => {
 /**
  * Check if a value satisfies a bound constraint
  */
-const checkBound = (leftOp: EvaluatedNode, operator: string, rightOp: EvaluatedNode): boolean => {
+const satisifiesBound = (leftOp: EvaluatedNode, operator: string, rightOp: EvaluatedNode): boolean => {
     switch (operator) {
         case '<':
             return leftOp < rightOp;
