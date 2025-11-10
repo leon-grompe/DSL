@@ -123,7 +123,7 @@ export const setArgumentsToParameterBounds = (services: SafeDsServices) => {
                 if (upperReplacement !== undefined) {
                     acceptor(
                         createQuickfixFromTextEditsToSingleDocument(
-                            `Set argument ${nodeMapper.argumentToParameter(arg)?.name} to its upper bound ${lowerReplacement}`,
+                            `Set argument ${nodeMapper.argumentToParameter(arg)?.name} to its upper bound ${upperReplacement}`,
                             diagnostic,
                             document,
                             [{ range: cstNode.range, newText: upperReplacement }],
