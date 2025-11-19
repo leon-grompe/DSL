@@ -12,7 +12,7 @@ import { CodeActionAcceptor } from '../safe-ds-code-action-provider.js';
 import { makeArgumentsAssignedToOptionalParametersNamed } from './arguments.js';
 import { removeUnnecessaryBody } from './body.js';
 import { removeUnnecessaryArgumentList } from './argument-list.js';
-import { setArgumentsToParameterBounds } from './parameter-bounds.js';
+import { setArgumentsToParameterBounds } from './para-bounds.js';
 
 
 export class SafeDsQuickfixProvider {
