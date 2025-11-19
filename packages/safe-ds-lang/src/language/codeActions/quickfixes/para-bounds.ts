@@ -1,11 +1,11 @@
 import { Diagnostic, TextEdit } from 'vscode-languageserver';
 import { LangiumDocument } from 'langium';
 import { SafeDsServices } from '../../safe-ds-module.js';
-import { isSdsCall, SdsExpression, SdsParameterBound } from '../../generated/ast.js';
+import { isSdsCall, isSdsComparisonOperator, SdsExpression, SdsParameterBound } from '../../generated/ast.js';
 import { getArguments, Parameter } from '../../helpers/nodeProperties.js';
 import { CodeActionAcceptor } from '../safe-ds-code-action-provider.js';
 import { createQuickfixFromTextEditsToSingleDocument } from '../factories.js';
-import { EvaluatedNode, IntConstant, FloatConstant, StringConstant, BooleanConstant, NullConstant } from '../../partialEvaluation/model.js';
+import { EvaluatedNode, FloatConstant, IntConstant } from '../../partialEvaluation/model.js';
 import { Position, Range } from 'vscode-languageserver-types';
 import { SafeDsPartialEvaluator } from '../../partialEvaluation/safe-ds-partial-evaluator.js';
 
@@ -91,104 +91,55 @@ export const setArgumentsToParameterBounds = (services: SafeDsServices) => {
  * Analyze a bound and determine if it's satisfied, along with a replacement if not.
  * Also returns the type of bound ('upper' or 'lower').
  */
-const analyzeBound = (leftOp: EvaluatedNode, operator: string, rightOp: EvaluatedNode) => {
-    // Helper to extract a primitive JS value from an EvaluatedNode. For numbers we keep
-    // number or bigint so comparisons are numeric. For strings we return the raw string
-    // value (without quotes). Fallback to the node's toString() if unknown.
-    const toPrimitive = (n: EvaluatedNode): number | bigint | string | boolean | null => {
-        if (n instanceof IntConstant) return n.value; // bigint
-        if (n instanceof FloatConstant) return n.value; // number
-        if (n instanceof StringConstant) return n.value; // unquoted string
-        if (n instanceof BooleanConstant) return n.value;
-        if (n === NullConstant) return null;
+const analyzeBound = (leftOp : EvaluatedNode, operator: string, rightOp : EvaluatedNode) => {   
+    let type : string = '';
+    let satisfied : boolean = false;
+    let replacement : string = '';
 
-        // Try to coerce typical constants represented as strings to numbers
-        const maybeNum = Number(n.toString());
-        if (!isNaN(maybeNum) && isFinite(maybeNum)) return maybeNum;
-
-        return n.toString();
-    };
-
-    const l = toPrimitive(leftOp);
-    const r = toPrimitive(rightOp);
-
-    let satisfied = false;
-    // Numeric comparisons when both sides are numeric (handle bigint separately)
-    if (typeof l === 'bigint' && typeof r === 'bigint') {
-        switch (operator) {
-            case '<': satisfied = l < r; break;
-            case '<=': satisfied = l <= r; break;
-            case '>': satisfied = l > r; break;
-            case '>=': satisfied = l >= r; break;
-            default: satisfied = false;
-        }
-    } else if ((typeof l === 'number' || typeof l === 'bigint') && (typeof r === 'number' || typeof r === 'bigint')) {
-        // convert bigints to numbers for mixed comparison
-        const ln = typeof l === 'bigint' ? Number(l) : (l as number);
-        const rn = typeof r === 'bigint' ? Number(r) : (r as number);
-        switch (operator) {
-            case '<': satisfied = ln < rn; break;
-            case '<=': satisfied = ln <= rn; break;
-            case '>': satisfied = ln > rn; break;
-            case '>=': satisfied = ln >= rn; break;
-            default: satisfied = false;
-        }
-    } else {
-        // Fallback: string comparison (use string form or raw string for StringConstant)
-        const ls = l === null ? 'null' : String(l);
-        const rs = r === null ? 'null' : String(r);
-        switch (operator) {
-            case '<': satisfied = ls < rs; break;
-            case '<=': satisfied = ls <= rs; break;
-            case '>': satisfied = ls > rs; break;
-            case '>=': satisfied = ls >= rs; break;
-            default: satisfied = false;
-        }
+    if ((!(leftOp instanceof FloatConstant) && !(leftOp instanceof IntConstant)) ||
+        !isSdsComparisonOperator(operator) ||
+        (!(rightOp instanceof FloatConstant) && !(rightOp instanceof IntConstant))
+    ) {
+        return {type, satisfied, replacement};
     }
 
-    // Compute replacement suggestion (prefer numeric adjustments where possible)
-    let replacement: string | undefined;
-    if (typeof r === 'bigint') {
-        // bigint adjustments
-        switch (operator) {
-            case '<': replacement = String((r as bigint) - 1n); break;
-            case '<=': replacement = String(r); break;
-            case '>': replacement = String((r as bigint) + 1n); break;
-            case '>=': replacement = String(r); break;
-            default: replacement = undefined;
-        }
-    } else if (typeof r === 'number') {
-        switch (operator) {
-            case '<': replacement = String(Math.floor(r) - 1); break;
-            case '<=': replacement = String(r); break;
-            case '>': replacement = String(Math.floor(r) + 1); break;
-            case '>=': replacement = String(r); break;
-            default: replacement = undefined;
-        }
-    } else if (typeof r === 'string') {
-        // For string bounds we just echo the right-hand string (no numeric adjustment)
-        replacement = r;
-    } else {
-        replacement = undefined;
-    }
+    const leftVal = leftOp.value;
+    const rightVal = rightOp.value;
 
-    // Map operator to bound type for messages
-    let type = '';
+    const rightValue = rightOp.toString();
+    const numericValue = Number(rightValue);
+    
+    // Check if we can parse as number for adjustment
+    const isNumeric = !isNaN(numericValue) && isFinite(numericValue);
+
     switch (operator) {
         case '<':
+            type = 'upper';
+            satisfied = leftVal < rightVal;
+            replacement = isNumeric ? String(Math.floor(numericValue) - 1) : '';
+            break;
         case '<=':
             type = 'upper';
+            satisfied = leftVal <= rightVal;
+            replacement = isNumeric ? String(numericValue) : '';
             break;
         case '>':
+            type = 'lower';
+            satisfied = leftVal > rightVal;
+            replacement = isNumeric ? String(Math.floor(numericValue) + 1) : '';
+            break;
         case '>=':
             type = 'lower';
+            satisfied = leftVal >= rightVal;
+            replacement = isNumeric ? String(numericValue) : '';
             break;
         default:
             type = '';
+            satisfied = false;
+            replacement = '';
     }
-
-    return { type, satisfied, replacement };
-};
+    return {type, satisfied, replacement};
+}
 
 /**
  * Check if two ranges intersect
