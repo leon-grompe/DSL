@@ -1,13 +1,12 @@
 import { Diagnostic, TextEdit } from 'vscode-languageserver';
 import { LangiumDocument } from 'langium';
 import { SafeDsServices } from '../../safe-ds-module.js';
-import { isSdsCall, isSdsComparisonOperator, SdsExpression, SdsParameterBound } from '../../generated/ast.js';
+import { isSdsCall, isSdsComparisonOperator } from '../../generated/ast.js';
 import { getArguments, Parameter } from '../../helpers/nodeProperties.js';
 import { CodeActionAcceptor } from '../safe-ds-code-action-provider.js';
 import { createQuickfixFromTextEditsToSingleDocument } from '../factories.js';
 import { EvaluatedNode, FloatConstant, IntConstant } from '../../partialEvaluation/model.js';
 import { Position, Range } from 'vscode-languageserver-types';
-import { SafeDsPartialEvaluator } from '../../partialEvaluation/safe-ds-partial-evaluator.js';
 
 export const setArgumentsToParameterBounds = (services: SafeDsServices) => {
     const locator = services.workspace.AstNodeLocator;
@@ -48,6 +47,7 @@ export const setArgumentsToParameterBounds = (services: SafeDsServices) => {
             if (bounds.length === 0) {
                 continue;
             }
+            
             const argText = cstNode.text;
             const leftVal = partialEvaluator.evaluate(arg.value,substitutions);
             
@@ -59,8 +59,7 @@ export const setArgumentsToParameterBounds = (services: SafeDsServices) => {
                 
                 // If bound is not satisfied, create quickfix
                 if (!boundInfo.satisfied) {
-                    // Perserve parameter name, if it was present originally
-                    // Perserve original formatting 
+                    // Perserve parameter name and original formatting
                     if (argText.includes(param.name)){
                         boundInfo.replacement = argText.replace(arg.value.$cstNode?.text || '', boundInfo.replacement);
                     }
@@ -102,35 +101,31 @@ const analyzeBound = (leftOp : EvaluatedNode, operator: string, rightOp : Evalua
         return {type, satisfied, replacement};
     }
 
-    const leftVal = leftOp.value;
-    const rightVal = rightOp.value;
+    const argumentValue = leftOp.value;
+    const boundValue = rightOp.value;
 
-    const rightValue = rightOp.toString();
-    const numericValue = Number(rightValue);
+    const rightNumeric = Number(boundValue);
     
-    // Check if we can parse as number for adjustment
-    const isNumeric = !isNaN(numericValue) && isFinite(numericValue);
-
     switch (operator) {
         case '<':
             type = 'upper';
-            satisfied = leftVal < rightVal;
-            replacement = isNumeric ? String(Math.floor(numericValue) - 1) : '';
+            satisfied = argumentValue < boundValue;
+            replacement = String(Math.ceil(rightNumeric) - 1);
             break;
         case '<=':
             type = 'upper';
-            satisfied = leftVal <= rightVal;
-            replacement = isNumeric ? String(numericValue) : '';
+            satisfied = argumentValue <= boundValue;
+            replacement = String(boundValue);
             break;
         case '>':
             type = 'lower';
-            satisfied = leftVal > rightVal;
-            replacement = isNumeric ? String(Math.floor(numericValue) + 1) : '';
+            satisfied = argumentValue > boundValue;
+            replacement = String(Math.floor(rightNumeric) + 1);
             break;
         case '>=':
             type = 'lower';
-            satisfied = leftVal >= rightVal;
-            replacement = isNumeric ? String(numericValue) : '';
+            satisfied = argumentValue >= boundValue;
+            replacement = String(boundValue);
             break;
         default:
             type = '';
