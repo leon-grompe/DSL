@@ -48,24 +48,23 @@ export const setArgumentsToParameterBounds = (services: SafeDsServices) => {
             if (bounds.length === 0) {
                 continue;
             }
-
+            const argText = cstNode.text;
             const leftVal = partialEvaluator.evaluate(arg.value,substitutions);
             
             for (const bound of bounds) {
-                // 
-                console.log('Processing bound:', bound.operator, bound.rightOperand.$cstNode?.text);
-
                 const rightVal = partialEvaluator.evaluate(bound.rightOperand, substitutions);
                 const operator = bound.operator;
                 
                 const boundInfo = analyzeBound(leftVal, operator, rightVal);
                 
-                //
-                console.log(`Bound analysis for argument to parameter ${param.name}:`, boundInfo);
-                console.log(leftVal.toString(),operator, rightVal.toString(), boundInfo.satisfied);
-                
                 // If bound is not satisfied, create quickfix
                 if (!boundInfo.satisfied) {
+                    // Perserve parameter name, if it was present originally
+                    // Perserve original formatting 
+                    if (argText.includes(param.name)){
+                        boundInfo.replacement = argText.replace(arg.value.$cstNode?.text || '', boundInfo.replacement);
+                    }
+                    
                     const edit: TextEdit = {
                         range: cstNode.range,
                         newText: `${boundInfo.replacement}`,
