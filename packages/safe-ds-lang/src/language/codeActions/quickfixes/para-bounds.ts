@@ -8,6 +8,14 @@ import { createQuickfixFromTextEditsToSingleDocument } from '../factories.js';
 import { EvaluatedNode, FloatConstant, IntConstant } from '../../partialEvaluation/model.js';
 import { Position, Range } from 'vscode-languageserver-types';
 
+/**
+ * Creates Quickfixes to set argument values to satisfy parameter bounds while keeping original formatting.
+ * 
+ * Sets argument values to the closest valid integer value that satisfies the bound.
+ * @param services 
+ * @returns Quickfix function
+ */
+
 export const setArgumentsToParameterBounds = (services: SafeDsServices) => {
     const locator = services.workspace.AstNodeLocator;
     const nodeMapper = services.helpers.NodeMapper;
