@@ -15,7 +15,6 @@ import { Position, Range } from 'vscode-languageserver-types';
  * @param services 
  * @returns Quickfix function
  */
-
 export const setArgumentsToParameterBounds = (services: SafeDsServices) => {
     const locator = services.workspace.AstNodeLocator;
     const nodeMapper = services.helpers.NodeMapper;
