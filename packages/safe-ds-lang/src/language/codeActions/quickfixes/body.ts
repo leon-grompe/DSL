@@ -11,52 +11,31 @@ export const removeUnnecessaryBody = (services: SafeDsServices) => {
     return (diagnostic: Diagnostic, document: LangiumDocument, acceptor: CodeActionAcceptor) => {
         const node = locator.getAstNode(document.parseResult.value, diagnostic.data.path);
 
-        if (isSdsClassBody(node)){
-            const cstNode = node.$cstNode;
-
-            if (!cstNode || node.members.length > 0) {
-                return;
-            }
-            
-            const edit: TextEdit = {
-                range: cstNode.range,
-                newText: '',
-            }
-
-            acceptor(
-                createQuickfixFromTextEditsToSingleDocument(
-                    'Remove unnecessary empty class body.',
-                    diagnostic,
-                    document,
-                    [edit],
-                    true,
-                ),
-            );
+        if(!isSdsClassBody(node) && !isSdsEnumBody(node)){
+            /* c8 ignore next 2 */
+            return;
         }
+        const cstNode = node.$cstNode;
 
-        if (isSdsEnumBody(node)){
-            const cstNode = node.$cstNode;
-
-            if (!cstNode || node.variants.length > 0) {
-                return;
-            }
-            
-            const edit: TextEdit = {
-                range: cstNode.range,
-                newText: '',
-            }
-            
-            acceptor(
-                createQuickfixFromTextEditsToSingleDocument(
-                    'Remove unnecessary empty enum body.',
-                    diagnostic,
-                    document,
-                    [edit],
-                    true,
-                ),
-            );
+        // from my testing, further checks are not necessary, 
+        // as the diagnostic should only be created for empty bodies
+        if (!cstNode) {
+            return;
         }
         
-        return;
+        const edit: TextEdit = {
+            range: cstNode.range,
+            newText: '',
+        }
+
+        acceptor(
+            createQuickfixFromTextEditsToSingleDocument(
+                'Remove unnecessary empty body.',
+                diagnostic,
+                document,
+                [edit],
+                true,
+            ),
+        );
     };
 };

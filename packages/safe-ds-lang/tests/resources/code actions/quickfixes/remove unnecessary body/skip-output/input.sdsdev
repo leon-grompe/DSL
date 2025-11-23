@@ -2,8 +2,16 @@
 
 package tests.codeActions.quickfixes.removeUnnecessaryBody
 
-class MyTestClass 
-
-enum MyTestEnum {
-
+class MyTestClass1() {
+    attr x: Int
 }
+
+enum MyTestEnum1 {
+    A
+    B
+    C
+}
+
+class MyTestClass()
+
+enum MyTestEnum
