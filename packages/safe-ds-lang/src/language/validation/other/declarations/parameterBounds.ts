@@ -27,7 +27,6 @@ export const callArgumentMustRespectParameterBounds = (services: SafeDsServices)
     
     return (node: SdsCall, accept: ValidationAcceptor) => {
         const substitutions = partialEvaluator.computeParameterSubstitutionsForCall(node);
-
         for (const argument of getArguments(node)) {
             const value = partialEvaluator.evaluate(argument.value);
             if (!(value instanceof Constant)) {
@@ -39,6 +38,10 @@ export const callArgumentMustRespectParameterBounds = (services: SafeDsServices)
                 continue;
             }
 
+            // Collect all bound violation messages for this argument, then emit a
+            // single diagnostic. This prevents multiple diagnostics (and therefore
+            // multiple quickfix runs) for the same argument when many bounds fail.
+            const violationMessages: string[] = [];
             for (const bound of Parameter.getBounds(parameter)) {
                 const rightOperand = partialEvaluator.evaluate(bound.rightOperand, substitutions);
                 const messageEvaluatedNode = partialEvaluator.evaluate(bound.message, substitutions);
@@ -47,13 +50,21 @@ export const callArgumentMustRespectParameterBounds = (services: SafeDsServices)
 
                 const error = checkBound(parameter.name, value, bound.operator, rightOperand, customMessage);
                 if (error) {
-                    accept('error', error, {
-                        node: argument,
-                        property: 'value',
-                        code: CODE_PARAMETER_BOUND_INVALID_VALUE,
-                        data: { path: locator.getAstNodePath(node) }
-                    });
+                    violationMessages.push(error);
                 }
+            }
+
+            if (violationMessages.length > 0) {
+                // Prefer a custom/first message, otherwise join multiple messages.
+                // `violationMessages` only contains strings so use non-null assertion
+                // for the single-element case to satisfy type checker.
+                const message = violationMessages.length === 1 ? violationMessages[0]! : violationMessages.join(' ');
+                accept('error', message, {
+                    node: argument,
+                    property: 'value',
+                    code: CODE_PARAMETER_BOUND_INVALID_VALUE,
+                    data: { path: locator.getAstNodePath(node) }
+                });
             }
         }
     };

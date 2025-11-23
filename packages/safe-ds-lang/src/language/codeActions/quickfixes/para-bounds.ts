@@ -1,7 +1,7 @@
 import { Diagnostic, TextEdit } from 'vscode-languageserver';
 import { LangiumDocument } from 'langium';
 import { SafeDsServices } from '../../safe-ds-module.js';
-import { isSdsCall, isSdsComparisonOperator } from '../../generated/ast.js';
+import { isSdsCall, isSdsComparisonOperator, SdsArgument, SdsParameterBound } from '../../generated/ast.js';
 import { getArguments, Parameter } from '../../helpers/nodeProperties.js';
 import { CodeActionAcceptor } from '../safe-ds-code-action-provider.js';
 import { createQuickfixFromTextEditsToSingleDocument } from '../factories.js';
@@ -28,10 +28,16 @@ export const setArgumentsToParameterBounds = (services: SafeDsServices) => {
         }
         
         const substitutions = partialEvaluator.computeParameterSubstitutionsForCall(node);
-
+        
+        //
+        console.log(`Processing call node with ${getArguments(node).length} arguments.`);
+        
         for (const arg of getArguments(node)) {
             const cstNode = arg.$cstNode;
-            
+
+            //
+            console.log(`Processing argument: ${arg.$cstNode?.text}`);
+
             if (!cstNode) {
                 continue;
             }
@@ -58,12 +64,18 @@ export const setArgumentsToParameterBounds = (services: SafeDsServices) => {
             const argText = cstNode.text;
             const leftVal = partialEvaluator.evaluate(arg.value,substitutions);
             
+            //
+            console.log(`Checking argument '${argText}' against bounds of parameter '${param.name}'`);
+            
             for (const bound of bounds) {
                 const rightVal = partialEvaluator.evaluate(bound.rightOperand, substitutions);
                 const operator = bound.operator;
                 
                 const boundInfo = analyzeBound(leftVal, operator, rightVal);
                 
+                //
+                console.log(boundInfo);
+
                 // If bound is not satisfied, create quickfix
                 if (!boundInfo.satisfied) {
                     // Perserve parameter name and original formatting
