@@ -1,0 +1,79 @@
+// $TEST$ apply r"^Set.*"
+
+package tests.codeActions.quickfixes.setArgumentsToParameterBounds
+
+// single argument, single bound, int
+segment singleBoundIntG(const x: Int)       where {x > 0}{}
+segment singleBoundIntL(const x: Int)       where {x < 0}{}
+segment singleBoundIntGE(const x: Int)      where {x >= 0}{}
+segment singleBoundIntLE(const x: Int)      where {x <= 0}{}
+
+// single argument, single bound, float
+segment singleBoundFloatG(const x: Float)   where {x > 0.9}{}
+segment singleBoundFloatL(const x: Float)   where {x < 0.0}{}
+segment singleBoundFloatGE(const x: Float)  where {x >= 0.0}{}
+segment singleBoundFloatLE(const x: Float)  where {x <= 0.0}{}
+
+// single argument, multiple bounds, int
+segment multiBoundsInt(const x: Int)        where {x > 0, x < 10}{}
+segment multiBoundsInt2(const x: Int)       where {x >= 10, x >= 0}{}
+
+// single argument, multiple bounds, float
+segment multiBoundsFloat(const x: Float)    where {x > 0.0, x < 10.0}{}
+segment multiBoundsFloat2(const x: Float)   where {x >= 10.0, x >= 0.0}{}
+
+
+// multiple arguments, single bound, int
+segment multiArgsSingleBoundInt(const x: Int, const y: Int, const z: Int)
+where { x > -100,
+        y < 0,
+        z >= 100}{}
+
+// multiple arguments, single bound, float
+segment multiArgsSingleBoundFloat(const x: Float, const y: Float, const z: Float)
+where { x > -100.0,
+        y < 0.0,
+        z >= 100.0}{}
+
+
+// multiple arguments, multiple bounds, int
+segment multiArgsMultiBoundsInt(const x: Int, const y: Int, const z: Int)
+where { x > 0, x < 10,
+        y >= -50, y <= 50,
+        z > 100, z < 200}{}
+
+
+// multiple arguments, multiple bounds, float
+segment multiArgsMultiBoundsFloat(const x: Float, const y: Float, const z: Float)
+where { x > 0.0, x < 10.0,
+        y >= -50.0, y <= 50.0,
+        z > 100.0, z < 200.0}{}
+
+
+pipeline testPipeline{
+    // single argument, single bound, int
+    singleBoundIntG(1);
+    singleBoundIntL(-1);
+    singleBoundIntGE(0);
+    singleBoundIntLE(0);
+
+    // single argument, single bound, float
+    singleBoundFloatG(1);
+    singleBoundFloatL(-1);
+    singleBoundFloatGE(0);
+    singleBoundFloatLE(0);
+
+    // single argument, multiple bounds, int
+    multiBoundsInt(1);
+    multiBoundsInt2(10);
+
+    // single argument, multiple bounds, float
+    multiBoundsFloat(1);
+    multiBoundsFloat2(10);
+
+    // multiple arguments, single bound, int
+    multiArgsSingleBoundInt(-99, -1, 100);
+
+    // multiple arguments, single bound, float
+    multiArgsSingleBoundFloat(-99, -1, 100);
+}
