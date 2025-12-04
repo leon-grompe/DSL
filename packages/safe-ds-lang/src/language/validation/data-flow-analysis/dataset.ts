@@ -1,6 +1,6 @@
 import { ValidationAcceptor } from 'langium';
 import { SafeDsServices } from '../../safe-ds-module.js';
-import { SdsPlaceholder, SdsStatement, isSdsBlock, isSdsPlaceholder, isSdsStatement, isSdsAssignment } from '../../generated/ast.js';
+import { SdsPlaceholder, SdsStatement, isSdsBlock, isSdsPlaceholder, isSdsStatement, isSdsAssignment, SdsAssignee } from '../../generated/ast.js';
 import { SafeDsSlicer } from '../../flow/safe-ds-slicer.js';
 import { AstUtils } from 'langium';
 import { getStatements, getAssignees } from '../../helpers/nodeProperties.js';
@@ -25,14 +25,19 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
         }
 
         const targets = [targetStatement];
+        console.log('=====================')
         console.log('slicing for test data placeholder', node.name);
         for (const statement of slicer.computeBackwardSliceToTargetsWithoutPurity(statements, targets)) {
-
             // We only care about assignments that bind placeholders.
             if (!isSdsAssignment(statement)) continue;
 
+            console.log('  checking statement', statement.$cstNode?.text);
+
             const assignees = getAssignees(statement);
-            const placeholderAssignee = assignees.find((a) => isSdsPlaceholder(a)) as SdsPlaceholder | undefined;
+            for (const assigned of assignees) {
+                console.log('  assignment to', assigned.$cstNode?.text);
+            }
+            const placeholderAssignee = assignees.find((it) => isSdsPlaceholder(it)) as SdsPlaceholder | undefined;
             if (!placeholderAssignee) continue;
 
             // Emit diagnostic on the placeholder itself so the user sees the precise symbol.
