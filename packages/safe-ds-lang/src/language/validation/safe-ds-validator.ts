@@ -355,7 +355,11 @@ export const registerValidationChecks = function (services: SafeDsServices) {
         ],
         SdsParameterList: [parameterListMustNotHaveRequiredParametersAfterOptionalParameters],
         SdsPipeline: [pipelinesMustBePrivate, pipelineMustContainUniqueNames],
-        SdsPlaceholder: [placeholdersMustNotBeAnAlias, placeholderShouldBeUsed(services)],
+        SdsPlaceholder: [
+            placeholdersMustNotBeAnAlias, 
+            placeholderShouldBeUsed(services),
+            testDataUsedForTraining(services),
+        ],
         SdsPrefixOperation: [prefixOperationOperandMustHaveCorrectType(services)],
         SdsReference: [
             referenceMustNotBeFunctionPointer,
@@ -371,10 +375,7 @@ export const registerValidationChecks = function (services: SafeDsServices) {
             segmentResultMustBeAssignedExactlyOnce(services),
             segmentResultListShouldNotBeEmpty(services),
         ],
-        SdsStatement: [
-            statementMustDoSomething(services),
-            testDataUsedForTraining(services),
-        ],
+        SdsStatement: [statementMustDoSomething(services)],
         SdsTemplateString: [templateStringMustHaveExpressionBetweenTwoStringParts],
         SdsThis: [thisMustReferToClassInstance(services)],
         SdsType: [typeMustBeUsedInCorrectContext(services)],
