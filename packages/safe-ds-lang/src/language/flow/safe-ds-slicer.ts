@@ -48,7 +48,31 @@ export class SafeDsSlicer {
 
         return aggregator.statements;
     }
+
+    computeBackwardSliceToTargetsWithoutPurity(statements: SdsStatement[], targets: SdsStatement[]): SdsStatement[]{
+        const aggregator = new BackwardSliceAggregator(this.purityComputer);
+
+        // Iterate over a reversed copy to avoid mutating the caller's array
+        for (const statement of [...statements].reverse()) {
+            // Keep if it is a target
+            if (targets.includes(statement)) {
+                aggregator.addStatementWithoutPurity(statement);
+            }
+
+            // Keep if it declares a referenced placeholder
+            else if (
+                isSdsAssignment(statement) &&
+                getAssignees(statement).some((it) => isSdsPlaceholder(it) && aggregator.referencedPlaceholders.has(it))
+            ) {
+                aggregator.addStatementWithoutPurity(statement);
+            }
+        }
+
+        return aggregator.statements;
+    }
 }
+
+
 
 class BackwardSliceAggregator {
     private readonly purityComputer: SafeDsPurityComputer;
@@ -85,6 +109,15 @@ class BackwardSliceAggregator {
         // Remember all impurity reasons
         this.purityComputer.getImpurityReasonsForStatement(statement).forEach((it) => {
             this.impurityReasons.push(it);
+        });
+    }
+
+    addStatementWithoutPurity(statement: SdsStatement): void {
+        this.statements.unshift(statement);
+
+        // Remember all referenced placeholders
+        this.getReferencedPlaceholders(statement).forEach((it) => {
+            this.referencedPlaceholders.add(it);
         });
     }
 
