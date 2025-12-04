@@ -190,6 +190,8 @@ import { messageOfConstraintsMustOnlyReferenceConstantParameters } from './other
 import { argumentMustBeNamedIfParameterIsOptional } from './other/expressions/arguments.js';
 import { typeMustBeUsedInCorrectContext } from './other/types/types.js';
 
+import { testDataUsedForTraining } from './data-flow-analysis/dataset.js';
+
 /**
  * Register custom validation checks.
  */
@@ -369,7 +371,10 @@ export const registerValidationChecks = function (services: SafeDsServices) {
             segmentResultMustBeAssignedExactlyOnce(services),
             segmentResultListShouldNotBeEmpty(services),
         ],
-        SdsStatement: [statementMustDoSomething(services)],
+        SdsStatement: [
+            statementMustDoSomething(services),
+            testDataUsedForTraining(services),
+        ],
         SdsTemplateString: [templateStringMustHaveExpressionBetweenTwoStringParts],
         SdsThis: [thisMustReferToClassInstance(services)],
         SdsType: [typeMustBeUsedInCorrectContext(services)],
