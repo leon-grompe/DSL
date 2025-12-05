@@ -52,8 +52,8 @@ export class SafeDsSlicer {
     computeBackwardSliceToTargetsWithoutPurity(statements: SdsStatement[], targets: SdsStatement[]): SdsStatement[]{
         const aggregator = new BackwardSliceAggregator(this.purityComputer);
 
-        // Iterate over a reversed copy to avoid mutating the caller's array
-        for (const statement of [...statements].reverse()) {
+
+        for (const statement of statements.reverse()) {
             // Keep if it is a target
             if (targets.includes(statement)) {
                 aggregator.addStatementWithoutPurity(statement);
