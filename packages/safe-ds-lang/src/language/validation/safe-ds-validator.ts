@@ -244,6 +244,7 @@ export const registerValidationChecks = function (services: SafeDsServices) {
             callArgumentMustRespectParameterBounds(services),
             callMustNotBeRecursive(services),
             callReceiverMustBeCallable(services),
+            testDataUsedForTraining(services),
         ],
         SdsCallableType: [
             callableTypeMustContainUniqueNames,
@@ -358,7 +359,6 @@ export const registerValidationChecks = function (services: SafeDsServices) {
         SdsPlaceholder: [
             placeholdersMustNotBeAnAlias, 
             placeholderShouldBeUsed(services),
-            testDataUsedForTraining(services),
         ],
         SdsPrefixOperation: [prefixOperationOperandMustHaveCorrectType(services)],
         SdsReference: [
