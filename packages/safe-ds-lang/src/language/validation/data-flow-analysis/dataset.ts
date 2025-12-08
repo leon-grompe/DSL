@@ -1,10 +1,9 @@
 import { ValidationAcceptor } from 'langium';
 import { SafeDsServices } from '../../safe-ds-module.js';
-import { SdsCall, SdsExpression, SdsStatement, isSdsBlock, isSdsPlaceholder, isSdsStatement, isSdsAssignment, SdsAssignee, isSdsCall, isSdsFunction, isSdsReference, SdsAssignment, isSdsObject, SdsPlaceholder } from '../../generated/ast.js';
+import { SdsCall, SdsStatement, isSdsBlock, isSdsStatement, isSdsAssignment, isSdsCall, isSdsFunction, isSdsReference } from '../../generated/ast.js';
 import { SafeDsSlicer } from '../../flow/safe-ds-slicer.js';
 import { AstUtils } from 'langium';
 import { getStatements, getAssignees, getArguments } from '../../helpers/nodeProperties.js';
-import { SafeDsNodeMapper } from '../../helpers/safe-ds-node-mapper.js';
 
 export const CODE_TEST_DATA_USED_FOR_TRAINING = 'data-flow-analysis/test-data-used-for-training';
 
@@ -53,14 +52,14 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
                 }
             } else { continue }     
         
-            const assignees = statement.assigneeList?.assignees;
+            const assignees = getAssignees(statement);
             if (!assignees){
                 continue;
             }
             const testData = assignees[1];
 
             // Get the argument value (which should be a reference to a placeholder)
-            const argument = node.argumentList?.arguments[0];
+            const argument = getArguments(node)[0];
             if (!argument || !argument.value || !isSdsReference(argument.value)) {
                 continue;
             }
