@@ -1,6 +1,6 @@
 import { ValidationAcceptor } from 'langium';
 import { SafeDsServices } from '../../safe-ds-module.js';
-import { SdsCall, SdsStatement, isSdsBlock, isSdsStatement, isSdsAssignment, isSdsCall, isSdsFunction, isSdsReference } from '../../generated/ast.js';
+import { SdsPlaceholder, SdsCall, SdsStatement, isSdsBlock, isSdsStatement, isSdsAssignment, isSdsCall, isSdsFunction, isSdsReference } from '../../generated/ast.js';
 import { SafeDsSlicer } from '../../flow/safe-ds-slicer.js';
 import { AstUtils } from 'langium';
 import { getStatements, getAssignees, getArguments } from '../../helpers/nodeProperties.js';
@@ -10,7 +10,7 @@ export const CODE_TEST_DATA_USED_FOR_TRAINING = 'data-flow-analysis/test-data-us
 export const testDataUsedForTraining = (services: SafeDsServices) => {
     const locator = services.workspace.AstNodeLocator;
     const nodeMapper = services.helpers.NodeMapper;
-    const slicer = new SafeDsSlicer(services);
+    const slicer = services.flow.Slicer;
     
     return (node: SdsCall, accept: ValidationAcceptor) => {
         // Find the statement that actually declares/contains this placeholder
@@ -63,7 +63,7 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
             if (!argument || !argument.value || !isSdsReference(argument.value)) {
                 continue;
             }
-            const referencedDeclaration = argument.value.target.ref;
+            const referencedDeclaration = argument.value.target.ref as SdsPlaceholder;
             if(!referencedDeclaration){
                 continue;
             }

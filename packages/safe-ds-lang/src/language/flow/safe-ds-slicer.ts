@@ -1,9 +1,11 @@
 import { SafeDsServices } from '../safe-ds-module.js';
-import { isSdsAssignment, isSdsPlaceholder, isSdsReference, SdsPlaceholder, SdsStatement } from '../generated/ast.js';
+import { isSdsAssignment, isSdsPlaceholder, isSdsReference, SdsPlaceholder, SdsStatement, SdsArgument, SdsReference, isSdsCall, isSdsFunction } from '../generated/ast.js';
 import { AstUtils, Stream } from 'langium';
 import { ImpurityReason } from '../purity/model.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
 import { SafeDsPurityComputer } from '../purity/safe-ds-purity-computer.js';
+import { integer } from 'vscode-languageserver';
+import { SafeDsNodeMapper } from '../helpers/safe-ds-node-mapper.js';
 
 export class SafeDsSlicer {
     private readonly purityComputer: SafeDsPurityComputer;
@@ -69,6 +71,72 @@ export class SafeDsSlicer {
         }
 
         return aggregator.statements;
+    }
+
+
+    checkIfArgumentIsAssigneeOfSpecificFunction(services: SafeDsServices, placeholderRef: SdsReference, functionCallName: String, correctAssigneePosition: integer) {
+        const nodeMapper = services.helpers.NodeMapper;
+        
+        const referencedPlaceholder = placeholderRef.target.ref as SdsPlaceholder;
+        const parent = referencedPlaceholder.$cstNode?.container?.astNode;
+        if(!isSdsAssignment(parent)){
+            return;
+        }
+        
+        const expr = parent.expression;
+        if(!expr){
+            return;
+        }
+        if(isSdsCall(expr)){
+            const callable = nodeMapper.callToCallable(expr);
+            const args = expr.argumentList.arguments;
+            
+            // Not the target call
+            if (!isSdsFunction(callable) || callable.name != functionCallName){
+                // Call recursively on all args
+                for (const arg of args){
+                    if (isSdsReference(arg.value)){
+                        const argRef = arg.value;
+                        this.checkIfArgumentIsAssigneeOfSpecificFunction(services, argRef, functionCallName, correctAssigneePosition);
+                    }
+                    else { return; }
+                }
+            }
+            
+            // Is the target call
+            else {
+                // Placeholder is at correct position -> need to go deeper
+                if (parent.assigneeList?.assignees[correctAssigneePosition] === referencedPlaceholder){
+                    for (const arg of args){
+                        // Argument is a reference to a placeholder
+                        if (isSdsReference(arg.value)){
+                            const argRefPlchldr = arg.value;
+                            this.checkIfArgumentIsAssigneeOfSpecificFunction(services, argRefPlchldr, functionCallName, correctAssigneePosition);
+                        }
+                        // Argument is a call
+                        else if (isSdsCall(arg.value)){
+                            const argRefCll = arg.value;
+                            const newArgs = argRefCll.argumentList.arguments;
+                            for (const newArg of newArgs){
+                                const newRef = newArg.value as SdsReference;
+                                this.checkIfArgumentIsAssigneeOfSpecificFunction(services, newRef, functionCallName, correctAssigneePosition)
+                            }
+                        }
+                    }
+                }
+                // Placeholder is at wrong position -> can stop here
+                else {
+                    return;
+                }
+
+            }
+        }
+        else {
+            if(!isSdsReference(expr)){
+                return;
+            }
+            this.checkIfArgumentIsAssigneeOfSpecificFunction(services, expr, functionCallName, correctAssigneePosition);
+        }     
     }
 }
 
