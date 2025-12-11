@@ -1,12 +1,52 @@
 import { ValidationAcceptor } from 'langium';
 import { SafeDsServices } from '../../safe-ds-module.js';
-import { SdsPlaceholder, SdsCall, SdsStatement, isSdsBlock, isSdsStatement, isSdsAssignment, isSdsCall, isSdsFunction, isSdsReference } from '../../generated/ast.js';
+import { SdsPlaceholder, SdsCall, SdsStatement, isSdsBlock, isSdsStatement, isSdsAssignment, isSdsCall, isSdsFunction, isSdsReference, isSdsArgument, SdsReference } from '../../generated/ast.js';
 import { SafeDsSlicer } from '../../flow/safe-ds-slicer.js';
 import { AstUtils } from 'langium';
 import { getStatements, getAssignees, getArguments } from '../../helpers/nodeProperties.js';
+import { SafeDsCodeLensProvider } from '../../lsp/safe-ds-code-lens-provider.js';
 
 export const CODE_TEST_DATA_USED_FOR_TRAINING = 'data-flow-analysis/test-data-used-for-training';
 
+
+export const testDataUsedForTraining = (services: SafeDsServices) => {
+    const locator = services.workspace.AstNodeLocator;
+    const nodeMapper = services.helpers.NodeMapper;
+    const slicer = services.flow.Slicer;
+    
+    return (node: SdsCall, accept: ValidationAcceptor) => {
+        // Check if node is 'fit' call
+        const nodesCallable = nodeMapper.callToCallable(node);
+        if (!isSdsFunction(nodesCallable) || nodesCallable.name !== 'fit') {
+            return;
+        }
+        
+        const argList = node.argumentList.arguments;
+        for (const arg of argList){
+            if (!isSdsReference(arg.value)){
+                continue;
+            }
+            const refPlacehldr = arg.value.target.ref as SdsPlaceholder;
+            console.log('Investigating: ' + refPlacehldr.name + ' ==================');
+            let placeholders = new Array<SdsPlaceholder>();
+            slicer.checkIfArgumentIsAssigneeOfSpecificFunction(refPlacehldr,'splitRows',1,services, placeholders);
+            console.log(placeholders.length);
+            for (const placeholder of placeholders){
+                console.log(placeholder.name);
+            }
+        }
+        
+
+        accept('warning', 'Testing Dataset should not be used to train a Model', {
+            node: node,
+            property: 'argumentList',
+            code: CODE_TEST_DATA_USED_FOR_TRAINING,
+            data: { path: locator.getAstNodePath(node) },
+        });
+
+    }
+}
+/*
 export const testDataUsedForTraining = (services: SafeDsServices) => {
     const locator = services.workspace.AstNodeLocator;
     const nodeMapper = services.helpers.NodeMapper;
@@ -83,7 +123,7 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
                     });
                 }
             }
-            */
+            
             
             // PROBLEM: only triggers validation from direct references
             if (testData === referencedDeclaration) {
@@ -97,3 +137,4 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
         }
     };
 }
+*/
