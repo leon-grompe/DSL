@@ -1,12 +1,11 @@
 import { SafeDsServices } from '../safe-ds-module.js';
-import { isSdsAssignment, isSdsPlaceholder, isSdsReference, SdsPlaceholder, SdsStatement, SdsArgumentList, SdsArgument, SdsReference, isSdsCall, isSdsFunction, isSdsDeclaration } from '../generated/ast.js';
+import { isSdsAssignment, isSdsPlaceholder, isSdsReference, SdsPlaceholder, SdsStatement, SdsCall, SdsArgumentList, SdsArgument, SdsReference, isSdsCall, isSdsFunction, isSdsDeclaration, SdsExpression, isSdsChainedExpression, isSdsExpression, isSdsMemberAccess } from '../generated/ast.js';
 import { AstUtils, Stream } from 'langium';
 import { ImpurityReason } from '../purity/model.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
 import { SafeDsPurityComputer } from '../purity/safe-ds-purity-computer.js';
 import { integer } from 'vscode-languageserver';
 import { SafeDsNodeMapper } from '../helpers/safe-ds-node-mapper.js';
-import { C } from 'vitest/dist/chunks/reporters.d.BFLkQcL6.js';
 
 export class SafeDsSlicer {
     private readonly purityComputer: SafeDsPurityComputer;
@@ -88,31 +87,37 @@ export class SafeDsSlicer {
         
         const parentAssList = placeholder.$cstNode?.container?.astNode;
         const parentAssignment = parentAssList?.$cstNode?.container?.astNode;
+        /*
         // debug print
         console.log('assignment: ' + parentAssignment?.$cstNode?.text);
-        if(!isSdsAssignment(parentAssignment)){ console.log('not an assignment!'); return; }
+        */
+        if(!isSdsAssignment(parentAssignment)){ return; }
         
         const expr = parentAssignment.expression;
         if(!expr){ return; }
         
         if(isSdsCall(expr)){
+            /*
             // debug print
             console.log('expression ' + expr.$cstNode?.text + ' is a call');
+            */
             const callable = nodeMapper.callToCallable(expr);
 
             // Not the target call
             if (!isSdsFunction(callable) || callable.name != functionCallName){
+                /*
                 // debug print
                 console.log('callable ' + callable?.$cstNode?.text + ' ');
+                */
                 // Call recursively on all args
-                this.checkCallArguments(expr.argumentList, functionCallName, correctAssigneePosition, services, results);
+                this.checkCallArguments(expr, functionCallName, correctAssigneePosition, services, results);
             }
             
             // Is the target call
             else {
                 // Placeholder is at correct position -> need to go deeper
                 if (parentAssignment.assigneeList?.assignees[correctAssigneePosition] === placeholder){
-                    this.checkCallArguments(expr.argumentList, functionCallName, correctAssigneePosition, services, results);
+                    this.checkCallArguments(expr, functionCallName, correctAssigneePosition, services, results);
                 }
                 // Placeholder is at wrong position -> can stop here
                 else { return; }
@@ -120,7 +125,10 @@ export class SafeDsSlicer {
             }
         }
         else {
+            /*
+            // Debug print
             console.log('expression ' + expr.$cstNode?.text + ' is a NOT call')
+            */
             if(!isSdsReference(expr)){ return; }
             if(!isSdsDeclaration(expr.target)){ return; }
             if(!isSdsPlaceholder(expr.target.ref)){ return;}
@@ -135,15 +143,43 @@ export class SafeDsSlicer {
 
     // PROBLEM: does not get receiver correctly!!!
     checkCallArguments(
-        argumentList: SdsArgumentList | undefined, 
+        call: SdsCall, 
         functionCallName: string, 
         correctAssigneePosition: integer, 
         services: SafeDsServices,
         results: SdsPlaceholder[]
     ) {
-        if (!argumentList) { return; }
-        
-        const args = argumentList.arguments;
+        if (!call) { return; }
+        if (!isSdsExpression) { return; }
+        if (isSdsChainedExpression(call)){
+            /*
+            // debug print
+            console.log('actual receiver type: ' + call.receiver.$type);
+            console.log(call.receiver.$cstNode?.text)
+            */
+            if (isSdsMemberAccess(call.receiver)){
+                const receiver = call.receiver.receiver;
+                /*
+                // debug print
+                console.log('receivers receiver i guess: ' + receiver.$cstNode?.text)
+                console.log(receiver.$type)
+                console.log('receivers member: ' + call.receiver.member?.$cstNode?.text)
+                console.log(call.receiver.member?.$type)
+                */
+                if (isSdsReference(receiver)){
+                    const newHldr = receiver.target.ref;
+                    if(!isSdsPlaceholder(newHldr)) { return; }
+                    this.checkIfArgumentIsAssigneeOfSpecificFunction(
+                        newHldr, 
+                        functionCallName,
+                        correctAssigneePosition,
+                        services, results
+                    )
+                }
+            }
+            
+        }
+        const args = call.argumentList.arguments;
         if (!args) { return; }
         
         for (const arg of args){
@@ -151,7 +187,8 @@ export class SafeDsSlicer {
             if (isSdsReference(arg.value)){
                 if (!isSdsDeclaration(arg.value.target.ref)){ continue; }
                 
-                const newHldr = arg.value.target.ref as SdsPlaceholder;
+                const newHldr = arg.value.target.ref;
+                if(!isSdsPlaceholder(newHldr)) { return; }
                 this.checkIfArgumentIsAssigneeOfSpecificFunction(
                     newHldr, 
                     functionCallName, 
@@ -168,7 +205,8 @@ export class SafeDsSlicer {
                         if (!isSdsReference(newArg.value)) { continue; }
                         if (!isSdsDeclaration(newArg.value.target.ref)){ continue; }
                         
-                        const newHldr = newArg.value.target.ref as SdsPlaceholder;
+                        const newHldr = newArg.value.target.ref;
+                        if(!isSdsPlaceholder(newHldr)) { return; }
                         this.checkIfArgumentIsAssigneeOfSpecificFunction(
                             newHldr, 
                             functionCallName, 
@@ -179,9 +217,12 @@ export class SafeDsSlicer {
                 }
             }
             else { 
+                // MAYBE NEED TO HANDLE SdsList TOO! COULD HAVE NONPRIMITIVE TYPES
+                /*
                 // debug print
                 console.log(arg.value.$cstNode?.text)
                 console.log('arg.value is in fact ' + arg.value.$type); 
+                */
                 continue; 
             }
         }
