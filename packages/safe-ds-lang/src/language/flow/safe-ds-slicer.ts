@@ -1,5 +1,5 @@
 import { SafeDsServices } from '../safe-ds-module.js';
-import { isSdsAssignment, isSdsPlaceholder, isSdsReference, SdsPlaceholder, SdsStatement, SdsCall, SdsArgumentList, SdsArgument, SdsReference, isSdsCall, isSdsFunction, isSdsDeclaration, SdsExpression, isSdsChainedExpression, isSdsExpression, isSdsMemberAccess } from '../generated/ast.js';
+import { isSdsAssignment, isSdsPlaceholder, isSdsReference, SdsPlaceholder, SdsStatement, SdsCall, SdsObject, SdsArgumentList, SdsArgument, SdsReference, isSdsCall, isSdsFunction, isSdsDeclaration, SdsExpression, isSdsChainedExpression, isSdsExpression, isSdsMemberAccess } from '../generated/ast.js';
 import { AstUtils, Stream } from 'langium';
 import { ImpurityReason } from '../purity/model.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
@@ -73,20 +73,92 @@ export class SafeDsSlicer {
         return aggregator.statements;
     }
 
+    alternativeCheck(node : SdsObject, callableName: string, correctAssigneePosition : integer, services: SafeDsServices){
+        let current = node.$container;
+        if (!current){return;}
+        
+        while (current.$container){
+            console.log(' ==================');
+            console.log(' Current: ' + current.$type);
+            
+            if (isSdsAssignment(current)){
+                const assigneeList = current.assigneeList;
+                const expression = current.expression;
+
+                if (isSdsCall(expression)){
+                    const callable = services.helpers.NodeMapper.callToCallable(expression);
+                    // is not the target call
+                    if (isSdsFunction(callable) && callable.name != callableName){
+                        this.alternativeCheck(expression, callableName, correctAssigneePosition, services);
+                    }
+                    // is the target call
+                    else {
+                        if (assigneeList?.assignees[correctAssigneePosition] === assigneeList){
+                            return;
+                        }
+                        else {
+                            this.alternativeCheck(expression, callableName, correctAssigneePosition, services);
+                        }
+                    }
+                }
+                else { return;}
+            }
+
+            else if (isSdsCall(current)){
+                if (isSdsChainedExpression(current)){
+                    if (isSdsMemberAccess(current.receiver)){
+                        const receiver = current.receiver.receiver;
+                        if (isSdsReference(receiver)){
+                            const newHldr = receiver.target.ref;
+                            if(!isSdsPlaceholder(newHldr)) { return; }
+                            this.alternativeCheck(newHldr, callableName, correctAssigneePosition, services)
+                        }
+                        else { return; }
+                    }
+                
+                    else {
+                        const args = current.argumentList.arguments;
+                        if (!args) { return; }
+                        
+                        for (const arg of args){
+                            // Argument is a reference to a placeholder
+                            if (isSdsReference(arg.value)){
+                                if (!isSdsDeclaration(arg.value.target.ref)){ continue; }
+                                
+                                const newHldr = arg.value.target.ref;
+                                if(!isSdsPlaceholder(newHldr)) { return; }
+                                this.alternativeCheck(newHldr, callableName, correctAssigneePosition, services);
+                            }
+                            else {return;}
+                        }
+                    }
+                }
+                else {return;}
+            }
+            else {continue;}    
+            // console.log(' Text: ' + current.$cstNode?.text)
+            current = current.$container;
+            console.log(' Parent: ' + current.$type);
+            // console.log(' Text: ' + current.$cstNode?.text)
+        }
+    }
 
     checkIfArgumentIsAssigneeOfSpecificFunction(
         placeholder: SdsPlaceholder, 
         functionCallName: string, 
         correctAssigneePosition: integer, 
         services: SafeDsServices, 
-        results: SdsPlaceholder[]
+        placeholderBackwardSlice: SdsPlaceholder[] = []
     ) {
         const nodeMapper = services.helpers.NodeMapper;
-        results.push(placeholder);
+        
+        if (placeholderBackwardSlice){
+            placeholderBackwardSlice.push(placeholder);
+        }
         if (!placeholder) { return; }
         
-        const parentAssList = placeholder.$cstNode?.container?.astNode;
-        const parentAssignment = parentAssList?.$cstNode?.container?.astNode;
+        const parentAssigneeList = placeholder.$cstNode?.container?.astNode;
+        const parentAssignment = parentAssigneeList?.$cstNode?.container?.astNode;
         /*
         // debug print
         console.log('assignment: ' + parentAssignment?.$cstNode?.text);
@@ -110,18 +182,19 @@ export class SafeDsSlicer {
                 console.log('callable ' + callable?.$cstNode?.text + ' ');
                 */
                 // Call recursively on all args
-                this.checkCallArguments(expr, functionCallName, correctAssigneePosition, services, results);
+                this.checkCallArguments(expr, functionCallName, correctAssigneePosition, services, placeholderBackwardSlice);
             }
             
             // Is the target call
             else {
-                // Placeholder is at correct position -> need to go deeper
+                // Placeholder is at correct position -> can stop here
                 if (parentAssignment.assigneeList?.assignees[correctAssigneePosition] === placeholder){
-                    this.checkCallArguments(expr, functionCallName, correctAssigneePosition, services, results);
+                    return;
                 }
-                // Placeholder is at wrong position -> can stop here
-                else { return; }
-
+                // Placeholder is at wrong position -> need to go deeper
+                else {
+                    this.checkCallArguments(expr, functionCallName, correctAssigneePosition, services, placeholderBackwardSlice); 
+                }
             }
         }
         else {
@@ -131,12 +204,12 @@ export class SafeDsSlicer {
             */
             if(!isSdsReference(expr)){ return; }
             if(!isSdsDeclaration(expr.target)){ return; }
-            if(!isSdsPlaceholder(expr.target.ref)){ return;}
+            if(!isSdsPlaceholder(expr.target.ref)){ return; }
             this.checkIfArgumentIsAssigneeOfSpecificFunction(
                 expr.target.ref, 
                 functionCallName, 
                 correctAssigneePosition, 
-                services, results
+                services, placeholderBackwardSlice
             );
         }     
     }
@@ -147,7 +220,7 @@ export class SafeDsSlicer {
         functionCallName: string, 
         correctAssigneePosition: integer, 
         services: SafeDsServices,
-        results: SdsPlaceholder[]
+        placeholderBackwardSlice: SdsPlaceholder[] = []
     ) {
         if (!call) { return; }
         if (!isSdsExpression) { return; }
@@ -173,7 +246,7 @@ export class SafeDsSlicer {
                         newHldr, 
                         functionCallName,
                         correctAssigneePosition,
-                        services, results
+                        services, placeholderBackwardSlice
                     )
                 }
             }
@@ -193,7 +266,7 @@ export class SafeDsSlicer {
                     newHldr, 
                     functionCallName, 
                     correctAssigneePosition, 
-                    services, results
+                    services, placeholderBackwardSlice
                 );
             }
             // Argument is a call
@@ -211,7 +284,7 @@ export class SafeDsSlicer {
                             newHldr, 
                             functionCallName, 
                             correctAssigneePosition, 
-                            services, results
+                            services, placeholderBackwardSlice
                         );
                     }
                 }
