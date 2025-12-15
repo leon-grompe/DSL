@@ -83,72 +83,71 @@ export class SafeDsSlicer {
         correctAssigneePosition: integer, 
         services: SafeDsServices, 
         placeholderBackwardSlice: SdsPlaceholder[] = []
-    ) {
+    ): boolean 
+    {
         const nodeMapper = services.helpers.NodeMapper;
 
-        if (placeholderBackwardSlice.includes(placeholder)){
-            return;
+        // Skip placeholder if already visited
+        if (placeholderBackwardSlice.includes(placeholder)) {
+            return false;
         }
-        else { 
-            placeholderBackwardSlice.push(placeholder); 
-        }
+        // Remember visited placeholder
+        placeholderBackwardSlice.push(placeholder);
 
         const parentAssigneeList = placeholder.$cstNode?.container?.astNode;
         const parentAssignment = parentAssigneeList?.$cstNode?.container?.astNode;
 
-        if(!isSdsAssignment(parentAssignment)){ 
-            return; 
+        if (!isSdsAssignment(parentAssignment)) { 
+            return false; 
         }
         
         const expr = parentAssignment.expression;
-        if(!expr){ 
-            return; 
+        if (!expr) { 
+            return false; 
         }
         
-        if(isSdsCall(expr)){
+        if (isSdsCall(expr)) {
             const callable = nodeMapper.callToCallable(expr);
 
-            // Not the target call
-            if (!isSdsFunction(callable) || callable.name != functionCallName){
-                // Call recursively on all args
-                this.checkCallArguments(
+            // Not the target call -> check all arguments recursively
+            if (!isSdsFunction(callable) || callable.name !== functionCallName) {
+                return this.checkCallArguments(
                     expr, functionCallName, 
                     correctAssigneePosition, services, 
                     placeholderBackwardSlice
                 );
             }
             
-            // Is the target call
-            else if (isSdsFunction(callable) && callable.name == functionCallName){
-                // Placeholder is at correct position -> can stop here
-                if (parentAssignment.assigneeList?.assignees[correctAssigneePosition] === placeholder){
-                    return;
-                }
-                // Placeholder is at wrong position -> need to go deeper
-                else {
-                    this.checkCallArguments(
-                        expr, functionCallName, 
-                        correctAssigneePosition, services, 
-                        placeholderBackwardSlice
-                    ); 
-                    return;
-                }
+            // Is the target call -> check if placeholder is at correct position
+            if (parentAssignment.assigneeList?.assignees[correctAssigneePosition] === placeholder) {
+                // Placeholder is at correct position -> return true
+                return true;
             }
-            else {return;}
-        }
-        else {
-            if(!isSdsReference(expr) || !isSdsDeclaration(expr.target) || !isSdsPlaceholder(expr.target.ref)){ 
-                return; 
+            else {
+                // Placeholder is at wrong position -> check arguments for deeper matches
+                return this.checkCallArguments(
+                    expr, functionCallName, 
+                    correctAssigneePosition, services, 
+                    placeholderBackwardSlice
+                );
             }
-            this.checkIfArgumentIsAssigneeOfSpecificFunction(
-                expr.target.ref, 
-                functionCallName, 
-                correctAssigneePosition, 
-                services, placeholderBackwardSlice
-            );
-            return;
         }
-        return;
+        
+        // Expression is a reference to another placeholder
+        if (!isSdsReference(expr) || !isSdsDeclaration(expr.target) || !isSdsPlaceholder(expr.target.ref)) { 
+            return false; 
+        }
+        // MAYBE NEED TO CHECK FOR OTHER TYPES
+        // e.g. SdsList COULD CONTAIN NON PRIMITIVE TYPES
+        
+        // Recursive call for the referenced placeholder
+        return this.checkIfArgumentIsAssigneeOfSpecificFunction(
+            expr.target.ref, 
+            functionCallName, 
+            correctAssigneePosition, 
+            services, 
+            placeholderBackwardSlice
+        );
     }
 
 
@@ -158,69 +157,69 @@ export class SafeDsSlicer {
         correctAssigneePosition: integer, 
         services: SafeDsServices,
         placeholderBackwardSlice: SdsPlaceholder[] = []
-    ) {
-        if (!call) { return; }
-        if (!isSdsExpression) { return; }
+    ): boolean 
+    {
+        if (!call || !isSdsExpression) { 
+            return false; 
+        }
         
-        // If this call is a chained member access, check its receiver for a placeholder
+        // If call is chained member access, check its receiver for a placeholder
         if (isSdsChainedExpression(call) && isSdsMemberAccess(call.receiver)) {
             const receiverExpr = call.receiver.receiver;
 
-            // Only proceed when the receiver is a reference to a placeholder declaration
-            if (!isSdsReference(receiverExpr)) {
-                // Nothing to do for non-reference receivers
-            } 
-            else {
+            if (isSdsReference(receiverExpr)) {
                 const referencedDecl = receiverExpr.target?.ref;
                 if (isSdsPlaceholder(referencedDecl)) {
-                    // Call top-level function for the referenced placeholder
-                    this.checkIfArgumentIsAssigneeOfSpecificFunction(
+                    // Check if receiver placeholder matches the condition
+                    if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
                         referencedDecl,
                         functionCallName,
                         correctAssigneePosition,
                         services,
                         placeholderBackwardSlice
-                    );
+                    )) {
+                        return true;
+                    }
                 }
             }
         }
 
-        // Handle arguments
-        const args = call.argumentList.arguments;
+        // Handle all actual arguments
+        const args = call.argumentList?.arguments;
         if (!args) { 
-            return; 
+            return false; 
         }
         
-        for (const arg of args){
+        for (const arg of args) {
             // Argument is a reference to a placeholder
-            if (isSdsReference(arg.value)){
+            if (isSdsReference(arg.value)) {
                 const newHolder = arg.value.target.ref;
-                if (!isSdsDeclaration(newHolder) || !isSdsPlaceholder(newHolder)) { 
-                    continue; 
+                if (isSdsDeclaration(newHolder) && isSdsPlaceholder(newHolder)) {
+                    if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
+                        newHolder, 
+                        functionCallName, 
+                        correctAssigneePosition, 
+                        services, 
+                        placeholderBackwardSlice
+                    )) {
+                        return true;
+                    }
                 }
-                // Call top-level function for every argument that is reference to placeholder
-                this.checkIfArgumentIsAssigneeOfSpecificFunction(
-                    newHolder, 
-                    functionCallName, 
-                    correctAssigneePosition, 
-                    services, placeholderBackwardSlice
-                );
             }
             // Argument is a call
-            else if (isSdsCall(arg.value)){
-                const argRefCall = arg.value;
-                // Call this function recursively for every argument that is a call
-                this.checkCallArguments(
-                    argRefCall, 
+            else if (isSdsCall(arg.value)) {
+                if (this.checkCallArguments(
+                    arg.value, 
                     functionCallName, 
                     correctAssigneePosition, 
-                    services, placeholderBackwardSlice
-                );
-            }
-            else { 
-                continue; 
+                    services, 
+                    placeholderBackwardSlice
+                )) {
+                    return true;
+                }
             }
         }
+        return false;
     }
 }
 

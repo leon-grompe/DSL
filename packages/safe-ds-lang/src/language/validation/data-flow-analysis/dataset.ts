@@ -33,7 +33,15 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
             console.log(' ==================');
             console.log('Investigating: ' + refPlacehldr.name + ' , ' + refPlacehldr.$type);
             let placeholders = new Array<SdsPlaceholder>();
-            slicer.checkIfArgumentIsAssigneeOfSpecificFunction(refPlacehldr,'splitRows',1,services, placeholders);
+            let result = slicer.checkIfArgumentIsAssigneeOfSpecificFunction(refPlacehldr,'splitRows',1,services, placeholders);
+            if(result){
+                accept('warning', 'Testing Dataset should not be used to train a Model', {
+                    node: node,
+                    property: 'argumentList',
+                    code: CODE_TEST_DATA_USED_FOR_TRAINING,
+                    data: { path: locator.getAstNodePath(node) },
+                });
+            }
 
             for (const placeholder of placeholders){
                 console.log(placeholder.name + ' , ' + placeholder.$type);
@@ -41,12 +49,7 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
             }
         }
 
-        accept('warning', 'Testing Dataset should not be used to train a Model', {
-            node: node,
-            property: 'argumentList',
-            code: CODE_TEST_DATA_USED_FOR_TRAINING,
-            data: { path: locator.getAstNodePath(node) },
-        });
+        
 
     }
 }
