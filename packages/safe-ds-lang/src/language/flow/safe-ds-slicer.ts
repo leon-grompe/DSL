@@ -152,7 +152,7 @@ export class SafeDsSlicer {
     }
 
 
-    checkCallArguments(
+    private checkCallArguments(
         call: SdsCall, 
         functionCallName: string, 
         correctAssigneePosition: integer, 
