@@ -32,16 +32,16 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
             if (!isSdsPlaceholder(refPlacehldr)){continue;}
             
             const placeholders : SdsPlaceholder[] = [];
-            const result = slicer.checkIfArgumentIsAssigneeOfSpecificFunction(refPlacehldr, 'splitRows', 1, services, placeholders);
-            
-            const checkOfPlaceholder = result[0];
-            const problemPlaceholder = result[1];
-            
+            const found = slicer.checkIfArgumentIsAssigneeOfSpecificFunction(refPlacehldr, 'splitRows', 1, services, placeholders);
+
+            // If found, try to pick the most specific placeholder collected; fall back to the original
+            const problemPlaceholder = found ? (placeholders[placeholders.length - 1] ?? refPlacehldr) : null;
+
             // account for 0-based line numbers
             const line = (problemPlaceholder?.$cstNode?.range.start.line ?? 0) + 1;
 
-            if(checkOfPlaceholder){
-                accept('warning', `Testing Dataset resulting from Assignment of Placeholder \'${problemPlaceholder?.name}\' in line ${line} should not be used to train a Model`, {
+            if (found) {
+                accept('warning', `Testing Dataset resulting from Assignment of Placeholder '${problemPlaceholder?.name}' in line ${line} should not be used to train a Model`, {
                     node: node,
                     property: 'argumentList',
                     code: CODE_TEST_DATA_USED_FOR_TRAINING,

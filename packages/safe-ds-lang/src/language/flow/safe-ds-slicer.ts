@@ -87,7 +87,7 @@ export class SafeDsSlicer {
      * @param functionCallName The name of the function call.
      * @param correctAssigneePosition The position the placeholder should be at.
      * @param services SafeDs services to access helpers.
-     * @param placeholderBackwardSlice Array to collect the assignments in the backward slice of the placeholder.
+     * @param placeholderBackwardSlice If an Array is provided it will collect all Placeholders relevant for the value of the given Placeholder.
      * @returns A tuple where the first element is true if the placeholder is an assignee argument at the specified position
      *          of the function call, and the second element is the placeholder for which it evaluated true (or null).
      */
@@ -97,24 +97,24 @@ export class SafeDsSlicer {
         correctAssigneePosition: integer, 
         services: SafeDsServices, 
         placeholderBackwardSlice: SdsPlaceholder[] = []
-    ): [boolean, SdsPlaceholder | null]
+    ): boolean
     {     
         const parentAssignment = placeholder.$container?.$container;
 
         if (!isSdsAssignment(parentAssignment)) { 
-            return [false, null]; 
+            return false; 
         }
 
         // Skip placeholders of statement if already visited
         if (placeholderBackwardSlice.includes(placeholder)) {
-            return [false, null];
+            return false;
         }
         // Remember visited placeholders of statement
         placeholderBackwardSlice.push(placeholder);
         
         const expr = parentAssignment.expression;
         if (!expr) { 
-            return [false, null]; 
+            return false; 
         }
         
         if (isSdsCall(expr)) {
@@ -131,8 +131,8 @@ export class SafeDsSlicer {
             
             // Is the target call -> check if placeholder is at correct position
             if (parentAssignment.assigneeList?.assignees[correctAssigneePosition] === placeholder) {
-                // Placeholder is at correct position -> return true and the placeholder
-                return [true, placeholder];
+                // Placeholder is at correct position -> return true
+                return true;
             }
             else {
                 // Placeholder is at wrong position -> check arguments for deeper matches
@@ -146,7 +146,7 @@ export class SafeDsSlicer {
         
         // Expression is a reference to another placeholder
         if (!isSdsReference(expr) || !isSdsDeclaration(expr.target) || !isSdsPlaceholder(expr.target.ref)) { 
-            return [false, null]; 
+            return false; 
         }
         // MAYBE NEED TO CHECK FOR OTHER TYPES
         // e.g. SdsList COULD CONTAIN NON PRIMITIVE TYPES
@@ -167,7 +167,7 @@ export class SafeDsSlicer {
      * @param functionCallName The name of the function call. Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
      * @param correctAssigneePosition The position the placeholder should be at. Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
      * @param services SafeDs services to access helpers.
-     * @param placeholderBackwardSlice  Array to collect the assignments in the backward slice of the placeholder. 
+     * @param placeholderBackwardSlice  Array to collect the Placeholders in the backward slice of the given Placeholder. 
      *                                  Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
      * @returns True if checkIfArgumentIsAssigneeOfSpecificFunction returned true for any argument, false otherwise.
      */
@@ -177,30 +177,29 @@ export class SafeDsSlicer {
         correctAssigneePosition: integer, 
         services: SafeDsServices,
         placeholderBackwardSlice: SdsPlaceholder[] = []
-    ): [boolean, SdsPlaceholder | null] 
+    ): boolean 
     {
         if (!call) { 
-            return [false, null]; 
+            return false; 
         }
         
         // If call is chained member access, check its receiver for a placeholder
         if (isSdsChainedExpression(call)) {
-            const res = this.handleChainedExpression(
+            if (this.handleChainedExpression(
                 call,
                 functionCallName,
                 correctAssigneePosition,
                 services,
                 placeholderBackwardSlice
-            );
-            if (res[0]) {
-                return res;
+            )) {
+                return true;
             }
         }
 
         // Handle all actual arguments
         const args = call.argumentList?.arguments;
         if (!args) { 
-            return [false, null]; 
+            return false; 
         }
         
         for (const arg of args) {
@@ -208,33 +207,29 @@ export class SafeDsSlicer {
             if (isSdsReference(arg.value)) {
                 const newHolder = arg.value.target.ref;
                 if (isSdsDeclaration(newHolder) && isSdsPlaceholder(newHolder)) {
-                    const res = this.checkIfArgumentIsAssigneeOfSpecificFunction(
+                    return this.checkIfArgumentIsAssigneeOfSpecificFunction(
                         newHolder, 
                         functionCallName, 
                         correctAssigneePosition, 
                         services, 
                         placeholderBackwardSlice
                     );
-                    if (res[0]) {
-                        return res;
-                    }
                 }
             }
             // Argument is a call
             else if (isSdsCall(arg.value)) {
-                const res = this.checkCallArguments(
-                    arg.value, 
-                    functionCallName, 
-                    correctAssigneePosition, 
-                    services, 
-                    placeholderBackwardSlice
-                );
-                if (res[0]) {
-                    return res;
-                }
+                    if (this.checkCallArguments(
+                        arg.value, 
+                        functionCallName, 
+                        correctAssigneePosition, 
+                        services, 
+                        placeholderBackwardSlice
+                    )) {
+                        return true;
+                    }
             }
         }
-        return [false, null];
+            return false;
     }
 
     private handleChainedExpression(
@@ -243,18 +238,17 @@ export class SafeDsSlicer {
         correctAssigneePosition: integer, 
         services: SafeDsServices,
         placeholderBackwardSlice: SdsPlaceholder[] = []
-    ): [boolean, SdsPlaceholder | null] {
+    ): boolean {
         // If the receiver is another chained expression, handle it recursively
         if (isSdsChainedExpression(chainedExpr.receiver)) {
-            const res = this.handleChainedExpression(
+            if (this.handleChainedExpression(
                 chainedExpr.receiver,
                 functionCallName,
                 correctAssigneePosition,
                 services,
                 placeholderBackwardSlice
-            );
-            if (res[0]) {
-                return res;
+            )) {
+                return true;
             }
         }
 
@@ -265,20 +259,19 @@ export class SafeDsSlicer {
                 const referencedDecl = receiverExpr.target?.ref;
                 if (isSdsPlaceholder(referencedDecl)) {
                     // Check if receiver placeholder matches the condition
-                    const res = this.checkIfArgumentIsAssigneeOfSpecificFunction(
+                    if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
                         referencedDecl,
                         functionCallName,
                         correctAssigneePosition,
                         services,
                         placeholderBackwardSlice
-                    );
-                    if (res[0]) {
-                        return res;
+                    )) {
+                        return true;
                     }
                 }
             }
         }
-        return [false, null];
+        return false;
     }
 }
 
