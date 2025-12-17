@@ -4,6 +4,7 @@ import { SdsPlaceholder, SdsCall, SdsObject ,SdsStatement, isSdsBlock, isSdsStat
 import { SafeDsSlicer } from '../../flow/safe-ds-slicer.js';
 import { AstUtils } from 'langium';
 import { getStatements, getAssignees, getArguments } from '../../helpers/nodeProperties.js';
+import { uinteger } from 'vscode-languageserver';
 
 
 
@@ -30,26 +31,26 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
             const refPlacehldr = arg.value.target.ref;
             if (!isSdsPlaceholder(refPlacehldr)){continue;}
             
-            console.log(' ==================');
-            console.log('Investigating: ' + refPlacehldr.name + ' , ' + refPlacehldr.$type);
+            const assignments : SdsAssignment[] = [];
+            const result = slicer.checkIfArgumentIsAssigneeOfSpecificFunction(refPlacehldr, 'splitRows', 1, services, assignments);
             
-            let assignments : SdsAssignment[] = [];
-            if(slicer.checkIfArgumentIsAssigneeOfSpecificFunction(refPlacehldr,'splitRows',1,services, assignments)){
-                accept('warning', 'Testing Dataset should not be used to train a Model', {
+            const checkOfPlaceholder = result[0];
+            const problemPlaceholder = result[1];
+            
+            let line = problemPlaceholder?.$cstNode?.range.start.line;
+            // account for 0-based line numbers
+            if (line){
+                line = line ++;
+            }
+            
+            if(checkOfPlaceholder){
+                accept('warning', `Testing Dataset resulting from Assignment of Placeholder \'${problemPlaceholder?.name}\' in line ${line} should not be used to train a Model`, {
                     node: node,
                     property: 'argumentList',
                     code: CODE_TEST_DATA_USED_FOR_TRAINING,
                     data: { path: locator.getAstNodePath(node) },
                 });
             }
-
-            for (const assignment of assignments){
-                console.log(assignment.$cstNode?.text);
-                
-            }
         }
-
-        
-
     }
 }
