@@ -1,6 +1,6 @@
 import { ValidationAcceptor } from 'langium';
 import { SafeDsServices } from '../../safe-ds-module.js';
-import { SdsPlaceholder, SdsCall, SdsObject ,SdsStatement, isSdsBlock, isSdsStatement, isSdsAssignment, isSdsCall, isSdsFunction, isSdsReference, isSdsArgument, SdsReference, isSdsPlaceholder } from '../../generated/ast.js';
+import { SdsPlaceholder, SdsCall, SdsObject ,SdsStatement, isSdsBlock, isSdsStatement, isSdsAssignment, isSdsCall, isSdsFunction, isSdsReference, isSdsArgument, SdsReference, isSdsPlaceholder, SdsAssignee, SdsAssignment } from '../../generated/ast.js';
 import { SafeDsSlicer } from '../../flow/safe-ds-slicer.js';
 import { AstUtils } from 'langium';
 import { getStatements, getAssignees, getArguments } from '../../helpers/nodeProperties.js';
@@ -32,9 +32,9 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
             
             console.log(' ==================');
             console.log('Investigating: ' + refPlacehldr.name + ' , ' + refPlacehldr.$type);
-            let placeholders = new Array<SdsPlaceholder>();
-            let result = slicer.checkIfArgumentIsAssigneeOfSpecificFunction(refPlacehldr,'splitRows',1,services, placeholders);
-            if(result){
+            
+            let assignments : SdsAssignment[] = [];
+            if(slicer.checkIfArgumentIsAssigneeOfSpecificFunction(refPlacehldr,'splitRows',1,services, assignments)){
                 accept('warning', 'Testing Dataset should not be used to train a Model', {
                     node: node,
                     property: 'argumentList',
@@ -43,8 +43,8 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
                 });
             }
 
-            for (const placeholder of placeholders){
-                console.log(placeholder.name + ' , ' + placeholder.$type);
+            for (const assignment of assignments){
+                console.log(assignment.$cstNode?.text);
                 
             }
         }

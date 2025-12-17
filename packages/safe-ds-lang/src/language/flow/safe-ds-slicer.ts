@@ -1,7 +1,7 @@
 import { SafeDsServices } from '../safe-ds-module.js';
 import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsMemberAccess,
         isSdsCall, isSdsFunction, isSdsDeclaration, isSdsChainedExpression, isSdsExpression, 
-        SdsPlaceholder, SdsStatement, SdsCall } from '../generated/ast.js';
+        SdsPlaceholder, SdsStatement, SdsCall, SdsAssignment } from '../generated/ast.js';
 import { AstUtils, Stream } from 'langium';
 import { ImpurityReason } from '../purity/model.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
@@ -54,6 +54,9 @@ export class SafeDsSlicer {
         return aggregator.statements;
     }
 
+    /**
+     * Computes the subset of the given statements that are needed to calculate the target placeholders without recording impurity reasons.
+     */
     computeBackwardSliceToTargetsWithoutPurity(statements: SdsStatement[], targets: SdsStatement[]): SdsStatement[]{
         const aggregator = new BackwardSliceAggregator(this.purityComputer);
 
@@ -76,30 +79,35 @@ export class SafeDsSlicer {
         return aggregator.statements;
     }
 
-
+    /**
+     * Computes whether the given placeholder is an assignee argument at a specific position of a specific function call.
+     * @param placeholder The placeholder to check.
+     * @param functionCallName The name of the function call.
+     * @param correctAssigneePosition The position the placeholder should be at.
+     * @param services SafeDs services to access helpers.
+     * @param placeholderBackwardSlice Array to collect the assignments in the backward slice of the placeholder.
+     * @returns True if the placeholder is an assignee argument at the specified position of the function call, false otherwise.
+     */
     checkIfArgumentIsAssigneeOfSpecificFunction(
         placeholder: SdsPlaceholder, 
         functionCallName: string, 
         correctAssigneePosition: integer, 
         services: SafeDsServices, 
-        placeholderBackwardSlice: SdsPlaceholder[] = []
-    ): boolean 
-    {
-        const nodeMapper = services.helpers.NodeMapper;
-
-        // Skip placeholder if already visited
-        if (placeholderBackwardSlice.includes(placeholder)) {
-            return false;
-        }
-        // Remember visited placeholder
-        placeholderBackwardSlice.push(placeholder);
-
-        const parentAssigneeList = placeholder.$cstNode?.container?.astNode;
-        const parentAssignment = parentAssigneeList?.$cstNode?.container?.astNode;
+        placeholderBackwardSlice: SdsAssignment[] = []
+    ): boolean
+    {     
+        const parentAssignment = placeholder.$container?.$container;
 
         if (!isSdsAssignment(parentAssignment)) { 
             return false; 
         }
+
+        // Skip placeholders of statement if already visited
+        if (placeholderBackwardSlice.includes(parentAssignment)) {
+            return false;
+        }
+        // Remember visited placeholders of statement
+        placeholderBackwardSlice.push(parentAssignment);
         
         const expr = parentAssignment.expression;
         if (!expr) { 
@@ -107,7 +115,7 @@ export class SafeDsSlicer {
         }
         
         if (isSdsCall(expr)) {
-            const callable = nodeMapper.callToCallable(expr);
+            const callable = services.helpers.NodeMapper.callToCallable(expr);
 
             // Not the target call -> check all arguments recursively
             if (!isSdsFunction(callable) || callable.name !== functionCallName) {
@@ -121,6 +129,7 @@ export class SafeDsSlicer {
             // Is the target call -> check if placeholder is at correct position
             if (parentAssignment.assigneeList?.assignees[correctAssigneePosition] === placeholder) {
                 // Placeholder is at correct position -> return true
+                
                 return true;
             }
             else {
@@ -150,13 +159,23 @@ export class SafeDsSlicer {
         );
     }
 
+    /**
+     * Helpers to check all arguments of a call for a placeholder being an assignee of a specific function.
+     * @param call The call to check.
+     * @param functionCallName The name of the function call. Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
+     * @param correctAssigneePosition The position the placeholder should be at. Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
+     * @param services SafeDs services to access helpers.
+     * @param placeholderBackwardSlice  Array to collect the assignments in the backward slice of the placeholder. 
+     *                                  Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
+     * @returns True if checkIfArgumentIsAssigneeOfSpecificFunction returned true for any argument, false otherwise.
+     */
 
     private checkCallArguments(
         call: SdsCall, 
         functionCallName: string, 
         correctAssigneePosition: integer, 
         services: SafeDsServices,
-        placeholderBackwardSlice: SdsPlaceholder[] = []
+        placeholderBackwardSlice: SdsAssignment[] = []
     ): boolean 
     {
         if (!call || !isSdsExpression) { 
