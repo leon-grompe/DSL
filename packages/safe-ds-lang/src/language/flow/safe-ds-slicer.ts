@@ -1,7 +1,8 @@
 import { SafeDsServices } from '../safe-ds-module.js';
 import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsMemberAccess,
         isSdsCall, isSdsFunction, isSdsDeclaration, isSdsChainedExpression, isSdsExpression, 
-        SdsPlaceholder, SdsStatement, SdsCall, SdsAssignment } from '../generated/ast.js';
+        SdsPlaceholder, SdsStatement, SdsCall, SdsAssignment, 
+        SdsChainedExpression} from '../generated/ast.js';
 import { AstUtils, Stream } from 'langium';
 import { ImpurityReason } from '../purity/model.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
@@ -170,7 +171,6 @@ export class SafeDsSlicer {
      *                                  Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
      * @returns True if checkIfArgumentIsAssigneeOfSpecificFunction returned true for any argument, false otherwise.
      */
-
     private checkCallArguments(
         call: SdsCall, 
         functionCallName: string, 
@@ -184,24 +184,16 @@ export class SafeDsSlicer {
         }
         
         // If call is chained member access, check its receiver for a placeholder
-        if (isSdsChainedExpression(call) && isSdsMemberAccess(call.receiver)) {
-            const receiverExpr = call.receiver.receiver;
-
-            if (isSdsReference(receiverExpr)) {
-                const referencedDecl = receiverExpr.target?.ref;
-                if (isSdsPlaceholder(referencedDecl)) {
-                    // Check if receiver placeholder matches the condition
-                    const res = this.checkIfArgumentIsAssigneeOfSpecificFunction(
-                        referencedDecl,
-                        functionCallName,
-                        correctAssigneePosition,
-                        services,
-                        placeholderBackwardSlice
-                    );
-                    if (res[0]) {
-                        return res;
-                    }
-                }
+        if (isSdsChainedExpression(call)) {
+            const res = this.handleChainedExpression(
+                call,
+                functionCallName,
+                correctAssigneePosition,
+                services,
+                placeholderBackwardSlice
+            );
+            if (res[0]) {
+                return res;
             }
         }
 
@@ -239,6 +231,50 @@ export class SafeDsSlicer {
                 );
                 if (res[0]) {
                     return res;
+                }
+            }
+        }
+        return [false, null];
+    }
+
+    private handleChainedExpression(
+        chainedExpr: SdsChainedExpression, 
+        functionCallName: string, 
+        correctAssigneePosition: integer, 
+        services: SafeDsServices,
+        placeholderBackwardSlice: SdsPlaceholder[] = []
+    ): [boolean, SdsPlaceholder | null] {
+        // If the receiver is another chained expression, handle it recursively
+        if (isSdsChainedExpression(chainedExpr.receiver)) {
+            const res = this.handleChainedExpression(
+                chainedExpr.receiver,
+                functionCallName,
+                correctAssigneePosition,
+                services,
+                placeholderBackwardSlice
+            );
+            if (res[0]) {
+                return res;
+            }
+        }
+
+        // If the receiver is a member access, check its receiver for a placeholder
+        if (isSdsMemberAccess(chainedExpr.receiver)) {
+            const receiverExpr = chainedExpr.receiver.receiver;
+            if (isSdsReference(receiverExpr)) {
+                const referencedDecl = receiverExpr.target?.ref;
+                if (isSdsPlaceholder(referencedDecl)) {
+                    // Check if receiver placeholder matches the condition
+                    const res = this.checkIfArgumentIsAssigneeOfSpecificFunction(
+                        referencedDecl,
+                        functionCallName,
+                        correctAssigneePosition,
+                        services,
+                        placeholderBackwardSlice
+                    );
+                    if (res[0]) {
+                        return res;
+                    }
                 }
             }
         }
