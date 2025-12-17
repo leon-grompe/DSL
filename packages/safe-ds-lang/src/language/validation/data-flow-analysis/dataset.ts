@@ -31,18 +31,15 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
             const refPlacehldr = arg.value.target.ref;
             if (!isSdsPlaceholder(refPlacehldr)){continue;}
             
-            const assignments : SdsAssignment[] = [];
-            const result = slicer.checkIfArgumentIsAssigneeOfSpecificFunction(refPlacehldr, 'splitRows', 1, services, assignments);
+            const placeholders : SdsPlaceholder[] = [];
+            const result = slicer.checkIfArgumentIsAssigneeOfSpecificFunction(refPlacehldr, 'splitRows', 1, services, placeholders);
             
             const checkOfPlaceholder = result[0];
             const problemPlaceholder = result[1];
             
-            let line = problemPlaceholder?.$cstNode?.range.start.line;
             // account for 0-based line numbers
-            if (line){
-                line = line ++;
-            }
-            
+            const line = (problemPlaceholder?.$cstNode?.range.start.line ?? 0) + 1;
+
             if(checkOfPlaceholder){
                 accept('warning', `Testing Dataset resulting from Assignment of Placeholder \'${problemPlaceholder?.name}\' in line ${line} should not be used to train a Model`, {
                     node: node,

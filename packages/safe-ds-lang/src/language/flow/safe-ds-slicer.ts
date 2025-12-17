@@ -81,6 +81,7 @@ export class SafeDsSlicer {
 
     /**
      * Computes whether the given placeholder is an assignee argument at a specific position of a specific function call.
+     * Stops as soon as first match is found.
      * @param placeholder The placeholder to check.
      * @param functionCallName The name of the function call.
      * @param correctAssigneePosition The position the placeholder should be at.
@@ -94,7 +95,7 @@ export class SafeDsSlicer {
         functionCallName: string, 
         correctAssigneePosition: integer, 
         services: SafeDsServices, 
-        placeholderBackwardSlice: SdsAssignment[] = []
+        placeholderBackwardSlice: SdsPlaceholder[] = []
     ): [boolean, SdsPlaceholder | null]
     {     
         const parentAssignment = placeholder.$container?.$container;
@@ -104,11 +105,11 @@ export class SafeDsSlicer {
         }
 
         // Skip placeholders of statement if already visited
-        if (placeholderBackwardSlice.includes(parentAssignment)) {
+        if (placeholderBackwardSlice.includes(placeholder)) {
             return [false, null];
         }
         // Remember visited placeholders of statement
-        placeholderBackwardSlice.push(parentAssignment);
+        placeholderBackwardSlice.push(placeholder);
         
         const expr = parentAssignment.expression;
         if (!expr) { 
@@ -175,7 +176,7 @@ export class SafeDsSlicer {
         functionCallName: string, 
         correctAssigneePosition: integer, 
         services: SafeDsServices,
-        placeholderBackwardSlice: SdsAssignment[] = []
+        placeholderBackwardSlice: SdsPlaceholder[] = []
     ): [boolean, SdsPlaceholder | null] 
     {
         if (!call) { 
