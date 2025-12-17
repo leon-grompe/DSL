@@ -162,7 +162,7 @@ export class SafeDsSlicer {
     }
 
     /**
-     * Helpers to check all arguments of a call for a placeholder being an assignee of a specific function.
+     * Helper to check all arguments of a call for a placeholder being an assignee of a specific function.
      * @param call The call to check.
      * @param functionCallName The name of the function call. Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
      * @param correctAssigneePosition The position the placeholder should be at. Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
@@ -232,6 +232,16 @@ export class SafeDsSlicer {
             return false;
     }
 
+    /**
+     * Helper to handle nested chained expressions when checking for placeholders.
+     * @param chainedExpr The chained expression to check.
+     * @param functionCallName The name of the function call. Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
+     * @param correctAssigneePosition The position the placeholder should be at. Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
+     * @param services SafeDs services to access helpers.
+     * @param placeholderBackwardSlice Array to collect the Placeholders in the backward slice of the given Placeholder. 
+     *                                 Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
+     * @returns True if checkIfArgumentIsAssigneeOfSpecificFunction returned true for the receiver placeholder, false otherwise.
+     */
     private handleChainedExpression(
         chainedExpr: SdsChainedExpression, 
         functionCallName: string, 
