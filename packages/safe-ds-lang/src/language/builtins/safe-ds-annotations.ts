@@ -61,7 +61,7 @@ export class SafeDsAnnotations extends SafeDsModuleMembers<SdsAnnotation> {
     
     getDSPipelinePhase(node: SdsAnnotatedObject | undefined): SdsEnumVariant | undefined {
         const value = this.getParameterValue(node, this.DSPipelinePhaseAnnotation, 'phase');
-        if (this.builtinEnums.isEvaluatedPipelinePhase(value)) {
+        if (this.builtinEnums.isEvaluatedDSPipelinePhase(value)) {
             return value.variant;
         } else {
             return undefined;
@@ -69,9 +69,9 @@ export class SafeDsAnnotations extends SafeDsModuleMembers<SdsAnnotation> {
     }    
 
     private get DSPipelinePhaseAnnotation(): SdsAnnotation | undefined {
-        return this.getAnnotation(IDE_INTEGRATION_URI, 'DSPipelinePhase');
+        return this.getAnnotation(IDE_INTEGRATION_URI, 'PipelinePhase');
     }
-    
+
     // Deprecated ------------------------------------------------------------------------------------------------------
 
     callsDeprecated(node: SdsAnnotatedObject | undefined): boolean {

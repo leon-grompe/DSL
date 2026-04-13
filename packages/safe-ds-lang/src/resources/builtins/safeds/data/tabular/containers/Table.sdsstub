@@ -97,6 +97,7 @@ class Table(
     @Impure([ImpurityReason.FileReadFromParameterizedPath("path")])
     @PythonName("from_csv_file")
     @Category(DataScienceCategory.DataImport)
+    @PipelinePhase(DSPipelinePhase.DataAcquisition)
     static fun fromCsvFile(
         path: String,
         separator: String = ","

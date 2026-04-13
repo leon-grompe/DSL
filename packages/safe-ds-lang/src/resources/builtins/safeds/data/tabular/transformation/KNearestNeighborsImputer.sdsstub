@@ -10,6 +10,8 @@ from safeds.data.tabular.transformation import TableTransformer
  * @param selector The list of columns used to impute missing values. If 'None', all columns are used.
  * @param valueToReplace The placeholder for the missing values. All occurrences of`missing_values` will be imputed.
  */
+
+@PipelinePhase(DSPipelinePhase.DataPreprocessing)
 class KNearestNeighborsImputer(
     @PythonName("neighbor_count") neighborCount: Int,
     selector: union<List<String>, String, Nothing?> = null,
@@ -35,6 +37,7 @@ class KNearestNeighborsImputer(
      */
     @Pure
     @Category(DataScienceCategory.DataProcessingQTransformer)
+    @PipelinePhase(DSPipelinePhase.DataPreprocessing)
     fun fit(
         table: Table
     ) -> fittedTransformer: KNearestNeighborsImputer

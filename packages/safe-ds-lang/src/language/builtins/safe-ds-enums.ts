@@ -33,10 +33,10 @@ export class SafeDsEnums extends SafeDsModuleMembers<SdsEnum> {
     // DSPipelinePhase -------------------------------------------------------------------------------------------------
     
     get DSPipelinePhase(): SdsEnum | undefined {
-        return this.getEnum(IDE_INTEGRATION_URI, 'PipelinePhase');
+        return this.getEnum(IDE_INTEGRATION_URI, 'DSPipelinePhase');
     }
 
-    isEvaluatedPipelinePhase = (node: EvaluatedNode): node is EvaluatedEnumVariant =>
+    isEvaluatedDSPipelinePhase = (node: EvaluatedNode): node is EvaluatedEnumVariant =>
         node instanceof EvaluatedEnumVariant &&
         AstUtils.getContainerOfType(node.variant, isSdsEnum) === this.DSPipelinePhase;
 

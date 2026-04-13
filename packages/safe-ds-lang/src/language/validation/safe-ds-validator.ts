@@ -353,7 +353,11 @@ export const registerValidationChecks = function (services: SafeDsServices) {
             parameterBoundRightOperandMustEvaluateToFloatConstantOrIntConstant(services),
         ],
         SdsParameterList: [parameterListMustNotHaveRequiredParametersAfterOptionalParameters],
-        SdsPipeline: [pipelinesMustBePrivate, pipelineMustContainUniqueNames, pipelineMustFollowBehaviourProtocol(services)],
+        SdsPipeline: [
+            pipelinesMustBePrivate, 
+            pipelineMustContainUniqueNames, 
+            pipelineMustFollowBehaviourProtocol(services)
+        ],
         SdsPlaceholder: [placeholdersMustNotBeAnAlias, placeholderShouldBeUsed(services)],
         SdsPrefixOperation: [prefixOperationOperandMustHaveCorrectType(services)],
         SdsReference: [

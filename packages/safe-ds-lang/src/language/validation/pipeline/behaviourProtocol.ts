@@ -1,7 +1,9 @@
 import { ValidationAcceptor } from 'langium';
-import { isSdsCall, isSdsFunction, SdsPipeline } from '../../generated/ast.js';
-import { } from '../../helpers/nodeProperties.js';
+import { isSdsAnnotatedObject, isSdsAssignment, isSdsCall, isSdsExpressionStatement, isSdsFunction, isSdsMemberAccess, isSdsOutputStatement, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsStatement } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
+
+
+export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
 
 export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
     const nodeMapper = services.helpers.NodeMapper;
@@ -14,27 +16,51 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
             'FeatureEngineering', 'FeatureSelection', 'Modeling', 'Training', 'Prediction', 'Evaluation', 'Testing',
             'Interpretation'
         ];
-        let currentPhaseIndex = -1;
+        let currentPhase = -1;
 
-        // Traverse pipeline statements
-        for (const statement of node.body?.statements ?? []) {
-            if (isSdsCall(statement)) {
-                const callable = nodeMapper.callToCallable(statement);
-                if (callable && isSdsFunction(callable)) {
-                    const phase = builtinAnnotations.getDSPipelinePhase(callable);
-                    if (phase) {
-                        const phaseIndex = phaseOrder.indexOf(phase.name);
-                        if (phaseIndex < currentPhaseIndex) {
-                            accept('error', `Function '${callable.name}' with phase '${phase.name}' cannot be used after a later phase.`, {
-                                node: statement,
-                                code: 'pipeline/behaviour-protocol',
-                            });
-                        } else {
-                            currentPhaseIndex = Math.max(currentPhaseIndex, phaseIndex);
-                        }
-                    }
-                }
-            }
-        }
+        const statements = node.body.statements;
+        let annotatedObjects: SdsAnnotatedObject[] = [];
+        
+        for (const statement of statements) {            
+            const call = getCallFromStatement(statement);
+            if (!call) continue;
+
+            const callable = nodeMapper.callToCallable(call);
+            if (!callable || !(isSdsFunction(callable))) continue;
+
+            const phase = builtinAnnotations.getDSPipelinePhase(callable);
+            if (!phase) continue;
+            console.log(`Found phase annotation '${phase.name}' on function '${callable.name}'`);
+            
+            const phaseIndex = phaseOrder.indexOf(phase.name);
+            if (phaseIndex < 0) continue;
+            console.log(`Phase '${phase.name}' has index ${phaseIndex} in the phase order`);
+            console.log(`Current phase index is ${currentPhase}`);
+            
+            if (phaseIndex < currentPhase) {
+                accept('warning',
+                    `Function '${callable.name}' is annotated with phase '${phase.name}' but occurs after phase '${phaseOrder[currentPhase]}'.`,
+                    {
+                        node: call,
+                        code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
+                    },
+                );
+            } else {
+                currentPhase = phaseIndex;
+            };
+        };
     };
+};
+
+const getCallFromStatement = (statement: SdsStatement): SdsCall | undefined => {
+    if (isSdsExpressionStatement(statement) && isSdsCall(statement.expression)) {
+        return statement.expression;
+    }
+    if (isSdsAssignment(statement) && statement.expression && isSdsCall(statement.expression)) {
+        return statement.expression;
+    }
+    if (isSdsOutputStatement(statement) && isSdsCall(statement.expression)) {
+        return statement.expression;
+    }
+    return undefined;
 };

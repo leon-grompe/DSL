@@ -80,6 +80,39 @@ enum DataScienceCategory {
 }
 
 /**
+ * The phase of the data science pipeline.
+ * Is used to define a Behaviour Protocol, which is a set of rules that govern the usage of declarations in a certain phase.
+ */
+@Experimental
+@Targets([
+    AnnotationTarget.Class,
+    AnnotationTarget.Function
+    ])
+annotation PipelinePhase(phase: DSPipelinePhase)
+
+@Experimental
+enum DSPipelinePhase {
+    // Pre-Processing Layer
+    DataAcquisition
+    DataPreparation
+    DataPreprocessing
+
+    // Model Building Layer
+    FeatureEngineering
+    FeatureSelection
+    Modeling
+    Training
+    Prediction
+    Evaluation
+    Testing
+
+    // Post-Processing Layer
+    Interpretation
+}
+
+
+
+/**
  * Tags to associate with a declaration. They can be used for filtering.
  */
 @Experimental
