@@ -57,6 +57,21 @@ export class SafeDsAnnotations extends SafeDsModuleMembers<SdsAnnotation> {
         return this.getAnnotation(IDE_INTEGRATION_URI, 'Category');
     }
 
+    // Pipeline Phase --------------------------------------------------------------------------------------------------
+    
+    getDSPipelinePhase(node: SdsAnnotatedObject | undefined): SdsEnumVariant | undefined {
+        const value = this.getParameterValue(node, this.DSPipelinePhaseAnnotation, 'phase');
+        if (this.builtinEnums.isEvaluatedPipelinePhase(value)) {
+            return value.variant;
+        } else {
+            return undefined;
+        }
+    }    
+
+    private get DSPipelinePhaseAnnotation(): SdsAnnotation | undefined {
+        return this.getAnnotation(IDE_INTEGRATION_URI, 'DSPipelinePhase');
+    }
+    
     // Deprecated ------------------------------------------------------------------------------------------------------
 
     callsDeprecated(node: SdsAnnotatedObject | undefined): boolean {

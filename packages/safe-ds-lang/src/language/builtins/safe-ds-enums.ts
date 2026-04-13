@@ -30,6 +30,16 @@ export class SafeDsEnums extends SafeDsModuleMembers<SdsEnum> {
     isEvaluatedDataScienceCategory = (node: EvaluatedNode): node is EvaluatedEnumVariant =>
         node instanceof EvaluatedEnumVariant &&
         AstUtils.getContainerOfType(node.variant, isSdsEnum) === this.DataScienceCategory;
+    // DSPipelinePhase -------------------------------------------------------------------------------------------------
+    
+    get DSPipelinePhase(): SdsEnum | undefined {
+        return this.getEnum(IDE_INTEGRATION_URI, 'PipelinePhase');
+    }
+
+    isEvaluatedPipelinePhase = (node: EvaluatedNode): node is EvaluatedEnumVariant =>
+        node instanceof EvaluatedEnumVariant &&
+        AstUtils.getContainerOfType(node.variant, isSdsEnum) === this.DSPipelinePhase;
+
 
     // ImpurityReason --------------------------------------------------------------------------------------------------
 
