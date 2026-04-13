@@ -189,6 +189,7 @@ import {
 import { messageOfConstraintsMustOnlyReferenceConstantParameters } from './other/declarations/constraints.js';
 import { argumentMustBeNamedIfParameterIsOptional } from './other/expressions/arguments.js';
 import { typeMustBeUsedInCorrectContext } from './other/types/types.js';
+import { pipelineMustFollowBehaviourProtocol } from './pipeline/behaviourProtocol.js';
 
 /**
  * Register custom validation checks.
@@ -352,7 +353,7 @@ export const registerValidationChecks = function (services: SafeDsServices) {
             parameterBoundRightOperandMustEvaluateToFloatConstantOrIntConstant(services),
         ],
         SdsParameterList: [parameterListMustNotHaveRequiredParametersAfterOptionalParameters],
-        SdsPipeline: [pipelinesMustBePrivate, pipelineMustContainUniqueNames],
+        SdsPipeline: [pipelinesMustBePrivate, pipelineMustContainUniqueNames, pipelineMustFollowBehaviourProtocol(services)],
         SdsPlaceholder: [placeholdersMustNotBeAnAlias, placeholderShouldBeUsed(services)],
         SdsPrefixOperation: [prefixOperationOperandMustHaveCorrectType(services)],
         SdsReference: [
