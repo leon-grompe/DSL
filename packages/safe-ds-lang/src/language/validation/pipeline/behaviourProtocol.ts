@@ -1,5 +1,5 @@
 import { ValidationAcceptor } from 'langium';
-import { isSdsAnnotatedObject, isSdsAssignment, isSdsCall, isSdsExpressionStatement, isSdsFunction, isSdsMemberAccess, isSdsOutputStatement, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsStatement } from '../../generated/ast.js';
+import { isSdsAssignment, isSdsCall, isSdsExpressionStatement, isSdsFunction, isSdsOutputStatement, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsStatement } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
 
 
