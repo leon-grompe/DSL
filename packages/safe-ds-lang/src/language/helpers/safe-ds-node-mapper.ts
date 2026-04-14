@@ -9,7 +9,9 @@ import {
     isSdsClass,
     isSdsEnumVariant,
     isSdsExpressionLambda,
+    isSdsExpressionStatement,
     isSdsNamedType,
+    isSdsOutputStatement,
     isSdsParameter,
     isSdsReference,
     isSdsSegment,
@@ -19,12 +21,14 @@ import {
     SdsAbstractResult,
     SdsArgument,
     SdsAssignee,
+    SdsCall,
     SdsCallable,
     SdsExpression,
     SdsParameter,
     SdsPlaceholder,
     SdsReference,
     SdsResult,
+    SdsStatement,
     SdsTypeArgument,
     SdsTypeParameter,
     SdsYield,
@@ -334,4 +338,22 @@ export class SafeDsNodeMapper {
         const typeParameters = getTypeParameters(namedTypeDeclaration);
         return typeParameters[typeArgumentPosition];
     }
+
+    /**
+     * Returns the call that is being made by the given statement, if any. 
+     * This can be either an expression statement, an assignment, or an output statement. 
+     * If no call can be found, returns `undefined`.
+     */
+    statementToCall(statement: SdsStatement): SdsCall | undefined {
+        if (isSdsExpressionStatement(statement) && isSdsCall(statement.expression)) {
+            return statement.expression;
+        }
+        if (isSdsAssignment(statement) && statement.expression && isSdsCall(statement.expression)) {
+            return statement.expression;
+        }
+        if (isSdsOutputStatement(statement) && isSdsCall(statement.expression)) {
+            return statement.expression;
+        }
+        return undefined;
+    };
 }
