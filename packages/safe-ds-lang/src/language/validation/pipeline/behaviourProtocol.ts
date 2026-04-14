@@ -1,5 +1,5 @@
 import { ValidationAcceptor } from 'langium';
-import { isSdsAssignment, isSdsCall, isSdsExpressionStatement, isSdsFunction, isSdsOutputStatement, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsStatement } from '../../generated/ast.js';
+import { isSdsAssignment, isSdsCall, isSdsClass, isSdsExpressionStatement, isSdsFunction, isSdsOutputStatement, SdsAnnotatedObject, SdsCall, SdsClass, SdsPipeline, SdsStatement } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
 
 
@@ -19,16 +19,15 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         let currentPhase = -1;
 
         const statements = node.body.statements;
-        let annotatedObjects: SdsAnnotatedObject[] = [];
         
         for (const statement of statements) {            
             const call = getCallFromStatement(statement);
             if (!call) continue;
 
             const callable = nodeMapper.callToCallable(call);
-            if (!callable || !(isSdsFunction(callable))) continue;
+            if (!callable || !(isSdsFunction(callable) || isSdsClass(callable))) continue;
 
-            const phase = builtinAnnotations.getDSPipelinePhase(callable);
+            const phase = builtinAnnotations.getDSPipelinePhase(callable as SdsAnnotatedObject);
             if (!phase) continue;
             console.log(`Found phase annotation '${phase.name}' on function '${callable.name}'`);
             
