@@ -2,7 +2,6 @@ import { ValidationAcceptor } from 'langium';
 import { isSdsAssignment, isSdsCall, isSdsClass, isSdsExpressionStatement, isSdsFunction, isSdsOutputStatement, SdsAnnotatedObject, SdsCall, SdsClass, SdsPipeline, SdsStatement } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
 
-
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
 
 export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
@@ -10,18 +9,23 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
     const builtinAnnotations = services.builtins.Annotations;
 
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
-        // Define phase order
         const phaseOrder = [
             'DataAcquisition', 'DataPreparation', 'DataPreprocessing', 
             'FeatureEngineering', 'FeatureSelection', 'Modeling', 'Training', 'Prediction', 'Evaluation', 'Testing',
             'Interpretation'
         ];
         let currentPhase = -1;
-
+        // operatoren:
+        // sequenz, wiederholung, alternative
+        /*
+        phases = []
+        -> alles was gleichzeitig kann, kommt in ein array
+        -> wenn etwas passieren muss: muss das beim traversieren gecheckt werden?
+        */
         const statements = node.body.statements;
         
         for (const statement of statements) {            
-            const call = getCallFromStatement(statement);
+            const call = nodeMapper.statementToCall(statement);
             if (!call) continue;
 
             const callable = nodeMapper.callToCallable(call);
@@ -51,15 +55,3 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
     };
 };
 
-const getCallFromStatement = (statement: SdsStatement): SdsCall | undefined => {
-    if (isSdsExpressionStatement(statement) && isSdsCall(statement.expression)) {
-        return statement.expression;
-    }
-    if (isSdsAssignment(statement) && statement.expression && isSdsCall(statement.expression)) {
-        return statement.expression;
-    }
-    if (isSdsOutputStatement(statement) && isSdsCall(statement.expression)) {
-        return statement.expression;
-    }
-    return undefined;
-};
