@@ -1,5 +1,5 @@
 import { ValidationAcceptor } from 'langium';
-import { isSdsAssignment, isSdsCall, isSdsClass, isSdsExpressionStatement, isSdsFunction, isSdsOutputStatement, SdsAnnotatedObject, SdsCall, SdsClass, SdsPipeline, SdsStatement } from '../../generated/ast.js';
+import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsPipeline } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
 
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
@@ -54,4 +54,91 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         };
     };
 };
+
+export interface Phase {
+    name: string;
+}
+
+export abstract class ProtocolBlock {
+    constructor(){}
+
+    abstract validate(sequence: Phase[], startIndex: number) : [boolean, number];
+}
+export class ElementaryBlock extends ProtocolBlock{
+    constructor(
+        public phase: string,
+
+    ){ super() }
+
+    validate(sequence: Phase[], startIndex: number) : [boolean, number] {
+
+        return [false, startIndex];
+    }
+}
+
+export class SequenceBlock extends ProtocolBlock{
+    constructor(
+        public blocks: ProtocolBlock[],
+    ){ super() }
+
+    validate(sequence: Phase[], startIndex: number) : [boolean, number] {
+
+        return [false, startIndex];
+    }
+}   
+
+export class RepetitionBlock extends ProtocolBlock{
+    constructor(
+        public block: ProtocolBlock,
+        public min: number = 0,
+        public max: number = Infinity,
+
+    ){ super() }
+
+    validate(sequence: Phase[], startIndex: number) : [boolean, number] {
+
+        return [false, startIndex];
+    }
+}
+
+export class AlternativeBlock extends ProtocolBlock{
+    constructor(
+        public blocks: ProtocolBlock[],
+        public relation: 'or' | 'xor',
+    ){ super() }
+
+    validate(sequence: Phase[], startIndex: number) : [boolean, number] {
+
+        return [false, startIndex];
+    }
+}
+
+const protocol = new SequenceBlock([
+    new RepetitionBlock(
+        new ElementaryBlock('DataAcquisitionQGeneral'),
+        1
+    ),
+    new RepetitionBlock(
+        new AlternativeBlock([
+            new ElementaryBlock('EditImageList'),
+            new ElementaryBlock('AcquisitionAndEngineering'),
+            new ElementaryBlock('DataAcquisitionQGeneral')],
+            'or'
+        )
+    ),
+    new RepetitionBlock(
+        new AlternativeBlock([
+            new ElementaryBlock('DataPreparationQGeneral'),
+            new ElementaryBlock('Exploration'),
+            new ElementaryBlock('EditImageList'),
+            new ElementaryBlock('PreparationAndEngineering'),
+            new ElementaryBlock('PreparationPreprocessingAndEngineering')],
+            'or'
+        )
+    ),
+    new RepetitionBlock(
+        new ElementaryBlock('DataPartitioningQGeneral'),
+        1
+    ),
+])
 
