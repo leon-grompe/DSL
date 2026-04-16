@@ -92,22 +92,92 @@ annotation PipelinePhase(phase: DSPipelinePhase)
 
 @Experimental
 enum DSPipelinePhase {
-    // Pre-Processing Layer
+// Pre-Processing Layer
+    /**
+     * Load your data into the pipeline.
+     */
     DataAcquisition
+
+    /**
+     * General data preparation tasks.
+     */
     DataPreparation
-    DataPreprocessing
 
-    // Model Building Layer
+    /**
+     * Partition data into training, validation and test sets
+     */
+    DataPartitioning
+
+    /**
+     * Process your data for analysis.
+     */
+    DataProcessing
+    DataTransformer
+
+// Model Building Layer
+    /**
+     * Do feature engineering to prepare your data for modeling.
+     */
     FeatureEngineering
-    FeatureSelection
-    Modeling
-    Training
-    Prediction
-    Evaluation
-    Testing
+    FeatureTransformer
 
-    // Post-Processing Layer
-    Interpretation
+    /**
+     * Select the most relevant features for your model.
+     */
+    FeatureSelection
+
+    /**
+     *  Configure a model.
+     */
+    Modeling
+    ModelingQClassification
+    ModelingQRegression
+    ModelingQNeuralNetwork
+
+    /**
+     * Train the model on your data.
+     */
+    Training
+    TrainingQClassification
+    TrainingQRegression
+    TrainingQNeuralNetwork
+
+    /**
+     * Use your trained model to make predictions.
+     */
+    Prediction
+
+    /**
+     * Evaluate the models performance with metrics or visualizations.
+     */
+    EvaluationQMetric
+    EvaluationQVisualization
+
+// No specific phase
+    /**
+     * Explore the data with metrics, visualizations and general exploration tools.
+     */
+    Exploration
+
+    /**
+     * General tasks in the Preprocessing layer.
+     */
+    Preprocessing
+
+    /**
+     * General tasks that can be done in Preparation or Processing phase.
+     */
+    PreparationAndProcessing
+
+    /**
+     * General tasks that can be done in Preparation, Processing or Engineering phase.
+     */
+    PreparationProcessingAndEngineering
+
+    /**
+     * General operations that can be used for Acquisition or Engineering.
+     */
+    AcquisitionAndEngineering
 }
 
 
