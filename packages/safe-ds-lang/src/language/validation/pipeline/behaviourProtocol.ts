@@ -58,13 +58,26 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
 export interface Phase {
     name: string;
 }
-
+/**
+ * Abstract base class for protocol blocks.
+ * Protocol Blocks can be elementary, sequences of blocks, repetitions of a block, or alternatives between blocks.
+ * Using these Blocks a regular expression like structure can be created to define the valid sequences of phases in a pipeline.
+ */
 export abstract class ProtocolBlock {
     constructor(){}
 
+    /**
+     * Validates a sequence of phases against the protocol block.
+     * @param sequence The sequence of phases to validate.
+     * @param startIndex The index to start validation from.
+     * @returns A tuple indicating if the validation was successful and the index of the next phase to validate.
+     */
     abstract validate(sequence: Phase[], startIndex: number) : [boolean, number];
 }
 
+/**
+ * Represents an elementary block in the behaviour protocol, which corresponds to a single phase.
+ */
 export class ElementaryBlock extends ProtocolBlock{
     constructor(
         public phase: string,
@@ -83,6 +96,9 @@ export class ElementaryBlock extends ProtocolBlock{
     }
 }
 
+/**
+ * Represents a sequence of protocol blocks, where each block must be validated in order.
+ */
 export class SequenceBlock extends ProtocolBlock{
     constructor(
         public blocks: ProtocolBlock[],
@@ -101,6 +117,9 @@ export class SequenceBlock extends ProtocolBlock{
     }
 }   
 
+/**
+ * Represents a repetition of a protocol block, where the block must be validated a certain number of times (between min and max).
+ */
 export class RepetitionBlock extends ProtocolBlock{
     constructor(
         public block: ProtocolBlock,
@@ -124,6 +143,9 @@ export class RepetitionBlock extends ProtocolBlock{
     }
 }
 
+/**
+ * Represents an alternative between multiple protocol blocks, with the relation being either 'or' or 'xor'.
+ */
 export class AlternativeBlock extends ProtocolBlock{
     constructor(
         public blocks: ProtocolBlock[],
@@ -165,30 +187,115 @@ export class AlternativeBlock extends ProtocolBlock{
 
 
 const protocol = new SequenceBlock([
+// Pre-Processing Layer
+    // Data Acquisition
     new RepetitionBlock(
         new ElementaryBlock('DataAcquisitionQGeneral'),
         1
     ),
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock('EditImageList'),
+            new ElementaryBlock('Preprocessing'),
             new ElementaryBlock('AcquisitionAndEngineering'),
             new ElementaryBlock('DataAcquisitionQGeneral')],
             'or'
         )
     ),
+
+    // Data Preparation
     new RepetitionBlock(
         new AlternativeBlock([
             new ElementaryBlock('DataPreparationQGeneral'),
             new ElementaryBlock('Exploration'),
-            new ElementaryBlock('EditImageList'),
+            new ElementaryBlock('Preprocessing'),
             new ElementaryBlock('PreparationAndEngineering'),
-            new ElementaryBlock('PreparationPreprocessingAndEngineering')],
+            new ElementaryBlock('PreparationProcessingAndEngineering')],
             'or'
         )
     ),
+
+    // Data Partioning
     new RepetitionBlock(
         new ElementaryBlock('DataPartitioningQGeneral'),
+        1
+    ),
+
+    // Data Processing
+    new RepetitionBlock(
+        new AlternativeBlock([
+            new ElementaryBlock('DataProcessingQGeneral'),
+            new ElementaryBlock('DataTransformer'),
+            new ElementaryBlock('Exploration'),
+            new ElementaryBlock('PreparationAndProcessing'),
+            new ElementaryBlock('PreparationProcessingAndEngineering')], 
+            'or'
+        )
+    ),
+    
+// Model Building Layer
+    
+    // Feature Engineering
+    new RepetitionBlock(
+        new AlternativeBlock([
+            new ElementaryBlock('FeatureEngineeringQGeneral'),
+            new ElementaryBlock('FeatureTransformer'),
+            new ElementaryBlock('Exploration'),
+            new ElementaryBlock('AcquisitionAndEngineering'),
+            new ElementaryBlock('PreparationProcessingAndEngineering')], 
+            'or'
+        )
+    ),
+
+    // Feature Selection
+    new RepetitionBlock(
+        new ElementaryBlock('FeatureSelectionQGeneral')
+    ),
+
+    // Modeling
+    new RepetitionBlock(
+        new AlternativeBlock([
+            new ElementaryBlock('Modeling'),
+            new ElementaryBlock('ModelingQClassification'),
+            new ElementaryBlock('ModelingQRegression'),
+            new ElementaryBlock('ModelingQNeuralNetwork')],
+            'or'
+        ),  1
+    ),
+
+    // Training
+    new RepetitionBlock(
+        new AlternativeBlock([
+            new ElementaryBlock('Training'),
+            new ElementaryBlock('TrainingQClassification'),
+            new ElementaryBlock('TrainingQRegression'),
+            new ElementaryBlock('TrainingQNeuralNetwork')],
+            'or'
+        ),  1
+    ),
+
+    // Prediction
+    new RepetitionBlock(
+        new ElementaryBlock('Prediction')
+    ),
+
+    // Evaluation
+    new RepetitionBlock(
+        new AlternativeBlock([
+            new ElementaryBlock('EvaluationQMetric'),
+            new ElementaryBlock('EvaluationQVisualization')],
+            'or'
+        ),  1
+    ),
+
+    // Testing
+    new RepetitionBlock(
+        new ElementaryBlock('EvaluationQMetric'),
+        1
+    ),
+
+    // Interpretation
+    new RepetitionBlock(
+        new ElementaryBlock('EvaluationQVisualization'),
         1
     ),
 ])
