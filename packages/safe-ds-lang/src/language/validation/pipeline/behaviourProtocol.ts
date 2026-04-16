@@ -1,5 +1,5 @@
 import { ValidationAcceptor } from 'langium';
-import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsPipeline } from '../../generated/ast.js';
+import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsPipeline, SdsStatement } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
 
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
@@ -62,15 +62,16 @@ export interface Phase {
 export abstract class ProtocolBlock {
     constructor(){}
 
-    abstract validate(sequence: Phase[], startIndex: number) : [boolean, number];
+    abstract validate(sequence: SdsStatement[], startIndex: number) : [boolean, number];
 }
+
 export class ElementaryBlock extends ProtocolBlock{
     constructor(
         public phase: string,
 
     ){ super() }
 
-    validate(sequence: Phase[], startIndex: number) : [boolean, number] {
+    validate(sequence: SdsStatement[], startIndex: number) : [boolean, number] {
 
         return [false, startIndex];
     }
@@ -81,9 +82,16 @@ export class SequenceBlock extends ProtocolBlock{
         public blocks: ProtocolBlock[],
     ){ super() }
 
-    validate(sequence: Phase[], startIndex: number) : [boolean, number] {
-
-        return [false, startIndex];
+    validate(sequence: SdsStatement[], startIndex: number) : [boolean, number] {
+        let updatedStartingPoint = 0;
+        for (const block of this.blocks){
+            const [isValid, validatedIndex] = block.validate(sequence, startIndex + updatedStartingPoint); 
+            if(!isValid){
+                return [false, startIndex];
+            }
+            updatedStartingPoint = validatedIndex;
+        }
+        return [true, updatedStartingPoint];
     }
 }   
 
@@ -95,7 +103,7 @@ export class RepetitionBlock extends ProtocolBlock{
 
     ){ super() }
 
-    validate(sequence: Phase[], startIndex: number) : [boolean, number] {
+    validate(sequence: SdsStatement[], startIndex: number) : [boolean, number] {
 
         return [false, startIndex];
     }
@@ -107,11 +115,16 @@ export class AlternativeBlock extends ProtocolBlock{
         public relation: 'or' | 'xor',
     ){ super() }
 
-    validate(sequence: Phase[], startIndex: number) : [boolean, number] {
+    validate(sequence: SdsStatement[], startIndex: number) : [boolean, number] {
 
         return [false, startIndex];
     }
 }
+
+
+
+
+
 
 const protocol = new SequenceBlock([
     new RepetitionBlock(
