@@ -62,7 +62,7 @@ export interface Phase {
 export abstract class ProtocolBlock {
     constructor(){}
 
-    abstract validate(sequence: SdsStatement[], startIndex: number) : [boolean, number];
+    abstract validate(sequence: Phase[], startIndex: number) : [boolean, number];
 }
 
 export class ElementaryBlock extends ProtocolBlock{
@@ -71,8 +71,14 @@ export class ElementaryBlock extends ProtocolBlock{
 
     ){ super() }
 
-    validate(sequence: SdsStatement[], startIndex: number) : [boolean, number] {
-
+    validate(sequence: Phase[], startIndex: number) : [boolean, number] {
+        if (startIndex >= sequence.length) {
+            return [false, startIndex];
+        }
+        const currentPhase = sequence[startIndex];
+        if (currentPhase?.name === this.phase){
+            return [true, startIndex + 1];
+        }
         return [false, startIndex];
     }
 }
@@ -82,12 +88,12 @@ export class SequenceBlock extends ProtocolBlock{
         public blocks: ProtocolBlock[],
     ){ super() }
 
-    validate(sequence: SdsStatement[], startIndex: number) : [boolean, number] {
+    validate(sequence: Phase[], startIndex: number) : [boolean, number] {
         let updatedStartingPoint = 0;
         for (const block of this.blocks){
             const [isValid, validatedIndex] = block.validate(sequence, startIndex + updatedStartingPoint); 
             if(!isValid){
-                return [false, startIndex];
+                return [false, updatedStartingPoint];
             }
             updatedStartingPoint = validatedIndex;
         }
@@ -103,9 +109,18 @@ export class RepetitionBlock extends ProtocolBlock{
 
     ){ super() }
 
-    validate(sequence: SdsStatement[], startIndex: number) : [boolean, number] {
-
-        return [false, startIndex];
+    validate(sequence: Phase[], startIndex: number) : [boolean, number] {
+        let updatedStartingPoint = 0;
+        let counter = this.min;
+        while(counter <= this.max){
+            const [isValid, validatedIndex] = this.block.validate(sequence, startIndex + updatedStartingPoint);
+            if(!isValid){
+                return [false, updatedStartingPoint];
+            }
+            updatedStartingPoint = validatedIndex;
+            counter++;
+        }
+        return [true, updatedStartingPoint];
     }
 }
 
@@ -115,8 +130,31 @@ export class AlternativeBlock extends ProtocolBlock{
         public relation: 'or' | 'xor',
     ){ super() }
 
-    validate(sequence: SdsStatement[], startIndex: number) : [boolean, number] {
-
+    validate(sequence: Phase[], startIndex: number) : [boolean, number] {
+        switch(this.relation){
+            case 'or': {
+                for (const block of this.blocks){
+                    const [isValid, validatedIndex] = block.validate(sequence, startIndex);
+                    if(isValid){
+                        return [true, validatedIndex];
+                    }
+                }
+            }
+            case 'xor': {
+                let validCount = 0;
+                let lastValidIndex = startIndex;
+                for (const block of this.blocks){
+                    const [isValid, validatedIndex] = block.validate(sequence, startIndex);
+                    if(isValid){
+                        validCount++;
+                        lastValidIndex = validatedIndex;
+                    }
+                }
+                if (validCount === 1){
+                    return [true, lastValidIndex];
+                }
+            }
+        }
         return [false, startIndex];
     }
 }
