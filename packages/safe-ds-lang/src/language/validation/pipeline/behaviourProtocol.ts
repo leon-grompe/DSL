@@ -190,14 +190,14 @@ const protocol = new SequenceBlock([
 // Pre-Processing Layer
     // Data Acquisition
     new RepetitionBlock(
-        new ElementaryBlock('DataAcquisitionQGeneral'),
+        new ElementaryBlock('DataAcquisition'),
         1
     ),
     new RepetitionBlock(
         new AlternativeBlock([
             new ElementaryBlock('Preprocessing'),
-            new ElementaryBlock('AcquisitionAndEngineering'),
-            new ElementaryBlock('DataAcquisitionQGeneral')],
+            new ElementaryBlock('DataAcquisition'),
+            new ElementaryBlock('AcquisitionAndEngineering')],
             'or'
         )
     ),
@@ -205,7 +205,7 @@ const protocol = new SequenceBlock([
     // Data Preparation
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock('DataPreparationQGeneral'),
+            new ElementaryBlock('DataPreparation'),
             new ElementaryBlock('Exploration'),
             new ElementaryBlock('Preprocessing'),
             new ElementaryBlock('PreparationAndEngineering'),
@@ -216,14 +216,14 @@ const protocol = new SequenceBlock([
 
     // Data Partioning
     new RepetitionBlock(
-        new ElementaryBlock('DataPartitioningQGeneral'),
+        new ElementaryBlock('DataPartitioning'),
         1
     ),
 
     // Data Processing
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock('DataProcessingQGeneral'),
+            new ElementaryBlock('DataProcessing'),
             new ElementaryBlock('DataTransformer'),
             new ElementaryBlock('Exploration'),
             new ElementaryBlock('PreparationAndProcessing'),
@@ -237,7 +237,7 @@ const protocol = new SequenceBlock([
     // Feature Engineering
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock('FeatureEngineeringQGeneral'),
+            new ElementaryBlock('FeatureEngineering'),
             new ElementaryBlock('FeatureTransformer'),
             new ElementaryBlock('Exploration'),
             new ElementaryBlock('AcquisitionAndEngineering'),
@@ -248,7 +248,7 @@ const protocol = new SequenceBlock([
 
     // Feature Selection
     new RepetitionBlock(
-        new ElementaryBlock('FeatureSelectionQGeneral')
+        new ElementaryBlock('FeatureSelection')
     ),
 
     // Modeling
