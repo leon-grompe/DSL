@@ -1,10 +1,11 @@
 import { ValidationAcceptor } from 'langium';
 import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsPipeline, SdsStatement } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
-import { ProtocolBlock, ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock } from './model.js';
+import { ProtocolBlock, ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock, Phase } from './model.js';
 
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
 
+/*
 export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
     const nodeMapper = services.helpers.NodeMapper;
     const builtinAnnotations = services.builtins.Annotations;
@@ -48,14 +49,57 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         };
     };
 };
+*/
+
+export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
+    const nodeMapper = services.helpers.NodeMapper;
+    const builtinAnnotations = services.builtins.Annotations;
+
+    return (node: SdsPipeline, accept: ValidationAcceptor) => {
+        // fill the sequence of phases based on the annotations in the pipeline
+        // if an function has no phase annotation, it is assigned the phase any
+        const sequence = [] as Phase[];
+        const calls = [] as SdsStatement[];
+        for (const statement of node.body.statements) {
+            const call = nodeMapper.statementToCall(statement);
+            if (!call) continue;
+            calls.push(statement);
+
+            const callable = nodeMapper.callToCallable(call);
+            if (!callable || !(isSdsFunction(callable) || isSdsClass(callable))) continue;
+
+            const annotation = builtinAnnotations.getDSPipelinePhase(callable as SdsAnnotatedObject);
+            if (!annotation) {
+                sequence.push(new Phase('Any'));
+                continue;
+            };            
+            sequence.push(new Phase(annotation.name));
+        }
+        console.log('Sequence of phases in the pipeline:', sequence.map(phase => phase.name).join(', '));
+
+        const [isValid, validatedIndex] = fullProtocol.validate(sequence, 0);
+        console.log('isValid: ' + isValid, '| validatedIndex: ' + validatedIndex, '| refers to: ' + sequence[validatedIndex]?.name);
+        
+        if (!isValid){
+            const statement = calls[validatedIndex];
+            if (!statement) return;
+            const call = nodeMapper.statementToCall(statement);
+            if (!call) return;
+            if (statement) {
+                accept('warning',
+                    'The pipeline does not follow the recommended behaviour protocol.', {
+                        node: call,
+                        code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
+                    },
+                );
+            }
+        }
+    }
+};
 
 
 
-
-
-
-
-const protocol = new SequenceBlock([
+const fullProtocol = new SequenceBlock([
 // Pre-Processing Layer
     // Data Acquisition
     new RepetitionBlock(
