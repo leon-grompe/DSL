@@ -233,7 +233,6 @@ const protocol = new SequenceBlock([
     ),
     
 // Model Building Layer
-    
     // Feature Engineering
     new RepetitionBlock(
         new AlternativeBlock([
@@ -293,6 +292,7 @@ const protocol = new SequenceBlock([
         1
     ),
 
+// Post-Processing Layer
     // Interpretation
     new RepetitionBlock(
         new ElementaryBlock('EvaluationQVisualization'),
