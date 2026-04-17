@@ -6,6 +6,7 @@ import {
     isSdsBlock,
     isSdsCall,
     isSdsCallable,
+    isSdsChainedExpression,
     isSdsClass,
     isSdsEnumVariant,
     isSdsExpressionLambda,
@@ -340,20 +341,39 @@ export class SafeDsNodeMapper {
     }
 
     /**
-     * Returns the call that is being made by the given statement, if any. 
-     * This can be either an expression statement, an assignment, or an output statement. 
-     * If no call can be found, returns `undefined`.
+     * Returns all calls that are being made by the given statement, if any.
+     * If no call can be found, returns an empty array.
+     * For chained expressions, all calls in the chain are returned (from innermost to outermost).
+     *
+     * @param statement The statement to extract calls from.
+     * @returns An array of all calls in the statement, or an empty array if none found.
      */
-    statementToCall(statement: SdsStatement): SdsCall | undefined {
-        if (isSdsExpressionStatement(statement) && isSdsCall(statement.expression)) {
-            return statement.expression;
+    statementToCalls(statement: SdsStatement): SdsCall[] {
+        const result: SdsCall[] = [];
+
+        const extractCalls = (expression: SdsExpression | undefined) => {
+            if (!expression) {
+                return;
+            }
+
+            if (isSdsCall(expression)) {
+                extractCalls(expression.receiver);
+                result.push(expression);
+            }
+            else if (isSdsChainedExpression(expression)) {
+                extractCalls(expression.receiver);
+                if (isSdsCall(expression)) {
+                    result.push(expression);
+                }
+            }
+        };
+
+        if (isSdsExpressionStatement(statement) || 
+            isSdsAssignment(statement) || 
+            isSdsOutputStatement(statement)) {
+            extractCalls(statement.expression);
         }
-        if (isSdsAssignment(statement) && statement.expression && isSdsCall(statement.expression)) {
-            return statement.expression;
-        }
-        if (isSdsOutputStatement(statement) && isSdsCall(statement.expression)) {
-            return statement.expression;
-        }
-        return undefined;
-    };
+
+        return result;
+    }
 }
