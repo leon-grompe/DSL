@@ -801,6 +801,7 @@ class Table(
     @Pure
     @PythonName("split_rows")
     @Category(DataScienceCategory.DataProcessingQTable)
+    @PipelinePhase(DSPipelinePhase.DataPartitioning)
     fun splitRows(
         @PythonName("percentage_in_first") percentageInFirst: Float,
         shuffle: Boolean = true,
@@ -1102,6 +1103,7 @@ class Table(
     @Pure
     @PythonName("to_tabular_dataset")
     @Category(DataScienceCategory.UtilitiesQConversion)
+    @PipelinePhase(DSPipelinePhase.FeatureSelection)
     fun toTabularDataset(
         @PythonName("target_name") targetName: String,
         @PythonName("extra_names") extraNames: union<List<String>, String, Nothing?> = null

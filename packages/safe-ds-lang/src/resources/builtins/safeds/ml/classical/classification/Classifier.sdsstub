@@ -120,6 +120,7 @@ class Classifier sub SupervisedModel {
      */
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+
     fun recall(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>,
         @PythonName("positive_class") positiveClass: Any

@@ -44,6 +44,7 @@ class Image {
     @Impure([ImpurityReason.FileReadFromParameterizedPath("path")])
     @PythonName("from_file")
     @Category(DataScienceCategory.DataImport)
+    @PipelinePhase(DSPipelinePhase.DataAcquisition)
     static fun fromFile(
         path: String
     ) -> image: Image

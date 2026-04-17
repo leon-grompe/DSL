@@ -50,6 +50,7 @@ class ImageList {
     @Pure
     @PythonName("from_images")
     @Category(DataScienceCategory.DataImport)
+    @PipelinePhase(DSPipelinePhase.DataAcquisition)
     static fun fromImages(
         images: List<Image>
     ) -> imageList: ImageList
@@ -67,6 +68,7 @@ class ImageList {
     @Impure([ImpurityReason.FileReadFromParameterizedPath("path")])
     @PythonName("from_files")
     @Category(DataScienceCategory.DataImport)
+    @PipelinePhase(DSPipelinePhase.DataAcquisition)
     static fun fromFiles(
         path: union<List<String>, String>,
         @PythonName("load_percentage") loadPercentage: Float = 1.0
