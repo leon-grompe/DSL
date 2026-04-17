@@ -5,70 +5,23 @@ import { ProtocolBlock, ElementaryBlock, AlternativeBlock, RepetitionBlock, Sequ
 
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
 
-/*
 export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
     const nodeMapper = services.helpers.NodeMapper;
     const builtinAnnotations = services.builtins.Annotations;
 
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
-        const phaseOrder = [
-            'DataAcquisition', 'DataPreparation', 'DataPreprocessing', 
-            'FeatureEngineering', 'FeatureSelection', 'Modeling', 'Training', 'Prediction', 'Evaluation', 'Testing',
-            'Interpretation'
-        ];
-        let currentPhase = -1;
-        const statements = node.body.statements;
-        
-        for (const statement of statements) {            
-            const call = nodeMapper.statementToCall(statement);
-            if (!call) continue;
-
-            const callable = nodeMapper.callToCallable(call);
-            if (!callable || !(isSdsFunction(callable) || isSdsClass(callable))) continue;
-
-            const phase = builtinAnnotations.getDSPipelinePhase(callable as SdsAnnotatedObject);
-            if (!phase) continue;
-            console.log(`Found phase annotation '${phase.name}' on function '${callable.name}'`);
-            
-            const phaseIndex = phaseOrder.indexOf(phase.name);
-            if (phaseIndex < 0) continue;
-            console.log(`Phase '${phase.name}' has index ${phaseIndex} in the phase order`);
-            console.log(`Current phase index is ${currentPhase}`);
-            
-            if (phaseIndex < currentPhase) {
-                accept('warning',
-                    `Function '${callable.name}' is annotated with phase '${phase.name}' but occurs after phase '${phaseOrder[currentPhase]}'.`,
-                    {
-                        node: call,
-                        code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
-                    },
-                );
-            } else {
-                currentPhase = phaseIndex;
-            };
-        };
-    };
-};
-*/
-
-export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
-    const nodeMapper = services.helpers.NodeMapper;
-    const builtinAnnotations = services.builtins.Annotations;
-
-    return (node: SdsPipeline, accept: ValidationAcceptor) => {
-        // fill the sequence of phases based on the annotations in the pipeline
-        // if an function has no phase annotation, it is assigned the phase any
-        const sequence = [] as Phase[];
+        // fill the sequence of found calls in the pipeline
         const calls = [] as SdsCall[];
-        
         for (const statement of node.body.statements){
             const statementCalls = nodeMapper.statementToCalls(statement);
             for (const call of statementCalls) {
                 calls.push(call);
             }
         }
-            
-        // Process all calls in the statement (handles chained expressions)
+        
+        // for each call, find the corresponding annotation and add it to the sequence
+        // if no annotation is found, add the phase 'Any' instead
+        const sequence = [] as Phase[];
         for (const call of calls) {
             const callable = nodeMapper.callToCallable(call);
             if (!callable || !(isSdsFunction(callable) || isSdsClass(callable))) continue;
