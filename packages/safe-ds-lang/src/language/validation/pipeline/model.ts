@@ -36,7 +36,7 @@ export class ElementaryBlock extends ProtocolBlock{
             return [false, startIndex];
         }
         const currentPhase = sequence[startIndex];
-        if (currentPhase?.name === this.phase || this.phase === 'Any'){
+        if (currentPhase?.name === this.phase || currentPhase?.name === 'Any'){
             return [true, startIndex + 1];
         }
         return [false, startIndex];
@@ -54,12 +54,14 @@ export class SequenceBlock extends ProtocolBlock{
     validate(sequence: Phase[], startIndex: number) : [boolean, number] {
         let updatedStartingPoint = 0;
         for (const block of this.blocks){
-            const [isValid, validatedIndex] = block.validate(sequence, startIndex + updatedStartingPoint); 
+            const [isValid, validatedIndex] = block.validate(sequence, updatedStartingPoint); 
             if(!isValid){
-                console.log('Validation failed at block:', block, '| sequence phase was:', sequence[startIndex + updatedStartingPoint]);
+                console.log('Validation failed at block:', block, '| sequence phase was:', sequence[updatedStartingPoint]);
                 return [false, updatedStartingPoint];
             }
-            updatedStartingPoint = validatedIndex;
+            if (validatedIndex > updatedStartingPoint) {
+                updatedStartingPoint = validatedIndex;
+            }
         }
         return [true, updatedStartingPoint];
     }
@@ -77,27 +79,27 @@ export class RepetitionBlock extends ProtocolBlock{
     ){ super() }
 
     validate(sequence: Phase[], startIndex: number) : [boolean, number] {
-        let updatedStartingPoint = 0;
+        let currentIndex = startIndex;
         
         // First, enforce the minimum required matches
         for (let counter = 0; counter < this.min; counter++) {
-            const [isValid, validatedIndex] = this.block.validate(sequence, startIndex + updatedStartingPoint);
+            const [isValid, validatedIndex] = this.block.validate(sequence, currentIndex);
             if (!isValid) {
-                return [false, updatedStartingPoint];
+                return [false, currentIndex];
             }
-            updatedStartingPoint = validatedIndex;
+            currentIndex = validatedIndex;
         }
         
         // Then, optionally match more times up to max
         for (let counter = this.min; counter < this.max; counter++) {
-            const [isValid, validatedIndex] = this.block.validate(sequence, startIndex + updatedStartingPoint);
+            const [isValid, validatedIndex] = this.block.validate(sequence, currentIndex);
             if (!isValid) {
-                break; // Optional repetition failed — that's fine, we're done
+                break;
             }
-            updatedStartingPoint = validatedIndex;
+            currentIndex = validatedIndex;
         }
         
-        return [true, updatedStartingPoint];
+        return [true, currentIndex];
     }
 }
 
@@ -119,6 +121,7 @@ export class AlternativeBlock extends ProtocolBlock{
                         return [true, validatedIndex];
                     }
                 }
+                break;
             }
             case 'xor': {
                 let validCount = 0;
@@ -133,6 +136,7 @@ export class AlternativeBlock extends ProtocolBlock{
                 if (validCount === 1){
                     return [true, lastValidIndex];
                 }
+                break;
             }
         }
         return [false, startIndex];
