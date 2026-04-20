@@ -1,3 +1,34 @@
+export type ValidationError = 
+    | {type: 'missing-required-phase'; expected: Phase }
+    | {type: 'unexpected-phase'; found: Phase }
+    | {type: 'validation-done'}
+    | {type: 'elem-block-start-geq-seq-length' }
+    | {type: 'elem-block-phase-mismatch'; expected: Phase; found: Phase }
+    | {type: 'alternative-block-no-match'}
+
+
+export class ValidationResult {
+    public readonly isValid: boolean;
+    public readonly validatedIndex: number;
+    public readonly error?: ValidationError;
+    
+    private constructor (isValid: boolean, validatedIndex: number, error?: ValidationError){
+        this.isValid = isValid;
+        this.validatedIndex = validatedIndex;
+        this.error = error;
+    }
+
+    static success(validatedIndex: number): ValidationResult {
+        return new ValidationResult(true, validatedIndex);
+    }
+    
+    static failure(validatedIndex: number, error?: ValidationError): ValidationResult {
+        return new ValidationResult(false, validatedIndex, error);
+    }
+}
+
+
+
 export class Phase {
     constructor(
         public name: string,
@@ -18,7 +49,7 @@ export abstract class ProtocolBlock {
      * @param startIndex The index to start validation from.
      * @returns A tuple indicating if the validation was successful and the index of the next phase to validate.
      */
-    abstract validate(sequence: Phase[], startIndex: number) : [boolean, number];
+    abstract validate(sequence: Phase[], startIndex: number) : ValidationResult;
 }
 
 /**
@@ -31,15 +62,19 @@ export class ElementaryBlock extends ProtocolBlock{
 
     ){ super() }
 
-    validate(sequence: Phase[], startIndex: number) : [boolean, number] {
+    validate(sequence: Phase[], startIndex: number) : ValidationResult {
         if (startIndex >= sequence.length) {
-            return [false, startIndex];
+            return ValidationResult.failure(startIndex, {type: 'elem-block-start-geq-seq-length'});
         }
         const currentPhase = sequence[startIndex];
         if (currentPhase?.name === this.phase || currentPhase?.name === 'Any'){
-            return [true, startIndex + 1];
+            return ValidationResult.success(startIndex + 1);
         }
-        return [false, startIndex];
+        return ValidationResult.failure(startIndex, {
+            type: 'elem-block-phase-mismatch', 
+            expected: new Phase(this.phase), 
+            found: currentPhase ?? new Phase('EndOfSequence')
+        });
     }
 }
 
@@ -51,19 +86,19 @@ export class SequenceBlock extends ProtocolBlock{
         public blocks: ProtocolBlock[],
     ){ super() }
 
-    validate(sequence: Phase[], startIndex: number) : [boolean, number] {
+    validate(sequence: Phase[], startIndex: number) : ValidationResult {
         let updatedStartingPoint = 0;
         for (const block of this.blocks){
-            const [isValid, validatedIndex] = block.validate(sequence, updatedStartingPoint); 
-            if(!isValid){
-                console.log('Validation failed at block:', block, '| sequence phase was:', sequence[updatedStartingPoint]);
-                return [false, updatedStartingPoint];
+            const result = block.validate(sequence, updatedStartingPoint);
+            if(!result.isValid){
+                // console.log('Validation failed at block:', block, '| sequence phase was:', sequence[updatedStartingPoint]);
+                return result;
             }
-            if (validatedIndex > updatedStartingPoint) {
-                updatedStartingPoint = validatedIndex;
+            if (result.validatedIndex > updatedStartingPoint) {
+                updatedStartingPoint = result.validatedIndex;
             }
         }
-        return [true, updatedStartingPoint];
+        return ValidationResult.success(updatedStartingPoint);
     }
 }   
 
@@ -78,28 +113,28 @@ export class RepetitionBlock extends ProtocolBlock{
 
     ){ super() }
 
-    validate(sequence: Phase[], startIndex: number) : [boolean, number] {
+    validate(sequence: Phase[], startIndex: number) :ValidationResult {
         let currentIndex = startIndex;
         
         // First, enforce the minimum required matches
         for (let counter = 0; counter < this.min; counter++) {
-            const [isValid, validatedIndex] = this.block.validate(sequence, currentIndex);
-            if (!isValid) {
-                return [false, currentIndex];
+            const result = this.block.validate(sequence, currentIndex);
+            if (!result.isValid) {
+                return result;
             }
-            currentIndex = validatedIndex;
+            currentIndex = result.validatedIndex;
         }
         
         // Then, optionally match more times up to max
         for (let counter = this.min; counter < this.max; counter++) {
-            const [isValid, validatedIndex] = this.block.validate(sequence, currentIndex);
-            if (!isValid) {
+            const result = this.block.validate(sequence, currentIndex);
+            if (!result.isValid) {
                 break;
             }
-            currentIndex = validatedIndex;
+            currentIndex = result.validatedIndex;
         }
         
-        return [true, currentIndex];
+        return ValidationResult.success(currentIndex);
     }
 }
 
@@ -112,13 +147,13 @@ export class AlternativeBlock extends ProtocolBlock{
         public relation: 'or' | 'xor',
     ){ super() }
 
-    validate(sequence: Phase[], startIndex: number) : [boolean, number] {
+    validate(sequence: Phase[], startIndex: number) : ValidationResult {
         switch(this.relation){
             case 'or': {
                 for (const block of this.blocks){
-                    const [isValid, validatedIndex] = block.validate(sequence, startIndex);
-                    if(isValid){
-                        return [true, validatedIndex];
+                    const result = block.validate(sequence, startIndex);
+                    if(result.isValid){
+                        return result;
                     }
                 }
                 break;
@@ -127,18 +162,18 @@ export class AlternativeBlock extends ProtocolBlock{
                 let validCount = 0;
                 let lastValidIndex = startIndex;
                 for (const block of this.blocks){
-                    const [isValid, validatedIndex] = block.validate(sequence, startIndex);
-                    if(isValid){
+                    const result = block.validate(sequence, startIndex);
+                    if(result.isValid){
                         validCount++;
-                        lastValidIndex = validatedIndex;
+                        lastValidIndex = result.validatedIndex;
                     }
                 }
                 if (validCount === 1){
-                    return [true, lastValidIndex];
+                    return ValidationResult.success(lastValidIndex);
                 }
                 break;
             }
         }
-        return [false, startIndex];
+        return ValidationResult.failure(startIndex, {type: 'alternative-block-no-match'});
     }
 }

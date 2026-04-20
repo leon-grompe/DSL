@@ -37,14 +37,14 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         console.log('Extracted calls:', calls.map(call => call.$type).join(', '));
         // console.log('Sequence of phases in the pipeline:', sequence.map(phase => phase.name).join(', '));
 
-        const [isValid, validatedIndex] = fullProtocol.validate(sequence, 0);
-        // console.log('isValid: ' + isValid, '| validatedIndex: ' + validatedIndex, '| refers to: ' + sequence[validatedIndex]?.name);
+        const result = fullProtocol.validate(sequence, 0);
+        // console.log('isValid: ' + result.isValid, '| validatedIndex: ' + result.validatedIndex, '| refers to: ' + sequence[result.validatedIndex]?.name);
 
-        if (!isValid){
-            const call = calls[validatedIndex];
+        if (!result.isValid){
+            const call = calls[result.validatedIndex];
             if (!call) return;
             accept('warning',
-                'The pipeline does not follow the recommended behaviour protocol.', {
+                'The pipeline does not follow the recommended behaviour protocol. Error: ' + result.error?.type, {
                     node: call,
                     code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
                 },
