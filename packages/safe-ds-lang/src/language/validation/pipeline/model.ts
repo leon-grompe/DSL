@@ -1,10 +1,14 @@
-export type ValidationError = 
-    | {type: 'missing-required-phase'; expected: Phase }
-    | {type: 'unexpected-phase'; found: Phase }
-    | {type: 'validation-done'}
-    | {type: 'elem-block-start-geq-seq-length' }
+import { aC } from "vitest/dist/chunks/reporters.d.BFLkQcL6.js";
+
+export type ValidationError =     
+    | {type: 'elem-block-oob' }
     | {type: 'elem-block-phase-mismatch'; expected: Phase; found: Phase }
+    
     | {type: 'alternative-block-no-match'}
+    | {type: 'or-block-no-match'}
+    | {type: 'xor-block-multiple-matches'}
+    
+    | {type: 'repetition-block-minimum-not-met'; min: number; actual: number }
 
 
 export class ValidationResult {
@@ -64,7 +68,7 @@ export class ElementaryBlock extends ProtocolBlock{
 
     validate(sequence: Phase[], startIndex: number) : ValidationResult {
         if (startIndex >= sequence.length) {
-            return ValidationResult.failure(startIndex, {type: 'elem-block-start-geq-seq-length'});
+            return ValidationResult.failure(startIndex, {type: 'elem-block-oob'});
         }
         const currentPhase = sequence[startIndex];
         if (currentPhase?.name === this.phase || currentPhase?.name === 'Any'){
@@ -120,7 +124,15 @@ export class RepetitionBlock extends ProtocolBlock{
         for (let counter = 0; counter < this.min; counter++) {
             const result = this.block.validate(sequence, currentIndex);
             if (!result.isValid) {
-                return result;
+                // TODO: currently this also triggers for min=1 when current block doesnt have anything to do with the repetition 
+                // and is just blatantly wrong. this should not trigger in this case
+                // in this case the error of the elementary block should be shown
+                // QUESTION: how to differentiate between the cases? 
+                return ValidationResult.failure(result.validatedIndex, {
+                    type: 'repetition-block-minimum-not-met',
+                    min: this.min,
+                    actual: counter,
+                });
             }
             currentIndex = result.validatedIndex;
         }
@@ -156,7 +168,7 @@ export class AlternativeBlock extends ProtocolBlock{
                         return result;
                     }
                 }
-                break;
+                return ValidationResult.failure(startIndex, {type: 'or-block-no-match'});;
             }
             case 'xor': {
                 let validCount = 0;
@@ -171,9 +183,11 @@ export class AlternativeBlock extends ProtocolBlock{
                 if (validCount === 1){
                     return ValidationResult.success(lastValidIndex);
                 }
-                break;
+                if (validCount > 1){
+                    return ValidationResult.failure(startIndex, {type: 'xor-block-multiple-matches'});
+                }
             }
         }
-        return ValidationResult.failure(startIndex, {type: 'alternative-block-no-match'});
+        return ValidationResult.failure(startIndex, {type: 'alternative-block-no-match'});       
     }
 }
