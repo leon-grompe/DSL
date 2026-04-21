@@ -34,11 +34,14 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
             sequence.push(new Phase(annotation.name));
         }
         
-        console.log('Extracted calls:', calls.map(call => call.$type).join(', '));
+        // console.log('Extracted calls:', calls.map(call => call.$type).join(', '));
         // console.log('Sequence of phases in the pipeline:', sequence.map(phase => phase.name).join(', '));
 
         const result = fullProtocol.validate(sequence, 0);
         // console.log('isValid: ' + result.isValid, '| validatedIndex: ' + result.validatedIndex, '| refers to: ' + sequence[result.validatedIndex]?.name);
+
+        // TODO: function to extract all inner errors
+        // get better validation message from more info
 
         if (!result.isValid){
             const call = calls[result.validatedIndex];
@@ -49,8 +52,8 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
                     code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
                 },
             );
-        }
-    }
+        };
+    };
 };
 
 

@@ -136,6 +136,7 @@ export class RepetitionBlock extends ProtocolBlock{
                     min: this.min,
                     actual: counter,
                 },  result );
+                // UPDATE: need to figure out if this is still an issue with nested Validation Results
             }
             currentIndex = result.validatedIndex;
         }
@@ -171,6 +172,7 @@ export class AlternativeBlock extends ProtocolBlock{
                         return result;
                     }
                 }
+                // TODO: it would probably help to also inclue the nested ValidationResults
                 return ValidationResult.failure(startIndex, {type: 'or-block-no-match'});
             }
             case 'xor': {
@@ -187,6 +189,7 @@ export class AlternativeBlock extends ProtocolBlock{
                     return ValidationResult.success(lastValidIndex);
                 }
                 if (validCount > 1){
+                    // TODO: see above
                     return ValidationResult.failure(startIndex, {type: 'xor-block-multiple-matches'});
                 }
             }
