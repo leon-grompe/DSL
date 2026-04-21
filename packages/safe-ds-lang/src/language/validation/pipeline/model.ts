@@ -1,4 +1,8 @@
-export type ValidationError =     
+import { result } from "true-myth";
+
+export type ValidationError =
+    | {type: 'sequence-block-failed'; name?: string }     
+    
     | {type: 'elem-block-oob' }
     | {type: 'elem-block-phase-mismatch'; expected: Phase; found: Phase }
     
@@ -13,19 +17,21 @@ export class ValidationResult {
     public readonly isValid: boolean;
     public readonly validatedIndex: number;
     public readonly error?: ValidationError;
+    public readonly baseError?: ValidationResult;
     
-    private constructor (isValid: boolean, validatedIndex: number, error?: ValidationError){
+    private constructor (isValid: boolean, validatedIndex: number, error?: ValidationError, baseError?: ValidationResult){
         this.isValid = isValid;
         this.validatedIndex = validatedIndex;
+        this.baseError = baseError;
         this.error = error;
     }
 
-    static success(validatedIndex: number): ValidationResult {
-        return new ValidationResult(true, validatedIndex);
+    static success(validatedIndex: number, baseError?: ValidationResult): ValidationResult {
+        return new ValidationResult(true, validatedIndex, undefined, baseError);
     }
     
-    static failure(validatedIndex: number, error?: ValidationError): ValidationResult {
-        return new ValidationResult(false, validatedIndex, error);
+    static failure(validatedIndex: number, error?: ValidationError, baseError?: ValidationResult): ValidationResult {
+        return new ValidationResult(false, validatedIndex, error, baseError);
     }
 }
 
@@ -94,7 +100,9 @@ export class SequenceBlock extends ProtocolBlock{
             const result = block.validate(sequence, updatedStartingPoint);
             if(!result.isValid){
                 // console.log('Validation failed at block:', block, '| sequence phase was:', sequence[updatedStartingPoint]);
-                return result;
+                return ValidationResult.failure(result.validatedIndex, {
+                    type: 'sequence-block-failed',
+                },  result);
             }
             if (result.validatedIndex > updatedStartingPoint) {
                 updatedStartingPoint = result.validatedIndex;
@@ -112,6 +120,7 @@ export class RepetitionBlock extends ProtocolBlock{
         public block: ProtocolBlock,
         public min: number = 0,
         public max: number = Infinity,
+        public name?: string,
 
     ){ super() }
 
@@ -129,7 +138,7 @@ export class RepetitionBlock extends ProtocolBlock{
                     type: 'repetition-block-minimum-not-met',
                     min: this.min,
                     actual: counter,
-                });
+                },  result );
             }
             currentIndex = result.validatedIndex;
         }
@@ -165,7 +174,7 @@ export class AlternativeBlock extends ProtocolBlock{
                         return result;
                     }
                 }
-                return ValidationResult.failure(startIndex, {type: 'or-block-no-match'});;
+                return ValidationResult.failure(startIndex, {type: 'or-block-no-match'});
             }
             case 'xor': {
                 let validCount = 0;
