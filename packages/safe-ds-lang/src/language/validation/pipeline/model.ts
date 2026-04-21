@@ -1,5 +1,3 @@
-import { result } from "true-myth";
-
 export type ValidationError =
     | {type: 'sequence-block-failed'; name?: string }     
     
@@ -118,10 +116,9 @@ export class SequenceBlock extends ProtocolBlock{
 export class RepetitionBlock extends ProtocolBlock{
     constructor(
         public block: ProtocolBlock,
+        public name?: string,
         public min: number = 0,
         public max: number = Infinity,
-        public name?: string,
-
     ){ super() }
 
     validate(sequence: Phase[], startIndex: number) :ValidationResult {

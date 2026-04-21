@@ -60,7 +60,7 @@ const fullProtocol = new SequenceBlock([
     // Data Acquisition
     new RepetitionBlock(
         new ElementaryBlock('DataAcquisition'),
-        1
+        'DataAcquisition', 1
     ),
     new RepetitionBlock(
         new AlternativeBlock([
@@ -68,7 +68,7 @@ const fullProtocol = new SequenceBlock([
             new ElementaryBlock('DataAcquisition'),
             new ElementaryBlock('AcquisitionAndEngineering')],
             'or'
-        )
+        ),  'DataAcquisition'
     ),
 
     // Data Preparation
@@ -80,13 +80,13 @@ const fullProtocol = new SequenceBlock([
             new ElementaryBlock('PreparationAndEngineering'),
             new ElementaryBlock('PreparationProcessingAndEngineering')],
             'or'
-        )
+        ),  'DataPreparation'
     ),
 
     // Data Partioning
     new RepetitionBlock(
         new ElementaryBlock('DataPartitioning'),
-        1
+        'DataPartitioning', 1
     ),
 
     // Data Processing
@@ -98,7 +98,7 @@ const fullProtocol = new SequenceBlock([
             new ElementaryBlock('PreparationAndProcessing'),
             new ElementaryBlock('PreparationProcessingAndEngineering')], 
             'or'
-        )
+        ), 'DataProcessing'
     ),
     
 // Model Building Layer
@@ -111,12 +111,13 @@ const fullProtocol = new SequenceBlock([
             new ElementaryBlock('AcquisitionAndEngineering'),
             new ElementaryBlock('PreparationProcessingAndEngineering')], 
             'or'
-        )
+        ), 'FeatureEngineering'
     ),
 
     // Feature Selection
     new RepetitionBlock(
-        new ElementaryBlock('FeatureSelection')
+        new ElementaryBlock('FeatureSelection'),
+        'FeatureSelection'
     ),
 
     // Modeling
@@ -127,7 +128,7 @@ const fullProtocol = new SequenceBlock([
             new ElementaryBlock('ModelingQRegression'),
             new ElementaryBlock('ModelingQNeuralNetwork')],
             'or'
-        ),  1
+        ),  'Modeling', 1
     ),
 
     // Training
@@ -138,12 +139,13 @@ const fullProtocol = new SequenceBlock([
             new ElementaryBlock('TrainingQRegression'),
             new ElementaryBlock('TrainingQNeuralNetwork')],
             'or'
-        ),  1
+        ),  'Training',1
     ),
 
     // Prediction
     new RepetitionBlock(
-        new ElementaryBlock('Prediction')
+        new ElementaryBlock('Prediction'),
+        'Prediction'
     ),
 
     // Evaluation
@@ -152,20 +154,20 @@ const fullProtocol = new SequenceBlock([
             new ElementaryBlock('EvaluationQMetric'),
             new ElementaryBlock('EvaluationQVisualization')],
             'or'
-        ),  1
+        ),  'Evaluation',1
     ),
 
     // Testing
     new RepetitionBlock(
         new ElementaryBlock('EvaluationQMetric'),
-        1
+        'Testing', 1
     ),
 
 // Post-Processing Layer
     // Interpretation
     new RepetitionBlock(
         new ElementaryBlock('EvaluationQVisualization'),
-        1
+        'Interpretation', 1
     ),
 ])
 
