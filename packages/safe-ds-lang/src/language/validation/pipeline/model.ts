@@ -1,5 +1,3 @@
-import { aC } from "vitest/dist/chunks/reporters.d.BFLkQcL6.js";
-
 export type ValidationError =     
     | {type: 'elem-block-oob' }
     | {type: 'elem-block-phase-mismatch'; expected: Phase; found: Phase }
@@ -120,13 +118,12 @@ export class RepetitionBlock extends ProtocolBlock{
     validate(sequence: Phase[], startIndex: number) :ValidationResult {
         let currentIndex = startIndex;
         
-        // First, enforce the minimum required matches
+        // enforce the minimum required matches
         for (let counter = 0; counter < this.min; counter++) {
             const result = this.block.validate(sequence, currentIndex);
             if (!result.isValid) {
-                // TODO: currently this also triggers for min=1 when current block doesnt have anything to do with the repetition 
-                // and is just blatantly wrong. this should not trigger in this case
-                // in this case the error of the elementary block should be shown
+                // TODO: currently this also triggers for min=1 when current block doesnt have anything to do with the repetition and is just blatantly wrong. 
+                // this should not trigger in this case, instead  the error of the elementary block should be shown
                 // QUESTION: how to differentiate between the cases? 
                 return ValidationResult.failure(result.validatedIndex, {
                     type: 'repetition-block-minimum-not-met',
@@ -137,7 +134,7 @@ export class RepetitionBlock extends ProtocolBlock{
             currentIndex = result.validatedIndex;
         }
         
-        // Then, optionally match more times up to max
+        // optionally match more times up to max
         for (let counter = this.min; counter < this.max; counter++) {
             const result = this.block.validate(sequence, currentIndex);
             if (!result.isValid) {
