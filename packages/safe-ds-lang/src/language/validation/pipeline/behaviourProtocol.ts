@@ -35,15 +35,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
             sequence.push(new Phase(annotation.name));
         }
         
-        // console.log('Extracted calls:', calls.map(call => call.$type).join(', '));
-        // console.log('Sequence of phases in the pipeline:', sequence.map(phase => phase.name).join(', '));
-
         const result = fullProtocol.validate(sequence, 0);
-        // console.log('isValid: ' + result.isValid, '| validatedIndex: ' + result.validatedIndex, '| refers to: ' + sequence[result.validatedIndex]?.name);
-
-        // TODO: function to extract all inner errors
-        // get better validation message from more info
-        
         
         if (!result.isValid){
             const nestedErrors = extractNestedValidationErrors(result);
@@ -55,11 +47,14 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
             for (const error of nestedErrors){
                 switch (error.type){
                     case 'elem-block-phase-mismatch': {}
+                    case 'elem-block-oob': {}
+                    
                     case 'alternative-block-no-match': {}
                     case 'or-block-no-match': {}
                     case 'xor-block-multiple-matches': {}
+                    
                     case 'repetition-block-minimum-not-met': {}
-                    case 'elem-block-oob': {}
+                    
                     case 'sequence-block-failed': {}
                 }
             }
