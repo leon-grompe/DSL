@@ -8,7 +8,7 @@ export type ValidationError =
     | {type: 'or-block-no-match'}
     | {type: 'xor-block-multiple-matches'}
     
-    | {type: 'repetition-block-minimum-not-met'; min: number; actual: number }
+    | {type: 'repetition-block-minimum-not-met'; min: number; actual: number; name?:string }
 
 
 export class ValidationResult {
@@ -135,6 +135,7 @@ export class RepetitionBlock extends ProtocolBlock{
                     type: 'repetition-block-minimum-not-met',
                     min: this.min,
                     actual: counter,
+                    name: this.name,
                 },  result );
                 // UPDATE: need to figure out if this is still an issue with nested Validation Results
             }
@@ -172,7 +173,7 @@ export class AlternativeBlock extends ProtocolBlock{
                         return result;
                     }
                 }
-                // TODO: it would probably help to also inclue the nested ValidationResults
+                // TODO: it would probably help to also include the nested ValidationResults
                 return ValidationResult.failure(startIndex, {type: 'or-block-no-match'});
             }
             case 'xor': {
