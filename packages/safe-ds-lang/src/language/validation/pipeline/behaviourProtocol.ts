@@ -1,7 +1,8 @@
 import { ValidationAcceptor } from 'langium';
 import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsStatement } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
-import { ProtocolBlock, ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock, Phase } from './model.js';
+import { ProtocolBlock, ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock, Phase, ValidationResult, ValidationError } from './model.js';
+import { error } from 'console';
 
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
 
@@ -42,12 +43,39 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
 
         // TODO: function to extract all inner errors
         // get better validation message from more info
-
+        
+        
         if (!result.isValid){
+            const nestedErrors = extractNestedValidationErrors(result);
+            console.log(nestedErrors);
+
             const call = calls[result.validatedIndex];
-            if (!call) return;
+            console.log(call);
+
+            for (const error of nestedErrors){
+                switch (error.type){
+                    case 'elem-block-phase-mismatch': {}
+                    case 'alternative-block-no-match': {}
+                    case 'or-block-no-match': {}
+                    case 'xor-block-multiple-matches': {}
+                    case 'repetition-block-minimum-not-met': {}
+                    case 'elem-block-oob': {}
+                    case 'sequence-block-failed': {}
+                }
+            }
+            
+            if (!call) {
+                accept('warning',
+                    'Errors found: ' + nestedErrors.map(e => e.type).join(', '), {
+                        node: calls.at(calls.length-1) ?? node,
+                        code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
+                    },
+                )
+                return;
+            };
+            
             accept('warning',
-                'The pipeline does not follow the recommended behaviour protocol. Error: ' + result.error?.type, {
+                'Errors found: ' + nestedErrors.map(e => e.type).join(', '), {
                     node: call,
                     code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
                 },
@@ -56,7 +84,16 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
     };
 };
 
-
+const extractNestedValidationErrors = (result: ValidationResult): ValidationError[] => {
+    const errors = [] as ValidationError[];
+    while (result.baseError){
+        if(result.error){
+            errors.push(result.error);
+        }
+        result = result.baseError;
+    }
+    return errors;
+}
 
 const fullProtocol = new SequenceBlock([
 // Pre-Processing Layer
