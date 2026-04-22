@@ -11,30 +11,26 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
     const builtinAnnotations = services.builtins.Annotations;
 
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
-        // fill the sequence of found calls in the pipeline
         const calls = [] as SdsCall[];
+        const sequence = [] as Phase[];
+        
+        // fill the sequence of found calls in the pipeline
         for (const statement of node.body.statements){
             const statementCalls = nodeMapper.statementToCalls(statement);
-            for (const call of statementCalls) {
+
+            for (const call of statementCalls){
                 calls.push(call);
+                
+                // for each call, find the corresponding annotation and add it to the sequence
+                // if no annotation is found, add the phase 'Any' instead
+                const callable = nodeMapper.callToCallable(call);
+                if (!callable || !(isSdsFunction(callable) || isSdsClass(callable))) continue;
+
+                const annotation = builtinAnnotations.getDSPipelinePhase(callable as SdsAnnotatedObject);
+                sequence.push(annotation ? new Phase(annotation.name) : new Phase('Any'));
             }
         }
-        
-        // for each call, find the corresponding annotation and add it to the sequence
-        // if no annotation is found, add the phase 'Any' instead
-        const sequence = [] as Phase[];
-        for (const call of calls) {
-            const callable = nodeMapper.callToCallable(call);
-            if (!callable || !(isSdsFunction(callable) || isSdsClass(callable))) continue;
 
-            const annotation = builtinAnnotations.getDSPipelinePhase(callable as SdsAnnotatedObject);
-            if (!annotation) {
-                sequence.push(new Phase('Any'));
-                continue;
-            };
-            sequence.push(new Phase(annotation.name));
-        }
-        
         const result = fullProtocol.validate(sequence, 0);
         
         if (!result.isValid){
