@@ -34,30 +34,13 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         const result = fullProtocol.validate(sequence, 0);
         
         if (!result.isValid){
-            const nestedErrors = extractNestedValidationErrors(result);
-            console.log(nestedErrors);
+            const validationMessage = computeValidationMessage(result)
 
             const call = calls[result.validatedIndex];
-            console.log(call);
 
-            for (const error of nestedErrors){
-                switch (error.type){
-                    case 'elem-block-phase-mismatch': {}
-                    case 'elem-block-oob': {}
-                    
-                    case 'alternative-block-no-match': {}
-                    case 'or-block-no-match': {}
-                    case 'xor-block-multiple-matches': {}
-                    
-                    case 'repetition-block-minimum-not-met': {}
-                    
-                    case 'sequence-block-failed': {}
-                }
-            }
-            
             if (!call) {
                 accept('warning',
-                    'Errors found: ' + nestedErrors.map(e => e.type).join(', '), {
+                    validationMessage, {
                         node: calls.at(calls.length-1) ?? node,
                         code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
                     },
@@ -66,7 +49,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
             };
             
             accept('warning',
-                'Errors found: ' + nestedErrors.map(e => e.type).join(', '), {
+                validationMessage, {
                     node: call,
                     code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
                 },
@@ -74,6 +57,44 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         };
     };
 };
+
+const computeValidationMessage = (result: ValidationResult): string => {
+    const nestedErrors = extractNestedValidationErrors(result);
+    const messages: string[] = [];
+    for (const error of nestedErrors){
+        switch (error.type){
+            case 'elem-block-phase-mismatch': {
+                messages.push(`Expected phase '${error.expected.name}' but found '${error.found.name}'`);
+                break;
+            }
+            case 'elem-block-oob': {
+                messages.push('Pipeline ended unexpectedly');
+                break;
+            }
+            case 'alternative-block-no-match': {
+                messages.push('None of the allowed phases matched');
+                break;
+            }
+            case 'or-block-no-match': {
+                messages.push('None of the optional phases were found');
+                break;
+            }
+            case 'xor-block-multiple-matches': {
+                messages.push('Multiple exclusive phases were found (expected exactly one)');
+                break;
+            }
+            case 'repetition-block-minimum-not-met': {
+                const blockName = error.name ? ` '${error.name}'` : '';
+                messages.push(`Block${blockName} requires at least ${error.min} occurrences but found ${error.actual}`);
+                break;
+            }
+            case 'sequence-block-failed': {  
+                break;
+            }
+        }
+    }
+    return messages.join('; ');
+}
 
 const extractNestedValidationErrors = (result: ValidationResult): ValidationError[] => {
     const errors = [] as ValidationError[];
