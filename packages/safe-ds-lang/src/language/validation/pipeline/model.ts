@@ -4,9 +4,9 @@ export type ValidationError =
     | {type: 'elem-block-oob' }
     | {type: 'elem-block-phase-mismatch'; expected: Phase; found: Phase }
     
-    | {type: 'alternative-block-no-match'}
-    | {type: 'or-block-no-match'}
-    | {type: 'xor-block-multiple-matches'}
+    | {type: 'alternative-block-no-match'; alternatives: Phase[]}
+    | {type: 'or-block-no-match'; alternatives: Phase[]}
+    | {type: 'xor-block-multiple-matches'; alternatives: Phase[]}
     
     | {type: 'repetition-block-minimum-not-met'; min: number; actual: number; name?:string }
 
@@ -17,18 +17,26 @@ export class ValidationResult {
     public readonly error?: ValidationError;
     public readonly baseError?: ValidationResult;
     
-    private constructor (isValid: boolean, validatedIndex: number, error?: ValidationError, baseError?: ValidationResult){
+    private constructor (isValid: boolean, validatedIndex: number, error?: ValidationError, baseError?: ValidationResult, innerResults?: ValidationResult[]){
         this.isValid = isValid;
         this.validatedIndex = validatedIndex;
         this.baseError = baseError;
         this.error = error;
     }
 
-    static success(validatedIndex: number, baseError?: ValidationResult): ValidationResult {
+    static success(
+        validatedIndex: number, 
+        baseError?: ValidationResult
+    ): ValidationResult {
         return new ValidationResult(true, validatedIndex, undefined, baseError);
     }
     
-    static failure(validatedIndex: number, error?: ValidationError, baseError?: ValidationResult): ValidationResult {
+    static failure(
+        validatedIndex: number, 
+        error?: ValidationError, 
+        baseError?: ValidationResult, 
+        innerResults?: ValidationResult[]
+    ): ValidationResult {
         return new ValidationResult(false, validatedIndex, error, baseError);
     }
 }
@@ -64,7 +72,7 @@ export abstract class ProtocolBlock {
  */
 export class ElementaryBlock extends ProtocolBlock{
     constructor(
-        public phase: string,
+        public phase: Phase,
 
     ){ super() }
 
@@ -73,12 +81,12 @@ export class ElementaryBlock extends ProtocolBlock{
             return ValidationResult.failure(startIndex, {type: 'elem-block-oob'});
         }
         const currentPhase = sequence[startIndex];
-        if (currentPhase?.name === this.phase || currentPhase?.name === 'Any'){
+        if (currentPhase?.name === this.phase.name || currentPhase?.name === 'Any'){
             return ValidationResult.success(startIndex + 1);
         }
         return ValidationResult.failure(startIndex, {
             type: 'elem-block-phase-mismatch', 
-            expected: new Phase(this.phase), 
+            expected: new Phase(this.phase.name), 
             found: currentPhase ?? new Phase('EndOfSequence')
         });
     }
@@ -165,17 +173,23 @@ export class AlternativeBlock extends ProtocolBlock{
     ){ super() }
 
     validate(sequence: Phase[], startIndex: number) : ValidationResult {
-        switch(this.relation){
+        const alternatives = this.blocks
+            .filter(b => b instanceof ElementaryBlock)
+            .map(b => (b as ElementaryBlock).phase);
+        
+            switch(this.relation){
             case 'or': {
                 for (const block of this.blocks){
                     const result = block.validate(sequence, startIndex);
-                    if(result.isValid){
-                        return result;
-                    }
+                    if(result.isValid) return result;
                 }
                 // TODO: it would probably help to also include the nested ValidationResults
-                return ValidationResult.failure(startIndex, {type: 'or-block-no-match'});
+                return ValidationResult.failure(startIndex, {
+                    type: 'or-block-no-match', 
+                    alternatives: alternatives
+                });
             }
+
             case 'xor': {
                 let validCount = 0;
                 let lastValidIndex = startIndex;
@@ -191,10 +205,16 @@ export class AlternativeBlock extends ProtocolBlock{
                 }
                 if (validCount > 1){
                     // TODO: see above
-                    return ValidationResult.failure(startIndex, {type: 'xor-block-multiple-matches'});
+                    return ValidationResult.failure(startIndex, {
+                        type: 'xor-block-multiple-matches',
+                        alternatives: alternatives
+                    });
                 }
             }
         }
-        return ValidationResult.failure(startIndex, {type: 'alternative-block-no-match'});       
+        return ValidationResult.failure(startIndex, {
+            type: 'alternative-block-no-match',
+            alternatives: alternatives
+        });       
     }
 }

@@ -2,7 +2,6 @@ import { ValidationAcceptor } from 'langium';
 import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsStatement } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
 import { ProtocolBlock, ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock, Phase, ValidationResult, ValidationError } from './model.js';
-import { error } from 'console';
 
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
 
@@ -64,28 +63,33 @@ const computeValidationMessage = (result: ValidationResult): string => {
     for (const error of nestedErrors){
         switch (error.type){
             case 'elem-block-phase-mismatch': {
-                messages.push(`Expected phase '${error.expected.name}' but found '${error.found.name}'`);
+                messages.push(`Expected phase '${error.expected.name}' but found '${error.found.name}.'`);
                 break;
             }
             case 'elem-block-oob': {
-                messages.push('Pipeline ended unexpectedly');
+                messages.push('Pipeline ended unexpectedly.');
                 break;
             }
             case 'alternative-block-no-match': {
-                messages.push('None of the allowed phases matched');
+                messages.push('None of the allowed phases matched.');
                 break;
             }
             case 'or-block-no-match': {
-                messages.push('None of the optional phases were found');
+                const expectedPhasesString = [] as string[];
+                for (const alternative of error.alternatives){
+                    expectedPhasesString.push(alternative.name);
+                }
+                console.log(expectedPhasesString);
+                messages.push('Expected one of the following phases but found none: ' + expectedPhasesString.map(p => `'${p}'`).join(', '));
                 break;
             }
             case 'xor-block-multiple-matches': {
-                messages.push('Multiple exclusive phases were found (expected exactly one)');
+                messages.push('Multiple exclusive phases were found (expected exactly one).');
                 break;
             }
             case 'repetition-block-minimum-not-met': {
                 const blockName = error.name ? ` '${error.name}'` : '';
-                messages.push(`Block${blockName} requires at least ${error.min} occurrences but found ${error.actual}`);
+                messages.push(`Block${blockName} requires at least ${error.min} occurrences but found ${error.actual}.`);
                 break;
             }
             case 'sequence-block-failed': {  
@@ -98,27 +102,30 @@ const computeValidationMessage = (result: ValidationResult): string => {
 
 const extractNestedValidationErrors = (result: ValidationResult): ValidationError[] => {
     const errors = [] as ValidationError[];
-    while (result.baseError){
-        if(result.error){
-            errors.push(result.error);
+    let current: ValidationResult | undefined = result;
+    while (current) {
+        if (current.error) {
+            errors.push(current.error);
         }
-        result = result.baseError;
+        current = current.baseError;
     }
     return errors;
 }
+
+
 
 const fullProtocol = new SequenceBlock([
 // Pre-Processing Layer
     // Data Acquisition
     new RepetitionBlock(
-        new ElementaryBlock('DataAcquisition'),
+        new ElementaryBlock( new Phase('DataAcquisition') ),
         'DataAcquisition', 1
     ),
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock('Preprocessing'),
-            new ElementaryBlock('DataAcquisition'),
-            new ElementaryBlock('AcquisitionAndEngineering')],
+            new ElementaryBlock( new Phase('Preprocessing') ),
+            new ElementaryBlock( new Phase('DataAcquisition') ),
+            new ElementaryBlock( new Phase('AcquisitionAndEngineering') )],
             'or'
         ),  'DataAcquisition'
     ),
@@ -126,29 +133,29 @@ const fullProtocol = new SequenceBlock([
     // Data Preparation
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock('DataPreparation'),
-            new ElementaryBlock('Exploration'),
-            new ElementaryBlock('Preprocessing'),
-            new ElementaryBlock('PreparationAndEngineering'),
-            new ElementaryBlock('PreparationProcessingAndEngineering')],
+            new ElementaryBlock( new Phase('DataPreparation') ),
+            new ElementaryBlock( new Phase('Exploration') ),
+            new ElementaryBlock( new Phase('Preprocessing') ),
+            new ElementaryBlock( new Phase('PreparationAndEngineering') ),
+            new ElementaryBlock( new Phase('PreparationProcessingAndEngineering') )],
             'or'
         ),  'DataPreparation'
     ),
 
     // Data Partioning
     new RepetitionBlock(
-        new ElementaryBlock('DataPartitioning'),
+        new ElementaryBlock( new Phase('DataPartitioning') ),
         'DataPartitioning', 1
     ),
 
     // Data Processing
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock('DataProcessing'),
-            new ElementaryBlock('DataTransformer'),
-            new ElementaryBlock('Exploration'),
-            new ElementaryBlock('PreparationAndProcessing'),
-            new ElementaryBlock('PreparationProcessingAndEngineering')], 
+            new ElementaryBlock( new Phase('DataProcessing') ),
+            new ElementaryBlock( new Phase('DataTransformer') ),
+            new ElementaryBlock( new Phase('Exploration') ),
+            new ElementaryBlock( new Phase('PreparationAndProcessing') ),
+            new ElementaryBlock( new Phase('PreparationProcessingAndEngineering') )], 
             'or'
         ), 'DataProcessing'
     ),
@@ -157,28 +164,28 @@ const fullProtocol = new SequenceBlock([
     // Feature Engineering
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock('FeatureEngineering'),
-            new ElementaryBlock('FeatureTransformer'),
-            new ElementaryBlock('Exploration'),
-            new ElementaryBlock('AcquisitionAndEngineering'),
-            new ElementaryBlock('PreparationProcessingAndEngineering')], 
+            new ElementaryBlock( new Phase('FeatureEngineering') ),
+            new ElementaryBlock( new Phase('FeatureTransformer') ),
+            new ElementaryBlock( new Phase('Exploration') ),
+            new ElementaryBlock( new Phase('AcquisitionAndEngineering') ),
+            new ElementaryBlock( new Phase('PreparationProcessingAndEngineering') )], 
             'or'
         ), 'FeatureEngineering'
     ),
 
     // Feature Selection
     new RepetitionBlock(
-        new ElementaryBlock('FeatureSelection'),
+        new ElementaryBlock( new Phase('FeatureSelection') ),
         'FeatureSelection'
     ),
 
     // Modeling
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock('Modeling'),
-            new ElementaryBlock('ModelingQClassification'),
-            new ElementaryBlock('ModelingQRegression'),
-            new ElementaryBlock('ModelingQNeuralNetwork')],
+            new ElementaryBlock( new Phase('Modeling') ),
+            new ElementaryBlock( new Phase('ModelingQClassification') ),
+            new ElementaryBlock( new Phase('ModelingQRegression') ),
+            new ElementaryBlock( new Phase('ModelingQNeuralNetwork') )],
             'or'
         ),  'Modeling', 1
     ),
@@ -186,39 +193,39 @@ const fullProtocol = new SequenceBlock([
     // Training
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock('Training'),
-            new ElementaryBlock('TrainingQClassification'),
-            new ElementaryBlock('TrainingQRegression'),
-            new ElementaryBlock('TrainingQNeuralNetwork')],
+            new ElementaryBlock( new Phase('Training') ),
+            new ElementaryBlock( new Phase('TrainingQClassification') ),
+            new ElementaryBlock( new Phase('TrainingQRegression') ),
+            new ElementaryBlock( new Phase('TrainingQNeuralNetwork') )],
             'or'
         ),  'Training',1
     ),
 
     // Prediction
     new RepetitionBlock(
-        new ElementaryBlock('Prediction'),
+        new ElementaryBlock( new Phase('Prediction') ),
         'Prediction'
     ),
 
     // Evaluation
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock('EvaluationQMetric'),
-            new ElementaryBlock('EvaluationQVisualization')],
+            new ElementaryBlock( new Phase('EvaluationQMetric') ),
+            new ElementaryBlock( new Phase('EvaluationQVisualization') )],
             'or'
         ),  'Evaluation',1
     ),
 
     // Testing
     new RepetitionBlock(
-        new ElementaryBlock('EvaluationQMetric'),
+        new ElementaryBlock( new Phase('EvaluationQMetric') ),
         'Testing', 1
     ),
 
 // Post-Processing Layer
     // Interpretation
     new RepetitionBlock(
-        new ElementaryBlock('EvaluationQVisualization'),
+        new ElementaryBlock( new Phase('EvaluationQVisualization') ),
         'Interpretation', 1
     ),
 ])
