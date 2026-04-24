@@ -77,7 +77,7 @@ export class ElementaryBlock extends ProtocolBlock{
     ){ super() }
 
     validate(sequence: Phase[], startIndex: number) : ValidationResult {
-        if (startIndex >= sequence.length) {
+        if (startIndex > sequence.length) {
             return ValidationResult.failure(startIndex, {type: 'elem-block-oob'});
         }
         const currentPhase = sequence[startIndex];
@@ -87,7 +87,7 @@ export class ElementaryBlock extends ProtocolBlock{
         return ValidationResult.failure(startIndex, {
             type: 'elem-block-phase-mismatch', 
             expected: new Phase(this.phase.name), 
-            found: currentPhase ?? new Phase('EndOfSequence')
+            found: currentPhase ?? new Phase('EndOfPipeline')
         });
     }
 }
@@ -136,16 +136,12 @@ export class RepetitionBlock extends ProtocolBlock{
         for (let counter = 0; counter < this.min; counter++) {
             const result = this.block.validate(sequence, currentIndex);
             if (!result.isValid) {
-                // TODO: currently this also triggers for min=1 when current block doesnt have anything to do with the repetition and is just blatantly wrong. 
-                // this should not trigger in this case, instead  the error of the elementary block should be shown
-                // QUESTION: how to differentiate between the cases? 
                 return ValidationResult.failure(result.validatedIndex, {
                     type: 'repetition-block-minimum-not-met',
                     min: this.min,
                     actual: counter,
                     name: this.name,
                 },  result );
-                // UPDATE: need to figure out if this is still an issue with nested Validation Results
             }
             currentIndex = result.validatedIndex;
         }

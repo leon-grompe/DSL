@@ -37,22 +37,25 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
 
             const call = calls[result.validatedIndex];
 
-            if (!call) {
+            // mistake is inside the pipeline => validation message on wrong call
+            if (call) {
+                accept('warning',
+                    validationMessage, {
+                        node: call,
+                        code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
+                    },
+                );
+            }
+            // something is missing at the end of the pipeline => validation message on the end of the pipeline
+            else {
                 accept('warning',
                     validationMessage, {
                         node: calls.at(calls.length-1) ?? node,
                         code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
                     },
-                )
-                return;
-            };
-            
-            accept('warning',
-                validationMessage, {
-                    node: call,
-                    code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
-                },
-            );
+                );
+            }
+            return;
         };
     };
 };
@@ -60,6 +63,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
 const computeValidationMessage = (result: ValidationResult): string => {
     const nestedErrors = extractNestedValidationErrors(result);
     const messages: string[] = [];
+
     for (const error of nestedErrors){
         switch (error.type){
             case 'elem-block-phase-mismatch': {
@@ -198,7 +202,7 @@ const fullProtocol = new SequenceBlock([
             new ElementaryBlock( new Phase('TrainingQRegression') ),
             new ElementaryBlock( new Phase('TrainingQNeuralNetwork') )],
             'or'
-        ),  'Training',1
+        ),  'Training', 1
     ),
 
     // Prediction
@@ -213,7 +217,7 @@ const fullProtocol = new SequenceBlock([
             new ElementaryBlock( new Phase('EvaluationQMetric') ),
             new ElementaryBlock( new Phase('EvaluationQVisualization') )],
             'or'
-        ),  'Evaluation',1
+        ),  'Evaluation', 1
     ),
 
     // Testing
