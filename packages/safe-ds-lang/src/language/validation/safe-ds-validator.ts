@@ -191,6 +191,8 @@ import { argumentMustBeNamedIfParameterIsOptional } from './other/expressions/ar
 import { typeMustBeUsedInCorrectContext } from './other/types/types.js';
 import { pipelineMustFollowBehaviourProtocol } from './pipeline/behaviourProtocol.js';
 
+import { testDataUsedForTraining } from './data-flow-analysis/dataset.js';
+
 /**
  * Register custom validation checks.
  */
@@ -243,6 +245,7 @@ export const registerValidationChecks = function (services: SafeDsServices) {
             callArgumentMustRespectParameterBounds(services),
             callMustNotBeRecursive(services),
             callReceiverMustBeCallable(services),
+            testDataUsedForTraining(services),
         ],
         SdsCallableType: [
             callableTypeMustContainUniqueNames,
@@ -358,7 +361,10 @@ export const registerValidationChecks = function (services: SafeDsServices) {
             pipelineMustContainUniqueNames, 
             pipelineMustFollowBehaviourProtocol(services)
         ],
-        SdsPlaceholder: [placeholdersMustNotBeAnAlias, placeholderShouldBeUsed(services)],
+        SdsPlaceholder: [
+            placeholdersMustNotBeAnAlias, 
+            placeholderShouldBeUsed(services),
+        ],
         SdsPrefixOperation: [prefixOperationOperandMustHaveCorrectType(services)],
         SdsReference: [
             referenceMustNotBeFunctionPointer,
