@@ -1,7 +1,9 @@
 import { ValidationAcceptor } from 'langium';
-import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsStatement } from '../../generated/ast.js';
+import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsPlaceholder } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
-import { ProtocolBlock, ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock, Phase, ValidationResult, ValidationError } from './model.js';
+import { ProtocolBlock, ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock, Phase } from './model.js';
+import { ValidationResult, ValidationError} from './validationDataStructures.js'
+import { SafeDsSlicer } from '../../flow/safe-ds-slicer.js'
 
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
 
@@ -30,7 +32,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
             }
         }
 
-        const result = fullProtocol.validate(sequence, 0);
+        const result = behaviourProtocol.validate(sequence, 0);
         
         if (!result.isValid){
             const validationMessage = computeValidationMessage(result)
@@ -59,6 +61,39 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         };
     };
 };
+
+// new idea: aggregate a map of <call, pipeline layer (name of repetition block)> while validating
+// split map in layers
+// check each layer for specific calls:
+//      Processing: exploration (only on training)
+//      Prediction: general (only on validation)
+//      Evaluation: evaluation (only on validation)
+//      Testing: evaluation (only on test)
+//      
+
+/**
+ * however this approach has the problem, that the validation of the behaviour protocol stops immediatly once an violation 
+ * has been found. therefore the calls after the violation can not be mapped to a pipeline layer.
+ * 
+ * also, evaluation and testing only differ in the set used so how does the protocol differentiate?
+ */
+
+
+// possibly different functions for every case?
+//      exploration on validation/test data during processing
+//      evaluation on training/test data during evaluation
+//      evaluation on training/validation data during testing
+export const pipelineMustNotAccessDatasetInWrongPhase = (services: SafeDsServices) => {
+    const nodeMapper = services.helpers.NodeMapper;
+    const builtinAnnotations = services.builtins.Annotations;
+    const slicer = services.flow.Slicer;
+
+    return (node: SdsPipeline, accept: ValidationAcceptor) => {
+        const statements = node.body.statements;
+        
+    }
+}
+
 
 const computeValidationMessage = (result: ValidationResult): string => {
     const nestedErrors = extractNestedValidationErrors(result);
@@ -117,8 +152,11 @@ const extractNestedValidationErrors = (result: ValidationResult): ValidationErro
 }
 
 
-
-const fullProtocol = new SequenceBlock([
+/** 
+ * Full behaviour protocol based on best practices and common data science pitfalls.
+ * A pipeline should follow this protocol to prevent domain specific mistakes like data leakage.
+*/
+const behaviourProtocol = new SequenceBlock([
 // Pre-Processing Layer
     // Data Acquisition
     new RepetitionBlock(
