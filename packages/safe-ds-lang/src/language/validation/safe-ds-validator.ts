@@ -191,7 +191,7 @@ import { argumentMustBeNamedIfParameterIsOptional } from './other/expressions/ar
 import { typeMustBeUsedInCorrectContext } from './other/types/types.js';
 import { pipelineMustFollowBehaviourProtocol } from './pipeline/behaviourProtocol.js';
 
-import { testDataUsedForTraining } from './data-flow-analysis/dataset.js';
+import { testDataUsedForTraining } from './data-flow-analysis/datasetUsage.js';
 
 /**
  * Register custom validation checks.
