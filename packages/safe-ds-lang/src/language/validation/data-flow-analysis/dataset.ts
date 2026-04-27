@@ -1,11 +1,6 @@
 import { ValidationAcceptor } from 'langium';
 import { SafeDsServices } from '../../safe-ds-module.js';
-import { SdsPlaceholder, SdsCall, SdsObject ,SdsStatement, isSdsBlock, isSdsStatement, isSdsAssignment, isSdsCall, isSdsFunction, isSdsReference, isSdsArgument, SdsReference, isSdsPlaceholder, SdsAssignee, SdsAssignment } from '../../generated/ast.js';
-import { SafeDsSlicer } from '../../flow/safe-ds-slicer.js';
-import { AstUtils } from 'langium';
-import { getStatements, getAssignees, getArguments } from '../../helpers/nodeProperties.js';
-import { uinteger } from 'vscode-languageserver';
-
+import { SdsPlaceholder, SdsCall, isSdsFunction, isSdsReference, isSdsPlaceholder } from '../../generated/ast.js';
 
 
 export const CODE_TEST_DATA_USED_FOR_TRAINING = 'data-flow-analysis/test-data-used-for-training';
