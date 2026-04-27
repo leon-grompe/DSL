@@ -1,6 +1,6 @@
 import { Phase } from './model.js'
 
-export type ValidationError =
+export type ValidationError = 
     | {type: 'sequence-block-failed'; name?: string }     
     
     | {type: 'elem-block-oob' }
@@ -11,9 +11,6 @@ export type ValidationError =
     | {type: 'xor-block-multiple-matches'; alternatives: Phase[]}
     
     | {type: 'repetition-block-minimum-not-met'; min: number; actual: number; name?:string }
-
-
-
 
 
 export class ValidationResult {
@@ -40,7 +37,6 @@ export class ValidationResult {
         validatedIndex: number, 
         error?: ValidationError, 
         baseError?: ValidationResult, 
-        innerResults?: ValidationResult[]
     ): ValidationResult {
         return new ValidationResult(false, validatedIndex, error, baseError);
     }
