@@ -19,7 +19,7 @@ export class ValidationResult {
     public readonly error?: ValidationError;
     public readonly baseError?: ValidationResult;
     
-    private constructor (isValid: boolean, validatedIndex: number, error?: ValidationError, baseError?: ValidationResult, innerResults?: ValidationResult[]){
+    private constructor (isValid: boolean, validatedIndex: number, error?: ValidationError, baseError?: ValidationResult){
         this.isValid = isValid;
         this.validatedIndex = validatedIndex;
         this.baseError = baseError;
