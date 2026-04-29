@@ -4,7 +4,7 @@ export type ValidationError =
     | {type: 'sequence-block-failed'; name?: string }     
     
     | {type: 'elem-block-oob' }
-    | {type: 'elem-block-phase-mismatch'; expected: Activity; found: Activity }
+    | {type: 'elem-block-activity-mismatch'; expected: Activity; found: Activity }
     
     | {type: 'alternative-block-no-match'; alternatives: Activity[]}
     | {type: 'or-block-no-match'; alternatives: Activity[]}
