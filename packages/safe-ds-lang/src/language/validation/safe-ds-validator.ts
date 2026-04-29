@@ -189,7 +189,7 @@ import {
 import { messageOfConstraintsMustOnlyReferenceConstantParameters } from './other/declarations/constraints.js';
 import { argumentMustBeNamedIfParameterIsOptional } from './other/expressions/arguments.js';
 import { typeMustBeUsedInCorrectContext } from './other/types/types.js';
-import { pipelineMustFollowBehaviourProtocol } from './pipeline/behaviourProtocol.js';
+import { pipelineMustFollowBehaviourProtocol, suggestPipelineStructure } from './pipeline/behaviourProtocol.js';
 
 import { testDataUsedForTraining } from './data-flow-analysis/datasetUsage.js';
 
@@ -359,7 +359,8 @@ export const registerValidationChecks = function (services: SafeDsServices) {
         SdsPipeline: [
             pipelinesMustBePrivate, 
             pipelineMustContainUniqueNames, 
-            pipelineMustFollowBehaviourProtocol(services)
+            pipelineMustFollowBehaviourProtocol(services),
+            suggestPipelineStructure(services)
         ],
         SdsPlaceholder: [
             placeholdersMustNotBeAnAlias, 

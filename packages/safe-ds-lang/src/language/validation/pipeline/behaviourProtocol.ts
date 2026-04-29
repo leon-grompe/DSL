@@ -6,12 +6,16 @@ import { ValidationResult, ValidationError} from './validationDataStructures.js'
 
 
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
+export const CODE_SUGGEST_PIPELINE_STRUCTURE = 'pipeline/pipeline-suggestion'
 
 export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
     const nodeMapper = services.helpers.NodeMapper;
     const builtinAnnotations = services.builtins.Annotations;
 
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
+        // skip this validation if the pipeline is empty to avoid confusion with other validations
+        if (node.body.statements.length < 1){ return;}
+
         const calls = [] as SdsCall[];
         const sequence = [] as Activity[];
         
@@ -66,21 +70,19 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
     };
 };
 
-// new idea: aggregate a map of <call, pipeline layer (name of repetition block)> while validating
-// split map in layers
-// check each layer for specific calls:
-//      Processing: exploration (only on training)
-//      Prediction: general (only on validation)
-//      Evaluation: evaluation (only on validation)
-//      Testing: evaluation (only on test)
-//      
-
-/**
- * however this approach has the problem, that the validation of the behaviour protocol stops immediatly once an violation 
- * has been found. therefore the calls after the violation can not be mapped to a pipeline layer.
- * 
- * also, evaluation and testing only differ in the set used so how does the protocol differentiate?
-*/
+export const suggestPipelineStructure = (services: SafeDsServices) => {
+    return (node : SdsPipeline, accept: ValidationAcceptor) => {
+        if (node.body.statements.length > 0){
+            return;
+        }
+        accept('info', 'Pipeline is empty. Suggestion for Pipeline structure available.', {   
+            node: node,
+            code: CODE_SUGGEST_PIPELINE_STRUCTURE,
+            }
+        );
+        return;
+    }
+}
 
 
 export const pipelineMustNotAccessDatasetInWrongActivity = (services: SafeDsServices) => {
