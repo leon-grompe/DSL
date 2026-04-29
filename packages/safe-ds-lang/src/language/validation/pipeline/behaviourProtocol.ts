@@ -172,14 +172,14 @@ const behaviourProtocol = new SequenceBlock([
 // Pre-Processing Layer
     // Data Acquisition
     new RepetitionBlock(
-        new ElementaryBlock( new Activity('DataAcquisition') ),
+        new ElementaryBlock( new Activity('DataAcquisitionQGeneral') ),
         'DataAcquisition', 1
     ),
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock( new Activity('Preprocessing') ),
-            new ElementaryBlock( new Activity('DataAcquisition') ),
-            new ElementaryBlock( new Activity('AcquisitionAndEngineering') )],
+            new ElementaryBlock( new Activity('DataAcquisitionQPreprocessing') ),
+            new ElementaryBlock( new Activity('DataAcquisitionQGeneral') ),
+            new ElementaryBlock( new Activity('DataAcquisitionQAcquisitionAndEngineering') )],
             'or'
         ),  'DataAcquisition'
     ),
@@ -187,29 +187,29 @@ const behaviourProtocol = new SequenceBlock([
     // Data Preparation
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock( new Activity('DataPreparation') ),
-            new ElementaryBlock( new Activity('Exploration') ),
-            new ElementaryBlock( new Activity('Preprocessing') ),
-            new ElementaryBlock( new Activity('PreparationAndEngineering') ),
-            new ElementaryBlock( new Activity('PreparationProcessingAndEngineering') )],
+            new ElementaryBlock( new Activity('DataPreparationQGeneral') ),
+            new ElementaryBlock( new Activity('DataPreparationQExploration') ),
+            new ElementaryBlock( new Activity('DataPreparationQPreprocessing') ),
+            new ElementaryBlock( new Activity('DataPreparationQPreparationAndEngineering') ),
+            new ElementaryBlock( new Activity('DataPreparationQPreparationProcessingAndEngineering') )],
             'or'
         ),  'DataPreparation'
     ),
 
     // Data Partioning
     new RepetitionBlock(
-        new ElementaryBlock( new Activity('DataPartitioning') ),
+        new ElementaryBlock( new Activity('DataPartitioningQGeneral') ),
         'DataPartitioning', 1
     ),
 
     // Data Processing
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock( new Activity('DataProcessing') ),
-            new ElementaryBlock( new Activity('DataTransformer') ),
-            new ElementaryBlock( new Activity('Exploration') ),
-            new ElementaryBlock( new Activity('PreparationAndProcessing') ),
-            new ElementaryBlock( new Activity('PreparationProcessingAndEngineering') )], 
+            new ElementaryBlock( new Activity('DataProcessingQGeneral') ),
+            new ElementaryBlock( new Activity('DataProcessingQDataTransformer') ),
+            new ElementaryBlock( new Activity('DataProcessingQExploration') ),
+            new ElementaryBlock( new Activity('DataProcessingQPreparationAndProcessing') ),
+            new ElementaryBlock( new Activity('DataProcessingQPreparationProcessingAndEngineering') )], 
             'or'
         ), 'DataProcessing'
     ),
@@ -218,69 +218,51 @@ const behaviourProtocol = new SequenceBlock([
     // Feature Engineering
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock( new Activity('FeatureEngineering') ),
-            new ElementaryBlock( new Activity('FeatureTransformer') ),
-            new ElementaryBlock( new Activity('Exploration') ),
-            new ElementaryBlock( new Activity('AcquisitionAndEngineering') ),
-            new ElementaryBlock( new Activity('PreparationProcessingAndEngineering') )], 
+            new ElementaryBlock( new Activity('FeatureEngineeringQGeneral') ),
+            new ElementaryBlock( new Activity('FeatureEngineeringQFeatureTransformer') ),
+            new ElementaryBlock( new Activity('FeatureEngineeringQExploration') ),
+            new ElementaryBlock( new Activity('FeatureEngineeringQAcquisitionAndEngineering') ),
+            new ElementaryBlock( new Activity('FeatureEngineeringQPreparationProcessingAndEngineering') )], 
             'or'
         ), 'FeatureEngineering'
     ),
 
     // Feature Selection
     new RepetitionBlock(
-        new ElementaryBlock( new Activity('FeatureSelection') ),
+        new ElementaryBlock( new Activity('FeatureSelectionQGeneral') ),
         'FeatureSelection'
     ),
 
     // Modeling
     new RepetitionBlock(
-        new AlternativeBlock([
-            new ElementaryBlock( new Activity('Modeling') ),
-            new ElementaryBlock( new Activity('ModelingQClassification') ),
-            new ElementaryBlock( new Activity('ModelingQRegression') ),
-            new ElementaryBlock( new Activity('ModelingQNeuralNetwork') )],
-            'or'
-        ),  'Modeling', 1
+        new ElementaryBlock( new Activity('ModelingQGeneral')),
+        'Modeling', 1
     ),
 
     // Training
     new RepetitionBlock(
-        new AlternativeBlock([
-            new ElementaryBlock( new Activity('Training') ),
-            new ElementaryBlock( new Activity('TrainingQClassification') ),
-            new ElementaryBlock( new Activity('TrainingQRegression') ),
-            new ElementaryBlock( new Activity('TrainingQNeuralNetwork') )],
-            'or'
-        ),  'Training', 1
+        new ElementaryBlock( new Activity('TrainingQGeneral')),
+        'Training', 1
     ),
 
     // Prediction
     new RepetitionBlock(
-        new ElementaryBlock( new Activity('Prediction') ),
+        new ElementaryBlock( new Activity('PredictionQGeneral') ),
         'Prediction'
     ),
 
     // Evaluation
     new RepetitionBlock(
-        new AlternativeBlock([
-            new ElementaryBlock( new Activity('EvaluationQMetric') ),
-            new ElementaryBlock( new Activity('EvaluationQVisualization') )],
-            'or'
-        ),  'Evaluation', 1
+        new ElementaryBlock( new Activity('EvaluationQGeneral')),  
+        'Evaluation', 1
     ),
 
     // Testing
     new RepetitionBlock(
-        new ElementaryBlock( new Activity('EvaluationQMetric') ),
+        new ElementaryBlock( new Activity('TestingQGeneral') ),
         'Testing', 1
     ),
 
-// Post-Processing Layer
-    // Interpretation
-    new RepetitionBlock(
-        new ElementaryBlock( new Activity('EvaluationQVisualization') ),
-        'Interpretation', 1
-    ),
+
 ])
 

@@ -88,10 +88,10 @@ enum DataScienceCategory {
     AnnotationTarget.Class,
     AnnotationTarget.Function
     ])
-annotation PipelinePhase(phase: DSPipelinePhase)
+annotation PipelineActivity(phase: DSPipelineActivity)
 
 @Experimental
-enum DSPipelinePhase {
+enum DSPipelineActivity {
 // Pre-Processing Layer
     /**
      * Load your data into the pipeline.
