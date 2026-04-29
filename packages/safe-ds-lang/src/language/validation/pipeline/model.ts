@@ -9,27 +9,27 @@ export class Activity {
 /**
  * Abstract base class for protocol blocks.
  * Protocol Blocks can be elementary, sequences of blocks, repetitions of a block, or alternatives between blocks.
- * Using these Blocks a regular expression like structure can be created to define the valid sequences of phases in a pipeline.
+ * Using these Blocks a regular expression like structure can be created to define the valid sequences of activities in a pipeline.
  */
 export abstract class ProtocolBlock {
     constructor(){}
 
     /**
-     * Validates a sequence of phases against the protocol block.
-     * @param sequence The sequence of phases to validate.
+     * Validates a sequence of activities against the protocol block.
+     * @param sequence The sequence of activities to validate.
      * @param startIndex The index to start validation from.
-     * @returns A tuple indicating if the validation was successful and the index of the next phase to validate.
+     * @returns A tuple indicating if the validation was successful and the index of the next activity to validate.
      */
     abstract validate(activitySequence: Activity[], startIndex: number) : ValidationResult;
 }
 
 /**
- * Represents an elementary block in the behaviour protocol, which corresponds to a single phase.
- * Also allows the use of a wildcard phase 'Any' which can match any phase in the sequence.
+ * Represents an elementary block in the behaviour protocol, which corresponds to a single activity.
+ * Also allows the use of a wildcard activity 'Any' which can match any activity in the sequence.
  */
 export class ElementaryBlock extends ProtocolBlock{
     constructor(
-        public phase: Activity,
+        public activity: Activity,
         
     ){ super() }
 
@@ -38,12 +38,12 @@ export class ElementaryBlock extends ProtocolBlock{
             return ValidationResult.failure(startIndex, {type: 'elem-block-oob'});
         }
         const currentActivity = activitySequence[startIndex];
-        if (currentActivity?.activityName === this.phase.activityName || currentActivity?.activityName === 'Any'){
+        if (currentActivity?.activityName === this.activity.activityName || currentActivity?.activityName === 'Any'){
             return ValidationResult.success(startIndex + 1);
         }
         return ValidationResult.failure(startIndex, {
             type: 'elem-block-phase-mismatch', 
-            expected: new Activity(this.phase.activityName), 
+            expected: new Activity(this.activity.activityName), 
             found: currentActivity ?? new Activity('EndOfPipeline')
         });
     }
@@ -127,7 +127,7 @@ export class AlternativeBlock extends ProtocolBlock{
     validate(activitySequence: Activity[], startIndex: number) : ValidationResult {
         const alternatives = this.blocks
             .filter(b => b instanceof ElementaryBlock)
-            .map(b => (b as ElementaryBlock).phase);
+            .map(b => (b as ElementaryBlock).activity);
         
             switch(this.relation){
             case 'or': {
