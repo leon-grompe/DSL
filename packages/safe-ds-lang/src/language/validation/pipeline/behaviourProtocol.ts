@@ -23,7 +23,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
                 calls.push(call);
                 
                 // for each call, find the corresponding annotation and add it to the sequence
-                // if no annotation is found, add the phase 'Any' instead
+                // if no annotation is found, add the activity 'Any' instead
                 const callable = nodeMapper.callToCallable(call);
                 if (!callable || !(isSdsFunction(callable) || isSdsClass(callable))) continue;
 
@@ -83,7 +83,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
 */
 
 
-export const pipelineMustNotAccessDatasetInWrongPhase = (services: SafeDsServices) => {
+export const pipelineMustNotAccessDatasetInWrongActivity = (services: SafeDsServices) => {
     const nodeMapper = services.helpers.NodeMapper;
     const builtinAnnotations = services.builtins.Annotations;
     const slicer = services.flow.Slicer;
@@ -102,7 +102,7 @@ const computeValidationMessage = (result: ValidationResult): string => {
 
     for (const error of nestedErrors){
         switch (error.type){
-            case 'elem-block-phase-mismatch': {
+            case 'elem-block-activity-mismatch': {
                 messages.push(`Expected activity '${error.expected.activityName}' but found '${error.found.activityName}.'`);
                 break;
             }
