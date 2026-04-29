@@ -1,16 +1,16 @@
-import { Phase } from './model.js'
+import { Activity } from './model.js'
 
 export type ValidationError = 
     | {type: 'sequence-block-failed'; name?: string }     
     
     | {type: 'elem-block-oob' }
-    | {type: 'elem-block-phase-mismatch'; expected: Phase; found: Phase }
+    | {type: 'elem-block-phase-mismatch'; expected: Activity; found: Activity }
     
-    | {type: 'alternative-block-no-match'; alternatives: Phase[]}
-    | {type: 'or-block-no-match'; alternatives: Phase[]}
-    | {type: 'xor-block-multiple-matches'; alternatives: Phase[]}
+    | {type: 'alternative-block-no-match'; alternatives: Activity[]}
+    | {type: 'or-block-no-match'; alternatives: Activity[]}
+    | {type: 'xor-block-multiple-matches'; alternatives: Activity[]}
     
-    | {type: 'repetition-block-minimum-not-met'; min: number; actual: number; name?:string }
+    | {type: 'repetition-block-minimum-not-met'; min: number; actual: number; phaseName?:string }
 
 
 export class ValidationResult {
