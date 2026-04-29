@@ -115,18 +115,18 @@ const computeValidationMessage = (result: ValidationResult): string => {
                 break;
             }
             case 'or-block-no-match': {
-                const expectedPhasesString = [] as string[];
+                const expectedActivitesString = [] as string[];
                 for (const alternative of error.alternatives){
-                    expectedPhasesString.push(alternative.activityName);
+                    expectedActivitesString.push(alternative.activityName);
                 }
-                console.log(expectedPhasesString);
+                console.log(expectedActivitesString);
                 // use phase name if possible
                 if (phase != ''){
-                    messages.push(`Expected one of the following activities during phase ${phase} but found none: ` + expectedPhasesString.map(p => `'${p}'`).join(', ') + '.');
+                    messages.push(`Expected one of the following activities during phase ${phase} but found none: ` + expectedActivitesString.map(p => `'${p}'`).join(', ') + '.');
                 }
                 // use generic phrase otherwise
                 else {
-                    messages.push('Expected one of the following activities during current phase but found none: ' + expectedPhasesString.map(p => `'${p}'`).join(', ') + '.');
+                    messages.push('Expected one of the following activities during current phase but found none: ' + expectedActivitesString.map(p => `'${p}'`).join(', ') + '.');
                 }
                 break;
             }
