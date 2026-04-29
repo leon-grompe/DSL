@@ -42,7 +42,7 @@ export class ElementaryBlock extends ProtocolBlock{
             return ValidationResult.success(startIndex + 1);
         }
         return ValidationResult.failure(startIndex, {
-            type: 'elem-block-phase-mismatch', 
+            type: 'elem-block-activity-mismatch', 
             expected: new Activity(this.activity.activityName), 
             found: currentActivity ?? new Activity('EndOfPipeline')
         });

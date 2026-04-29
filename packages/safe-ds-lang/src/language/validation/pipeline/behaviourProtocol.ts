@@ -27,7 +27,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
                 const callable = nodeMapper.callToCallable(call);
                 if (!callable || !(isSdsFunction(callable) || isSdsClass(callable))) continue;
 
-                const annotation = builtinAnnotations.getDSPipelinePhase(callable as SdsAnnotatedObject);
+                const annotation = builtinAnnotations.getDSPipelineActivity(callable as SdsAnnotatedObject);
                 sequence.push(annotation ? new Activity(annotation.name) : new Activity('Any'));
             }
         }
