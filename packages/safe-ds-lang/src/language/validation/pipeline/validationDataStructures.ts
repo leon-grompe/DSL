@@ -10,7 +10,7 @@ export type ValidationError =
     | {type: 'or-block-no-match'; alternatives: Activity[]}
     | {type: 'xor-block-multiple-matches'; alternatives: Activity[]}
     
-    | {type: 'repetition-block-minimum-not-met'; min: number; actual: number; phaseName?:string }
+    | {type: 'repetition-block-minimum-not-met'; min: number; actual: number; phaseName?: string }
 
 
 export class ValidationResult {
