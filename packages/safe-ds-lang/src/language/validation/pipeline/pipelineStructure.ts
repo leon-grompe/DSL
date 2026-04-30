@@ -70,9 +70,10 @@ export const suggestPipelineStructure = (services: SafeDsServices) => {
         if (node.body.statements.length > 0){
             return;
         }
-        accept('info', 'Pipeline is empty. Suggestion for Pipeline structure available.', {   
-            node: node,
-            code: CODE_SUGGEST_PIPELINE_STRUCTURE,
+        accept('info', 
+            'Pipeline is empty. Suggestion for Pipeline structure available.', {   
+                node: node,
+                code: CODE_SUGGEST_PIPELINE_STRUCTURE,
             }
         );
         return;
