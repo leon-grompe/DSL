@@ -39,13 +39,12 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         const result = behaviourProtocol.validate(sequence, 0);
         
         if (!result.isValid){
-            
-
             const call = calls[result.validatedIndex];
-
+            const validationMessage = computeValidationMessage(result)
+            
             // mistake is inside the pipeline => validation message on wrong call
             if (call) {
-                const validationMessage = computeValidationMessage(result)
+                
                 accept('warning',
                     validationMessage, {
                         node: call,
@@ -57,9 +56,8 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
             // TODO: generate different message to better explain what is missing
             //      "after this statement continuation of previous phase or next phase expected"
             else {
-                const specialValidationMessage = computeValidationMessage(result)
                 accept('warning',
-                    specialValidationMessage, {
+                    'Pipeline is missing phases after this statement. ' + validationMessage, {
                         node: calls.at(calls.length-1) ?? node,
                         code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
                     },
@@ -122,14 +120,14 @@ const computeValidationMessage = (result: ValidationResult): string => {
                     expectedActivitesString.push(alternative.activityName);
                 }
                 console.log(expectedActivitesString);
+                let subMessage : String = '';
+                
                 // use phase name if possible
-                if (phase != ''){
-                    messages.push(`Expected one of the following activities during phase ${phase} but found none: ` + expectedActivitesString.map(p => `'${p}'`).join(', ') + '.');
-                }
+                if (phase != ''){ subMessage = 'phase ' + phase; }
                 // use generic phrase otherwise
-                else {
-                    messages.push('Expected one of the following activities during current phase but found none: ' + expectedActivitesString.map(p => `'${p}'`).join(', ') + '.');
-                }
+                else { subMessage = 'current phase'; }
+                
+                messages.push(`Expected one of the following activities ${subMessage} phase but found none: ` + expectedActivitesString.map(p => `'${p}'`).join(', ') + '.');
                 break;
             }
             case 'xor-block-multiple-matches': {
