@@ -14,7 +14,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
 
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
         // skip this validation if the pipeline is empty to avoid confusion with other validations
-        if (node.body.statements.length < 1){ return;}
+        if (node.body.statements.length < 1){ return; }
 
         const calls = [] as SdsCall[];
         const sequence = [] as Activity[];
@@ -66,14 +66,18 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
 };
 
 export const suggestPipelineStructure = (services: SafeDsServices) => {
+    const locator = services.workspace.AstNodeLocator;
     return (node : SdsPipeline, accept: ValidationAcceptor) => {
-        if (node.body.statements.length > 0){
-            return;
+        // check if pipeline is empty (no statements and no comments)
+        if (!/(pipeline\s+\w+\s*\{)(\s*)(\})/.test(node.$cstNode?.text ?? '') || node.body.statements.length > 0){ 
+            return; 
         }
+        
         accept('info', 
             'Pipeline is empty. Suggestion for Pipeline structure available.', {   
                 node: node,
                 code: CODE_SUGGEST_PIPELINE_STRUCTURE,
+                data: { path: locator.getAstNodePath(node) }
             }
         );
         return;
@@ -160,7 +164,6 @@ const extractNestedValidationErrors = (result: ValidationResult): ValidationErro
     }
     return errors;
 }
-
 
 /** 
  * Full behaviour protocol based on best practices and common data science pitfalls.
