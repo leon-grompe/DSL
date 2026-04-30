@@ -44,7 +44,6 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
             
             // mistake is inside the pipeline => validation message on wrong call
             if (call) {
-                
                 accept('warning',
                     validationMessage, {
                         node: call,
@@ -53,11 +52,9 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
                 );
             }
             // something is missing at the end of the pipeline => validation message on the end of the pipeline
-            // TODO: generate different message to better explain what is missing
-            //      "after this statement continuation of previous phase or next phase expected"
             else {
                 accept('warning',
-                    'Pipeline is missing phases after this statement. ' + validationMessage, {
+                    'Pipeline is missing at least one phase after this statement. ' + validationMessage, {
                         node: calls.at(calls.length-1) ?? node,
                         code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
                     },
