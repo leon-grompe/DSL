@@ -1,8 +1,10 @@
 import { Diagnostic } from 'vscode-languageserver';
 import { LangiumDocument } from 'langium';
 import { CODE_ARGUMENT_POSITIONAL } from '../../validation/other/expressions/arguments.js';
+import { CODE_SUGGEST_PIPELINE_STRUCTURE } from '../../validation/pipeline/pipelineStructure.js';
 import { SafeDsServices } from '../../safe-ds-module.js';
 import { makeArgumentsAssignedToOptionalParametersNamed } from './arguments.js';
+import { fillEmptyPipelineWithSuggestedStructure } from './fillPipelineWithStructure.js';
 import { CodeActionAcceptor } from '../safe-ds-code-action-provider.js';
 
 export class SafeDsQuickfixProvider {
@@ -11,6 +13,7 @@ export class SafeDsQuickfixProvider {
     constructor(services: SafeDsServices) {
         this.registry = {
             [CODE_ARGUMENT_POSITIONAL]: [makeArgumentsAssignedToOptionalParametersNamed(services)],
+            [CODE_SUGGEST_PIPELINE_STRUCTURE]: [fillEmptyPipelineWithSuggestedStructure(services)]
         };
     }
 
