@@ -22,6 +22,7 @@ import { SafeDsPartialEvaluator } from '../partialEvaluation/safe-ds-partial-eva
 import { SafeDsServices } from '../safe-ds-module.js';
 import { SafeDsEnums } from './safe-ds-enums.js';
 import { SafeDsModuleMembers } from './safe-ds-module-members.js';
+import { V } from 'vitest/dist/chunks/reporters.d.BFLkQcL6.js';
 
 const ANNOTATION_USAGE_URI = resourceNameToUri('builtins/safeds/lang/annotationUsage.sdsstub');
 const CODE_GENERATION_URI = resourceNameToUri('builtins/safeds/lang/codeGeneration.sdsstub');
@@ -58,10 +59,14 @@ export class SafeDsAnnotations extends SafeDsModuleMembers<SdsAnnotation> {
     }
 
     // Pipeline Phase --------------------------------------------------------------------------------------------------
-    streamDSPipelineActivity(node: SdsAnnotatedObject | undefined) : Stream<SdsAnnotatedObject> | undefined {
+    streamDSPipelineActivities(node: SdsAnnotatedObject | undefined) : Stream<SdsEnumVariant> {
         const value = this.getParameterValue(node, this.DSPipelineActivityAnnotation, 'activity');
-
-        return; 
+        if (!value || !(value instanceof EvaluatedList)) {
+            return EMPTY_STREAM;
+        }
+        return stream(value.elements)
+            .filter(this.builtinEnums.isEvaluatedDSPipelineActivity)
+            .map(element => element.variant)
     }
 
     getDSPipelineActivity(node: SdsAnnotatedObject | undefined): SdsEnumVariant | undefined {

@@ -1,4 +1,6 @@
+import { V } from 'vitest/dist/chunks/reporters.d.BFLkQcL6.js';
 import { ValidationResult } from './validationDataStructures.js'
+import { start } from 'repl';
 
 export class Activity {
     constructor(
@@ -20,7 +22,7 @@ export abstract class ProtocolBlock {
      * @param startIndex The index to start validation from.
      * @returns A tuple indicating if the validation was successful and the index of the next activity to validate.
      */
-    abstract validate(activitySequence: Activity[], startIndex: number) : ValidationResult;
+    abstract validate(activitySequence: Activity[][], startIndex: number) : ValidationResult;
 }
 
 /**
@@ -33,18 +35,24 @@ export class ElementaryBlock extends ProtocolBlock{
         
     ){ super() }
 
-    validate(activitySequence: Activity[], startIndex: number) : ValidationResult {
+    validate(activitySequence: Activity[][], startIndex: number) : ValidationResult {
         if (startIndex > activitySequence.length) {
             return ValidationResult.failure(startIndex, {type: 'elem-block-oob'});
         }
-        const currentActivity = activitySequence[startIndex];
-        if (currentActivity?.activityName === this.activity.activityName || currentActivity?.activityName === 'Any'){
+        
+        const currentActivities = activitySequence[startIndex];
+        const match = currentActivities?.some(
+            activity => activity.activityName === this.activity.activityName
+                    ||  activity.activityName === 'Any' 
+        )
+        if (match) {
             return ValidationResult.success(startIndex + 1);
         }
+
         return ValidationResult.failure(startIndex, {
             type: 'elem-block-activity-mismatch', 
             expected: new Activity(this.activity.activityName), 
-            found: currentActivity ?? new Activity('EndOfPipeline')
+            found: currentActivities ?? [new Activity('EndOfPipeline')]
         });
     }
 }
@@ -57,7 +65,7 @@ export class SequenceBlock extends ProtocolBlock{
         public blocks: ProtocolBlock[],
     ){ super() }
 
-    validate(activitySequence: Activity[], startIndex: number) : ValidationResult {
+    validate(activitySequence: Activity[][], startIndex: number) : ValidationResult {
         let updatedStartingPoint = 0;
         for (const block of this.blocks){
             const result = block.validate(activitySequence, updatedStartingPoint);
@@ -85,7 +93,7 @@ export class RepetitionBlock extends ProtocolBlock{
         public max: number = Infinity,
     ){ super() }
 
-    validate(activitySequence: Activity[], startIndex: number) : ValidationResult {
+    validate(activitySequence: Activity[][], startIndex: number) : ValidationResult {
         let currentIndex = startIndex;
         
         // enforce the minimum required matches
@@ -124,7 +132,7 @@ export class AlternativeBlock extends ProtocolBlock{
         public relation: 'or' | 'xor',
     ){ super() }
 
-    validate(activitySequence: Activity[], startIndex: number) : ValidationResult {
+    validate(activitySequence: Activity[][], startIndex: number) : ValidationResult {
         const alternatives = this.blocks
             .filter(b => b instanceof ElementaryBlock)
             .map(b => (b as ElementaryBlock).activity);

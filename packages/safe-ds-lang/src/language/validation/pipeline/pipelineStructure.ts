@@ -17,7 +17,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         if (node.body.statements.length < 1){ return; }
 
         const calls = [] as SdsCall[];
-        const sequence = [] as Activity[];
+        const sequence = [] as Activity[][];
         
         // fill the sequence of found calls in the pipeline
         for (const statement of node.body.statements){
@@ -26,13 +26,21 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
             for (const call of statementCalls){
                 calls.push(call);
                 
-                // for each call, find the corresponding annotation and add it to the sequence
-                // if no annotation is found, add the activity 'Any' instead
+                // for each call, find the corresponding annotations and add an array of them to the sequence
+                // if no annotation is found, add an array with singular activity 'Any' instead
                 const callable = nodeMapper.callToCallable(call);
                 if (!callable || !(isSdsFunction(callable) || isSdsClass(callable))) continue;
 
-                const annotation = builtinAnnotations.getDSPipelineActivity(callable as SdsAnnotatedObject);
-                sequence.push(annotation ? new Activity(annotation.name) : new Activity('Any'));
+                const annotations = builtinAnnotations
+                    .streamDSPipelineActivities(callable as SdsAnnotatedObject)
+                    .map(variant => variant.name)
+                    .toArray();
+                
+                const activities = annotations.length > 0
+                    ? annotations.map(name => new Activity(name))
+                    : [new Activity('Any')];
+                
+                sequence.push(activities);
             }
         }
 
@@ -105,7 +113,8 @@ const computeValidationMessage = (result: ValidationResult): string => {
     for (const error of nestedErrors){
         switch (error.type){
             case 'elem-block-activity-mismatch': {
-                messages.push(`Expected activity '${error.expected.activityName}' but found '${error.found.activityName}.'`);
+                const foundNames = error.found.map((a: Activity) => `'${a.activityName}'`).join(', ');
+                messages.push(`Expected activity '${error.expected.activityName}' but found ${foundNames}.`);
                 break;
             }
             case 'elem-block-oob': {
