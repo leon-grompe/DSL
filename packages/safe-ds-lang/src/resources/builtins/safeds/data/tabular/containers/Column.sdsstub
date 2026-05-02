@@ -17,6 +17,10 @@ from safeds.data.tabular.typing import ColumnType
  * }
  */
 @Category(DataScienceCategory.BasicElement)
+@PipelineActivity([
+    DSPipelineActivity.DataAcquisitionQConstruction,
+    DSPipelineActivity.FeatureEngineeringQConstruction
+])
 class Column<out T = Any?>(
     name: String,
     data: List<T>,
@@ -58,6 +62,10 @@ class Column<out T = Any?>(
      */
     @Pure
     @PythonName("get_distinct_values")
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun getDistinctValues(
         @PythonName("ignore_missing_values") ignoreMissingValues: Boolean = true
     ) -> distinctValues: List<T?>
@@ -83,6 +91,10 @@ class Column<out T = Any?>(
      */
     @Pure
     @PythonName("get_value")
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun getValue(
         index: Int
     ) -> value: T
@@ -123,6 +135,10 @@ class Column<out T = Any?>(
      */
     @Pure
     @Category(DataScienceCategory.DataExplorationQGeneral)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun all(
         predicate: (cell: Cell<T>) -> satisfiesPredicate: Cell<Boolean?>,
         @PythonName("ignore_unknown") ignoreUnknown: Boolean = true
@@ -164,6 +180,10 @@ class Column<out T = Any?>(
      */
     @Pure
     @Category(DataScienceCategory.DataExplorationQGeneral)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun any(
         predicate: (cell: Cell<T>) -> satisfiesPredicate: Cell<Boolean?>,
         @PythonName("ignore_unknown") ignoreUnknown: Boolean = true
@@ -198,6 +218,10 @@ class Column<out T = Any?>(
      */
     @Pure
     @PythonName("count_if")
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun countIf(
         predicate: (cell: Cell<T>) -> satisfiesPredicate: Cell<Boolean?>,
         @PythonName("ignore_unknown") ignoreUnknown: Boolean = true
@@ -239,6 +263,10 @@ class Column<out T = Any?>(
      */
     @Pure
     @Category(DataScienceCategory.DataExplorationQGeneral)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun none(
         predicate: (cell: Cell<T>) -> satisfiesPredicate: Cell<Boolean?>,
         @PythonName("ignore_unknown") ignoreUnknown: Boolean = true
@@ -261,6 +289,11 @@ class Column<out T = Any?>(
      */
     @Pure
     @Category(DataScienceCategory.DataProcessingQColumn)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQModification,
+        DSPipelineActivity.DataProcessingQModification,
+        DSPipelineActivity.FeatureEngineeringQModification
+    ])
     fun rename(
         @PythonName("new_name") newName: String
     ) -> newColumn: Column<T>
@@ -282,6 +315,9 @@ class Column<out T = Any?>(
      */
     @Pure
     @Category(DataScienceCategory.DataProcessingQColumn)
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQGeneral
+    ])
     fun transform<R>(
         transformer: (cell: Cell<T>) -> transformedCell: Cell<R>
     ) -> newColumn: Column<R>
@@ -304,6 +340,10 @@ class Column<out T = Any?>(
      */
     @Pure
     @PythonName("summarize_statistics")
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun summarizeStatistics() -> statistics: Table
 
     /**
@@ -340,6 +380,10 @@ class Column<out T = Any?>(
     @Pure
     @PythonName("correlation_with")
     @Category(DataScienceCategory.DataExplorationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun correlationWith(
         other: Column<Any>
     ) -> correlation: Float
@@ -361,6 +405,10 @@ class Column<out T = Any?>(
     @Pure
     @PythonName("distinct_value_count")
     @Category(DataScienceCategory.DataExplorationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun distinctValueCount(
         @PythonName("ignore_missing_values") ignoreMissingValues: Boolean = true
     ) -> distinctValueCount: Int
@@ -391,6 +439,10 @@ class Column<out T = Any?>(
      */
     @Pure
     @Category(DataScienceCategory.DataExplorationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun idness() -> idness: Float
 
     /**
@@ -406,6 +458,10 @@ class Column<out T = Any?>(
      */
     @Pure
     @Category(DataScienceCategory.DataExplorationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun max() -> max: T?
 
     /**
@@ -423,6 +479,10 @@ class Column<out T = Any?>(
      */
     @Pure
     @Category(DataScienceCategory.DataExplorationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun mean() -> mean: T
 
     /**
@@ -447,6 +507,10 @@ class Column<out T = Any?>(
      */
     @Pure
     @Category(DataScienceCategory.DataExplorationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun median() -> median: T
 
     /**
@@ -462,6 +526,10 @@ class Column<out T = Any?>(
      */
     @Pure
     @Category(DataScienceCategory.DataExplorationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun min() -> min: T?
 
     /**
@@ -484,6 +552,10 @@ class Column<out T = Any?>(
     @Pure
     @PythonName("missing_value_count")
     @Category(DataScienceCategory.DataExplorationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun missingValueCount() -> missingValueCount: Int
 
     /**
@@ -518,6 +590,10 @@ class Column<out T = Any?>(
     @Pure
     @PythonName("missing_value_ratio")
     @Category(DataScienceCategory.DataExplorationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun missingValueRatio() -> missingValueRatio: Float
 
     /**
@@ -538,6 +614,10 @@ class Column<out T = Any?>(
      */
     @Pure
     @Category(DataScienceCategory.DataExplorationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun mode(
         @PythonName("ignore_missing_values") ignoreMissingValues: Boolean = true
     ) -> mode: List<T?>
@@ -573,6 +653,10 @@ class Column<out T = Any?>(
      */
     @Pure
     @Category(DataScienceCategory.DataExplorationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun stability() -> stability: Float
 
     /**
@@ -591,6 +675,10 @@ class Column<out T = Any?>(
     @Pure
     @PythonName("standard_deviation")
     @Category(DataScienceCategory.DataExplorationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun standardDeviation() -> standardDeviation: Float
 
     /**
@@ -608,6 +696,10 @@ class Column<out T = Any?>(
      */
     @Pure
     @Category(DataScienceCategory.DataExplorationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun variance() -> variance: Float
 
     /**
