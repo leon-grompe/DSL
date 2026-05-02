@@ -22,6 +22,9 @@ from safeds.data.tabular.containers import Table
  * }
  */
 @Experimental
+@PipelineActivity([
+    DSPipelineActivity.DataPreparationQGeneral
+])
 class ImageDataset<out O>(
     @PythonName("input_data") inputData: ImageList,
     @PythonName("output_data") outputData: O,
@@ -108,6 +111,9 @@ class ImageDataset<out O>(
      * @result secondDataset The second dataset.
      */
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.DataPartitioningQGeneral
+    ])
     fun split(
         @PythonName("percentage_in_first") percentageInFirst: Float,
         shuffle: Boolean = true
