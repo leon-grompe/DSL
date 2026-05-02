@@ -96,56 +96,62 @@ enum DSPipelineActivity {
     /**
      * Load your data into the pipeline.
      */
-    DataAcquisition
+    DataAcquisitionQGeneral
+    DataAcquisitionQPreprocessing
+    DataAcquisitionQConstruction
 
     /**
      * General data preparation tasks.
      */
-    DataPreparation
+    DataPreparationQGeneral
+    DataPreparationQExploration
+    DataPreparationQPreprocessing
+    DataPreparationQTransformation
+    DataPreparationQManipulation
 
     /**
      * Partition data into training, validation and test sets
      */
-    DataPartitioning
+    DataPartitioningQGeneral
 
     /**
      * Process your data for analysis.
      */
-    DataProcessing
-    DataTransformer
+    DataProcessingQGeneral
+    DataProcessingQExploration
+    DataProcessingQDataTransformer
+    DataProcessingQPreprocessing
+    DataProcessingQTransformation
+    DataProcessingQModification
 
 // Model Building Layer
     /**
      * Do feature engineering to prepare your data for modeling.
      */
-    FeatureEngineering
-    FeatureTransformer
+    FeatureEngineeringQGeneral
+    FeatureEngineeringQFeatureTransformer
+    FeatureEngineeringQModification
+    FeatureEngineeringQConstruction
 
     /**
      * Select the most relevant features for your model.
      */
-    FeatureSelection
+    FeatureSelectionQGeneral
 
     /**
      *  Configure a model.
      */
-    Modeling
-    ModelingQClassification
-    ModelingQRegression
-    ModelingQNeuralNetwork
+    ModelingQGeneral
 
     /**
      * Train the model on your data.
      */
-    Training
-    TrainingQClassification
-    TrainingQRegression
-    TrainingQNeuralNetwork
+    TrainingQGeneral
 
     /**
      * Use your trained model to make predictions.
      */
-    Prediction
+    PredictionQGeneral
 
     /**
      * Evaluate the models performance with metrics or visualizations.
@@ -153,31 +159,11 @@ enum DSPipelineActivity {
     EvaluationQMetric
     EvaluationQVisualization
 
-// No specific phase
     /**
-     * Explore the data with metrics, visualizations and general exploration tools.
+     * Test your Models generality with the test set.
      */
-    Exploration
-
-    /**
-     * General tasks in the Preprocessing layer.
-     */
-    Preprocessing
-
-    /**
-     * General tasks that can be done in Preparation or Processing phase.
-     */
-    PreparationAndProcessing
-
-    /**
-     * General tasks that can be done in Preparation, Processing or Engineering phase.
-     */
-    PreparationProcessingAndEngineering
-
-    /**
-     * General operations that can be used for Acquisition or Engineering.
-     */
-    AcquisitionAndEngineering
+    TestingQMetric
+    TestingQVisualization
 }
 
 
