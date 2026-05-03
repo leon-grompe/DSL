@@ -20,6 +20,9 @@ from safeds.data.tabular.transformation import InvertibleTableTransformer
  *     // originalTable = Table({"a": [1, 2, 3]});
  * }
  */
+@PipelineActivity([
+    DSPipelineActivity.DataProcessingQDataTransformer
+])
 class RangeScaler(
     selector: union<List<String>, String, Nothing?> = null,
     @PythonName("min_") const min: Float = 0.0,
@@ -44,6 +47,9 @@ class RangeScaler(
      * @result fittedTransformer The fitted transformer.
      */
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
     fun fit(
         table: Table
     ) -> fittedTransformer: RangeScaler
@@ -60,6 +66,9 @@ class RangeScaler(
      */
     @Pure
     @PythonName("fit_and_transform")
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: RangeScaler, transformedTable: Table)

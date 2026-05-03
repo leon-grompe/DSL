@@ -11,7 +11,9 @@ from safeds.data.tabular.transformation import TableTransformer
  * @param valueToReplace The placeholder for the missing values. All occurrences of`missing_values` will be imputed.
  */
 
-@PipelinePhase(DSPipelinePhase.DataTransformer)
+@PipelineActivity([
+    DSPipelineActivity.DataProcessingQDataTransformer
+])
 class KNearestNeighborsImputer(
     @PythonName("neighbor_count") neighborCount: Int,
     selector: union<List<String>, String, Nothing?> = null,
@@ -37,7 +39,9 @@ class KNearestNeighborsImputer(
      */
     @Pure
     @Category(DataScienceCategory.DataProcessingQTransformer)
-    @PipelinePhase(DSPipelinePhase.DataTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
     fun fit(
         table: Table
     ) -> fittedTransformer: KNearestNeighborsImputer
@@ -55,7 +59,9 @@ class KNearestNeighborsImputer(
     @Pure
     @PythonName("fit_and_transform")
     @Category(DataScienceCategory.DataProcessingQTransformer)
-    @PipelinePhase(DSPipelinePhase.DataTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: KNearestNeighborsImputer, transformedTable: Table)

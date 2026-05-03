@@ -17,6 +17,9 @@ class InvertibleTableTransformer() sub TableTransformer {
      * @result fittedTransformer The fitted transformer.
      */
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
     fun fit(
         table: Table
     ) -> fittedTransformer: InvertibleTableTransformer
@@ -33,6 +36,9 @@ class InvertibleTableTransformer() sub TableTransformer {
      */
     @Pure
     @PythonName("fit_and_transform")
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: InvertibleTableTransformer, transformedTable: Table)
@@ -50,6 +56,9 @@ class InvertibleTableTransformer() sub TableTransformer {
      */
     @Pure
     @PythonName("inverse_transform")
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
     fun inverseTransform(
         @PythonName("transformed_table") transformedTable: Table
     ) -> originalTable: Table

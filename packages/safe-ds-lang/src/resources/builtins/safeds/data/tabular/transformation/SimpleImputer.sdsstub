@@ -26,6 +26,9 @@ from safeds.data.tabular.transformation import TableTransformer
  *    // Table({"a": [1, 0], "b": [3, 4]})
  * }
  */
+@PipelineActivity([
+    DSPipelineActivity.DataProcessingQDataTransformer
+])
 class SimpleImputer(
     strategy: SimpleImputer.Strategy,
     selector: union<List<String>, String, Nothing?> = null,
@@ -81,6 +84,9 @@ class SimpleImputer(
      * @result fittedTransformer The fitted transformer.
      */
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
     fun fit(
         table: Table
     ) -> fittedTransformer: SimpleImputer
@@ -97,6 +103,9 @@ class SimpleImputer(
      */
     @Pure
     @PythonName("fit_and_transform")
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: SimpleImputer, transformedTable: Table)

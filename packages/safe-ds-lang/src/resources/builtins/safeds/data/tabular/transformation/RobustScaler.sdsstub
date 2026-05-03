@@ -11,6 +11,9 @@ from safeds.data.tabular.transformation import InvertibleTableTransformer
  *
  * @param selector The list of columns used to fit the transformer. If `None`, all numeric columns are used.
  */
+@PipelineActivity([
+    DSPipelineActivity.DataProcessingQDataTransformer
+])
 class RobustScaler(
     selector: union<List<String>, String, Nothing?> = null
 ) sub InvertibleTableTransformer {
@@ -24,6 +27,9 @@ class RobustScaler(
      * @result fittedTransformer The fitted transformer.
      */
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
     fun fit(
         table: Table
     ) -> fittedTransformer: RobustScaler
@@ -40,6 +46,9 @@ class RobustScaler(
      */
     @Pure
     @PythonName("fit_and_transform")
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: RobustScaler, transformedTable: Table)

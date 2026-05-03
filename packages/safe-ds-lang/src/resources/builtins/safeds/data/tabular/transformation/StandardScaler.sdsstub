@@ -18,6 +18,9 @@ from safeds.data.tabular.transformation import InvertibleTableTransformer
  *     // originalTable = Table({"a": [1, 2, 3]});
  * }
  */
+@PipelineActivity([
+    DSPipelineActivity.DataProcessingQDataTransformer
+])
 class StandardScaler(
     selector: union<List<String>, String, Nothing?> = null
 ) sub InvertibleTableTransformer {
@@ -31,6 +34,9 @@ class StandardScaler(
      * @result fittedTransformer The fitted transformer.
      */
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
     fun fit(
         table: Table
     ) -> fittedTransformer: StandardScaler
@@ -47,6 +53,9 @@ class StandardScaler(
      */
     @Pure
     @PythonName("fit_and_transform")
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: StandardScaler, transformedTable: Table)
