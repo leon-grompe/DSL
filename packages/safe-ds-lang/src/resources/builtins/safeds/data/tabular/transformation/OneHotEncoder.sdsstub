@@ -42,6 +42,9 @@ from safeds.data.tabular.transformation import InvertibleTableTransformer
  *    // Table({"a": ["z", "y"], "b": [3, 4]})
  * }
  */
+@PipelineActivity([
+    DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+])
 class OneHotEncoder(
     selector: union<List<String>, String, Nothing?> = null,
     separator: String = "__"
@@ -62,6 +65,9 @@ class OneHotEncoder(
      */
     @Pure
     @Category(DataScienceCategory.DataProcessingQTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+    ])
     fun fit(
         table: Table
     ) -> fittedTransformer: OneHotEncoder
@@ -79,6 +85,9 @@ class OneHotEncoder(
     @Pure
     @PythonName("fit_and_transform")
     @Category(DataScienceCategory.DataProcessingQTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+    ])
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: OneHotEncoder, transformedTable: Table)

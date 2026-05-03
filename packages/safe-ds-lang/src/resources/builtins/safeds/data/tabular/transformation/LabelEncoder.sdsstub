@@ -20,6 +20,9 @@ from safeds.data.tabular.transformation import InvertibleTableTransformer
  *    // Table({"a": ["z", "y"], "b": [3, 4]})
  * }
  */
+@PipelineActivity([
+    DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+])
 class LabelEncoder(
     selector: union<List<String>, String, Nothing?> = null,
     @PythonName("partial_order") partialOrder: List<Any?> = []
@@ -39,6 +42,9 @@ class LabelEncoder(
      * @result fittedTransformer The fitted transformer.
      */
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+    ])
     fun fit(
         table: Table
     ) -> fittedTransformer: LabelEncoder
@@ -55,6 +61,9 @@ class LabelEncoder(
      */
     @Pure
     @PythonName("fit_and_transform")
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+    ])
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: LabelEncoder, transformedTable: Table)
