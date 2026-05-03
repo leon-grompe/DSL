@@ -14,6 +14,9 @@ from safeds.ml.nn.layers import Layer
  * @typeParam F The type of the features. It's the input to `predict`.
  */
 @Experimental
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class NeuralNetworkRegressor<D, F>(
     @PythonName("input_conversion") inputConversion: InputConversion<D, F>,
     layers: List<Layer>
@@ -32,6 +35,9 @@ class NeuralNetworkRegressor<D, F>(
      */
     @Pure
     @PythonName("from_pretrained_model")
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQGeneral
+    ])
     static fun fromPretrainedModel(
         @PythonName("huggingface_repo") huggingfaceRepo: String
     ) -> pretrainedModel: NeuralNetworkRegressor<Any, Any>
@@ -58,6 +64,9 @@ class NeuralNetworkRegressor<D, F>(
      * }
      */
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQGeneral
+    ])
     fun fit(
         @PythonName("train_data") trainData: D,
         @PythonName("epoch_count") const epochCount: Int = 25,
@@ -85,6 +94,9 @@ class NeuralNetworkRegressor<D, F>(
      * }
      */
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.PredictionQGeneral
+    ])
     fun predict(
         @PythonName("test_data") testData: F
     ) -> prediction: D
