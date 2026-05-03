@@ -19,6 +19,9 @@ from safeds.ml.classical.regression import Regressor
  *     val meanSquaredError = regressor.meanSquaredError(test);
  * }
  */
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class RandomForestRegressor(
     @PythonName("tree_count") const treeCount: Int = 100,
     @PythonName("max_depth") maxDepth: Int? = null,
@@ -51,6 +54,9 @@ class RandomForestRegressor(
      */
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQGeneral
+    ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset
     ) -> fittedRegressor: RandomForestRegressor

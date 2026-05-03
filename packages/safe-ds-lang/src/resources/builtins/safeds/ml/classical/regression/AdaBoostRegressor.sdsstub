@@ -21,6 +21,9 @@ from safeds.ml.classical.regression import Regressor
  *     val meanSquaredError = regressor.meanSquaredError(test);
  * }
  */
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class AdaBoostRegressor(
     learner: Regressor = DecisionTreeRegressor(),
     @PythonName("max_learner_count") const maxLearnerCount: Int = 50,
@@ -53,6 +56,9 @@ class AdaBoostRegressor(
      */
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQGeneral
+    ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset
     ) -> fittedRegressor: AdaBoostRegressor

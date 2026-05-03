@@ -20,6 +20,9 @@ from safeds.ml.classical.regression import Regressor
  *     val meanSquaredError = regressor.meanSquaredError(test);
  * }
  */
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class SupportVectorRegressor(
     const c: Float = 1.0,
     kernel: SupportVectorRegressor.Kernel = SupportVectorRegressor.Kernel.RadialBasisFunction
@@ -79,6 +82,9 @@ class SupportVectorRegressor(
      */
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQGeneral
+    ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset
     ) -> fittedRegressor: SupportVectorRegressor

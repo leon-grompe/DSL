@@ -20,6 +20,9 @@ from safeds.ml.classical.regression import Regressor
  *     val meanSquaredError = regressor.meanSquaredError(test);
  * }
  */
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class GradientBoostingRegressor(
     @PythonName("tree_count") const treeCount: Int = 100,
     @PythonName("learning_rate") const learningRate: Float = 0.1
@@ -47,6 +50,9 @@ class GradientBoostingRegressor(
      */
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQGeneral
+    ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset
     ) -> fittedRegressor: GradientBoostingRegressor

@@ -17,6 +17,9 @@ from safeds.ml.classical.regression import Regressor
  *     val meanSquaredError = regressor.meanSquaredError(test);
  * }
  */
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class LinearRegressor(
     penalty: LinearRegressor.Penalty? = null
 ) sub Regressor {
@@ -88,6 +91,9 @@ class LinearRegressor(
      */
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQGeneral
+    ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset
     ) -> fittedRegressor: LinearRegressor

@@ -18,6 +18,9 @@ from safeds.ml.classical.regression import Regressor
  *     val meanSquaredError = regressor.meanSquaredError(test);
  * }
  */
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class KNearestNeighborsRegressor(
     @PythonName("neighbor_count") const neighborCount: Int
 ) sub Regressor where {
@@ -39,6 +42,9 @@ class KNearestNeighborsRegressor(
      */
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQGeneral
+    ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset
     ) -> fittedRegressor: KNearestNeighborsRegressor

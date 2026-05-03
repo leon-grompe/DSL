@@ -13,6 +13,9 @@ from safeds.data.labeled.containers import TimeSeriesDataset
  */
 @Experimental
 @PythonName("ArimaModelRegressor")
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class ArimaRegressor() {
     /**
      * Whether the regressor is fitted.
@@ -30,6 +33,9 @@ class ArimaRegressor() {
      */
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQGeneral
+    ])
     fun fit(
         @PythonName("time_series") timeSeries: TimeSeriesDataset
     ) -> fittedArima: ArimaRegressor
@@ -43,6 +49,9 @@ class ArimaRegressor() {
      */
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
+    @PipelineActivity([
+        DSPipelineActivity.PredictionQGeneral
+    ])
     fun predict(
         @PythonName("time_series") timeSeries: TimeSeriesDataset
     ) -> prediction: Table
@@ -57,6 +66,10 @@ class ArimaRegressor() {
     @Pure
     @PythonName("plot_predictions")
     @Category(DataScienceCategory.ModelEvaluationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQVisualization,
+        DSPipelineActivity.TestingQVisualization
+    ])
     fun plotPredictions(
         @PythonName("test_series") testSeries: TimeSeriesDataset
     ) -> image: Image
