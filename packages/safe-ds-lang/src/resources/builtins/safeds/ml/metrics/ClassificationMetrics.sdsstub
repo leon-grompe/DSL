@@ -18,6 +18,10 @@ class ClassificationMetrics {
      */
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetric,
+        DSPipelineActivity.TestingQMetric
+    ])
     static fun summarize(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
         expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -37,6 +41,10 @@ class ClassificationMetrics {
      */
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetric,
+        DSPipelineActivity.TestingQMetric
+    ])
     static fun accuracy(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
         expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>
@@ -57,6 +65,10 @@ class ClassificationMetrics {
     @Pure
     @PythonName("f1_score")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetric,
+        DSPipelineActivity.TestingQMetric
+    ])
     static fun f1Score(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
         expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -77,6 +89,10 @@ class ClassificationMetrics {
      */
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetric,
+        DSPipelineActivity.TestingQMetric
+    ])
     static fun precision(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
         expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -97,6 +113,10 @@ class ClassificationMetrics {
      */
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetric,
+        DSPipelineActivity.TestingQMetric
+    ])
     static fun recall(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
         expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>,

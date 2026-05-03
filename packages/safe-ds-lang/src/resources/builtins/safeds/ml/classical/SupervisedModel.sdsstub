@@ -24,6 +24,9 @@ class SupervisedModel {
      * @result fittedModel The fitted model.
      */
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQGeneral
+    ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset
     ) -> fittedModel: SupervisedModel
@@ -38,6 +41,9 @@ class SupervisedModel {
      * @result prediction The given dataset with an additional column for the predicted target values.
      */
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.PredictionQGeneral
+    ])
     fun predict(
         dataset: union<Table, TabularDataset>
     ) -> prediction: TabularDataset
