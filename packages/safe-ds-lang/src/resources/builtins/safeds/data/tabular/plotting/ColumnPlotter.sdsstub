@@ -14,6 +14,10 @@ from safeds.data.image.containers import Image
  * }
  */
 @Category(DataScienceCategory.BasicElement)
+@PipelineActivity([
+    DSPipelineActivity.DataPreparationQExploration,
+    DSPipelineActivity.DataProcessingQExploration
+])
 class ColumnPlotter(
     column: Column<Any>
 ) {
@@ -33,6 +37,10 @@ class ColumnPlotter(
     @Pure
     @PythonName("box_plot")
     @Category(DataScienceCategory.DataExplorationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun boxPlot(
         theme: literal<"dark", "light"> = "light"
     ) -> plot: Image
@@ -53,6 +61,10 @@ class ColumnPlotter(
      */
     @Pure
     @Category(DataScienceCategory.DataExplorationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun histogram(
         @PythonName("max_bin_count") const maxBinCount: Int = 10,
         theme: literal<"dark", "light"> = "light"
@@ -77,6 +89,10 @@ class ColumnPlotter(
     @Pure
     @PythonName("lag_plot")
     @Category(DataScienceCategory.DataExplorationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun lagPlot(
         lag: Int,
         theme: literal<"dark", "light"> = "light"
@@ -98,6 +114,10 @@ class ColumnPlotter(
     @Pure
     @PythonName("violin_plot")
     @Category(DataScienceCategory.DataExplorationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun violinPlot(
         theme: literal<"dark", "light"> = "light"
     ) -> plot: Image

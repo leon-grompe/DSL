@@ -14,6 +14,10 @@ from safeds.data.tabular.containers import Table
  *     val plotter = table.plot;
  * }
  */
+@PipelineActivity([
+    DSPipelineActivity.DataPreparationQExploration,
+    DSPipelineActivity.DataProcessingQExploration
+])
 class TablePlotter(
     table: Table
 ) {
@@ -33,6 +37,10 @@ class TablePlotter(
     @Pure
     @PythonName("box_plots")
     @Category(DataScienceCategory.DataExplorationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun boxPlots(
         theme: literal<"dark", "light"> = "light"
     ) -> plot: Image
@@ -53,6 +61,10 @@ class TablePlotter(
      */
     @Pure
     @Category(DataScienceCategory.DataExplorationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun histograms(
         @PythonName("max_bin_count") const maxBinCount: Int = 10,
         theme: literal<"dark", "light"> = "light"
@@ -76,6 +88,10 @@ class TablePlotter(
     @Pure
     @PythonName("violin_plots")
     @Category(DataScienceCategory.DataExplorationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun violinPlots(
         theme: literal<"dark", "light"> = "light"
     ) -> plot: Image
@@ -104,6 +120,10 @@ class TablePlotter(
     @Pure
     @PythonName("line_plot")
     @Category(DataScienceCategory.DataExplorationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun linePlot(
         @PythonName("x_name") xName: String,
         @PythonName("y_names") yNames: List<String>,
@@ -136,6 +156,10 @@ class TablePlotter(
     @Pure
     @PythonName("histogram_2d")
     @Category(DataScienceCategory.DataExplorationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun histogram2d(
         @PythonName("x_name") xName: String,
         @PythonName("y_name") yName: String,
@@ -168,6 +192,10 @@ class TablePlotter(
     @Pure
     @PythonName("moving_average_plot")
     @Category(DataScienceCategory.DataExplorationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun movingAveragePlot(
         @PythonName("x_name") xName: String,
         @PythonName("y_name") yName: String,
@@ -198,6 +226,10 @@ class TablePlotter(
     @Pure
     @PythonName("scatter_plot")
     @Category(DataScienceCategory.DataExplorationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun scatterPlot(
         @PythonName("x_name") xName: String,
         @PythonName("y_names") yNames: List<String>,
@@ -220,6 +252,10 @@ class TablePlotter(
     @Pure
     @PythonName("correlation_heatmap")
     @Category(DataScienceCategory.DataExplorationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun correlationHeatmap(
         theme: literal<"dark", "light"> = "light"
     ) -> plot: Image
