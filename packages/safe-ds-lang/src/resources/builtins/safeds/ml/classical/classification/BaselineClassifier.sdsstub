@@ -11,6 +11,9 @@ from safeds.data.labeled.containers import TabularDataset
  * This might result in significantly higher runtime.
  */
 @Experimental
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class BaselineClassifier(
     @PythonName("extended_search") extendedSearch: Boolean = false
 ) {
@@ -29,6 +32,9 @@ class BaselineClassifier(
      * @result trainedClassifier The trained Classifier
      */
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQGeneral
+    ])
     fun fit(
         @PythonName("train_data") trainData: TabularDataset
     ) -> trainedClassifier: BaselineClassifier
@@ -43,6 +49,9 @@ class BaselineClassifier(
      * @result bestMetrics A dictionary with the best metrics that were achieved.
      */
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.PredictionQGeneral
+    ])
     fun predict(
         @PythonName("test_data") testData: TabularDataset
     ) -> bestMetrics: Map<String, Float>

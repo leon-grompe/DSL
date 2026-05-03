@@ -20,6 +20,9 @@ from safeds.ml.classical.classification import Classifier
  *     val accuracy = classifier.accuracy(test);
  * }
  */
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class GradientBoostingClassifier(
     @PythonName("tree_count") const treeCount: Int = 100,
     @PythonName("learning_rate") const learningRate: Float = 0.1
@@ -47,6 +50,9 @@ class GradientBoostingClassifier(
      */
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalClassification)
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQGeneral
+    ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset
     ) -> fittedClassifier: GradientBoostingClassifier

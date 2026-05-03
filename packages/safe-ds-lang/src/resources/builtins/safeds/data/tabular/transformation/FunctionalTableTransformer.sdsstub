@@ -8,6 +8,10 @@ from safeds.data.tabular.transformation import TableTransformer
  *
  * @param transformer A callable that receives a table and returns a table.
  */
+@PipelineActivity([
+    DSPipelineActivity.DataProcessingQDataTransformer
+    DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+])
 class FunctionalTableTransformer(
     transformer: (table: Table) -> transformedTable: Table
 ) sub TableTransformer {
@@ -20,6 +24,10 @@ class FunctionalTableTransformer(
      */
     @Pure
     @Category(DataScienceCategory.DataProcessingQTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+    ])
     fun fit(
         table: Table
     ) -> fittedTransformer: FunctionalTableTransformer
@@ -35,6 +43,10 @@ class FunctionalTableTransformer(
     @Pure
     @PythonName("fit_and_transform")
     @Category(DataScienceCategory.DataProcessingQTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+    ])
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: FunctionalTableTransformer, transformedTable: Table)

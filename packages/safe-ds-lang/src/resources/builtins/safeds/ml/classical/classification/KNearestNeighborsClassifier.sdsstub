@@ -18,8 +18,9 @@ from safeds.ml.classical.classification import Classifier
  *     val accuracy = classifier.accuracy(test);
  * }
  */
-@PipelinePhase(DSPipelinePhase.ModelingQClassification)
-    @PipelinePhase(DSPipelinePhase.ModelingQClassification)
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class KNearestNeighborsClassifier(
     @PythonName("neighbor_count") const neighborCount: Int
 ) sub Classifier where {
@@ -41,7 +42,9 @@ class KNearestNeighborsClassifier(
      */
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalClassification)
-    @PipelinePhase(DSPipelinePhase.TrainingQClassification)
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQGeneral
+    ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset
     ) -> fittedClassifier: KNearestNeighborsClassifier

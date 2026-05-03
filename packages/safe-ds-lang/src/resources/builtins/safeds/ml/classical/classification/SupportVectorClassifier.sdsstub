@@ -20,6 +20,9 @@ from safeds.ml.classical.classification import Classifier
  *     val accuracy = classifier.accuracy(test);
  * }
  */
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class SupportVectorClassifier(
     const c: Float = 1.0,
     kernel: SupportVectorClassifier.Kernel = SupportVectorClassifier.Kernel.RadialBasisFunction
@@ -79,6 +82,9 @@ class SupportVectorClassifier(
      */
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalClassification)
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQGeneral
+    ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset
     ) -> fittedClassifier: SupportVectorClassifier

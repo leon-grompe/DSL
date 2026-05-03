@@ -19,6 +19,9 @@ class Classifier sub SupervisedModel {
      */
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalClassification)
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQGeneral
+    ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset
     ) -> fittedModel: Classifier
@@ -41,6 +44,10 @@ class Classifier sub SupervisedModel {
     @Pure
     @PythonName("summarize_metrics")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQGeneral,
+        DSPipelineActivity.TestingQGeneral
+    ])
     fun summarizeMetrics(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>,
         @PythonName("positive_class") positiveClass: Any
@@ -60,6 +67,10 @@ class Classifier sub SupervisedModel {
      */
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQGeneral,
+        DSPipelineActivity.TestingQGeneral
+    ])
     fun accuracy(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>
     ) -> accuracy: Float
@@ -80,6 +91,10 @@ class Classifier sub SupervisedModel {
     @Pure
     @PythonName("f1_score")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQGeneral,
+        DSPipelineActivity.TestingQGeneral
+    ])
     fun f1Score(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>,
         @PythonName("positive_class") positiveClass: Any
@@ -100,6 +115,10 @@ class Classifier sub SupervisedModel {
      */
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQGeneral,
+        DSPipelineActivity.TestingQGeneral
+    ])
     fun precision(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>,
         @PythonName("positive_class") positiveClass: Any
@@ -120,7 +139,10 @@ class Classifier sub SupervisedModel {
      */
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
-
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQGeneral,
+        DSPipelineActivity.TestingQGeneral
+    ])
     fun recall(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>,
         @PythonName("positive_class") positiveClass: Any

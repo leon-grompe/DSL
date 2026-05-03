@@ -17,6 +17,9 @@ from safeds.ml.classical.classification import Classifier
  *     val accuracy = classifier.accuracy(test);
  * }
  */
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class DecisionTreeClassifier(
     @PythonName("max_depth") maxDepth: Int? = null,
     @PythonName("min_sample_count_in_leaves") const minSampleCountInLeaves: Int = 1
@@ -43,6 +46,9 @@ class DecisionTreeClassifier(
      */
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalClassification)
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQGeneral
+    ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset
     ) -> fittedClassifier: DecisionTreeClassifier
@@ -53,5 +59,9 @@ class DecisionTreeClassifier(
      * @result plot The decision tree figure as an image.
      */
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQVisualization,
+        DSPipelineActivity.TestingQVisualization
+    ])
     fun plot() -> plot: Image
 }
