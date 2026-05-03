@@ -14,6 +14,9 @@ from safeds.ml.nn.layers import Convolutional2DLayer
  */
 @Experimental
 @Category(DataScienceCategory.ModelingQNeuralNetwork)
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class ConvolutionalTranspose2DLayer(
     @PythonName("output_channel") outputChannel: Int,
     @PythonName("kernel_size") kernelSize: Int,

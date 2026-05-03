@@ -8,6 +8,9 @@ from safeds.ml.nn.layers import Layer
  * @param neuronCount The number of neurons in this layer
  */
 @Experimental
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class LSTMLayer(
     @PythonName("neuron_count") neuronCount: Int
 ) sub Layer {

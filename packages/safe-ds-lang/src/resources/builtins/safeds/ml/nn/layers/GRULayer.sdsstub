@@ -7,7 +7,10 @@ from safeds.ml.nn.layers import Layer
  *
  * @param neuronCount The number of neurons in this layer
  */
- @Category(DataScienceCategory.ModelingQNeuralNetwork)
+@Category(DataScienceCategory.ModelingQNeuralNetwork)
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class GRULayer(
     @PythonName("neuron_count") neuronCount: Int
 ) sub Layer {

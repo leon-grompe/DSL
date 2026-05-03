@@ -12,6 +12,9 @@ from safeds.ml.nn.typing import ModelImageSize
  */
 @Experimental
 @Category(DataScienceCategory.ModelingQNeuralNetwork)
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class MaxPooling2DLayer(
     @PythonName("kernel_size") kernelSize: Int,
     stride: Int = -1,

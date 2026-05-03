@@ -8,6 +8,9 @@ from safeds.ml.nn.typing import ModelImageSize
  */
 @Experimental
 @Category(DataScienceCategory.ModelingQNeuralNetwork)
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class FlattenLayer() sub Layer {
     /**
      * Get the input_size of this layer.

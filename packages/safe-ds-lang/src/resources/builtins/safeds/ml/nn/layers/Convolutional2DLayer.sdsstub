@@ -13,6 +13,9 @@ from safeds.ml.nn.typing import ModelImageSize
  */
 @Experimental
 @Category(DataScienceCategory.ModelingQNeuralNetwork)
+@PipelineActivity([
+    DSPipelineActivity.ModelingQGeneral
+])
 class Convolutional2DLayer(
     @PythonName("output_channel") outputChannel: Int,
     @PythonName("kernel_size") kernelSize: Int,
