@@ -58,9 +58,10 @@ export class SafeDsAnnotations extends SafeDsModuleMembers<SdsAnnotation> {
         return this.getAnnotation(IDE_INTEGRATION_URI, 'Category');
     }
 
-    // Pipeline Phase --------------------------------------------------------------------------------------------------
+    // Pipeline Activity ------------------------------------------------------------------------------------------------
     streamDSPipelineActivities(node: SdsAnnotatedObject | undefined) : Stream<SdsEnumVariant> {
-        const value = this.getParameterValue(node, this.DSPipelineActivityAnnotation, 'activity');
+        const value = this.getParameterValue(node, this.DSPipelineActivityAnnotation, 'activities');
+        console.log(typeof(value))
         if (!value || !(value instanceof EvaluatedList)) {
             return EMPTY_STREAM;
         }
