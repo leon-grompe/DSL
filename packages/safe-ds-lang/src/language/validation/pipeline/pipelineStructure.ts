@@ -35,7 +35,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
                     .streamDSPipelineActivities(callable as SdsAnnotatedObject)
                     .map(variant => variant.name)
                     .toArray();
-                
+
                 const activities = annotations.length > 0
                     ? annotations.map(name => new Activity(name))
                     : [new Activity('Any')];
@@ -130,7 +130,7 @@ const computeValidationMessage = (result: ValidationResult): string => {
                 for (const alternative of error.alternatives){
                     expectedActivitesString.push(alternative.activityName);
                 }
-                console.log(expectedActivitesString);
+
                 let subMessage : String = '';
                 
                 // use phase name if possible
@@ -138,7 +138,7 @@ const computeValidationMessage = (result: ValidationResult): string => {
                 // use generic phrase otherwise
                 else { subMessage = 'current phase'; }
                 
-                messages.push(`Expected one of the following activities ${subMessage} phase but found none: ` + expectedActivitesString.map(p => `'${p}'`).join(', ') + '.');
+                messages.push(`Expected one of the following activities during ${subMessage} but found none: ` + expectedActivitesString.map(p => `'${p}'`).join(', ') + '.');
                 break;
             }
             case 'xor-block-multiple-matches': {
@@ -276,7 +276,7 @@ const behaviourProtocol = new SequenceBlock([
             new ElementaryBlock( new Activity('TestingQMetric')), 
             new ElementaryBlock( new Activity('TestingQVisualization') )],
             'or'
-        ),  'Testing', 1
+        ),  'Testing'
     ),
 
 

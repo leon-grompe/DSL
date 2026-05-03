@@ -897,7 +897,7 @@ class Table(
     @PythonName("split_rows")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataPartitioning
+        DSPipelineActivity.DataPartitioningQGeneral
     ])
     fun splitRows(
         @PythonName("percentage_in_first") percentageInFirst: Float,
