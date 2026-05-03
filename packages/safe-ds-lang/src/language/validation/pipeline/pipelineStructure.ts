@@ -187,9 +187,9 @@ const behaviourProtocol = new SequenceBlock([
     ),
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock( new Activity('DataAcquisitionQPreprocessing') ),
             new ElementaryBlock( new Activity('DataAcquisitionQGeneral') ),
-            new ElementaryBlock( new Activity('DataAcquisitionQAcquisitionAndEngineering') )],
+            new ElementaryBlock( new Activity('DataAcquisitionQPreprocessing') ),
+            new ElementaryBlock( new Activity('DataAcquisitionQConstruction') )],
             'or'
         ),  'DataAcquisition'
     ),
@@ -200,8 +200,8 @@ const behaviourProtocol = new SequenceBlock([
             new ElementaryBlock( new Activity('DataPreparationQGeneral') ),
             new ElementaryBlock( new Activity('DataPreparationQExploration') ),
             new ElementaryBlock( new Activity('DataPreparationQPreprocessing') ),
-            new ElementaryBlock( new Activity('DataPreparationQPreparationAndEngineering') ),
-            new ElementaryBlock( new Activity('DataPreparationQPreparationProcessingAndEngineering') )],
+            new ElementaryBlock( new Activity('DataPreparationQTransformation') ),
+            new ElementaryBlock( new Activity('DataPreparationQModification') )],
             'or'
         ),  'DataPreparation'
     ),
@@ -216,10 +216,11 @@ const behaviourProtocol = new SequenceBlock([
     new RepetitionBlock(
         new AlternativeBlock([
             new ElementaryBlock( new Activity('DataProcessingQGeneral') ),
-            new ElementaryBlock( new Activity('DataProcessingQDataTransformer') ),
             new ElementaryBlock( new Activity('DataProcessingQExploration') ),
-            new ElementaryBlock( new Activity('DataProcessingQPreparationAndProcessing') ),
-            new ElementaryBlock( new Activity('DataProcessingQPreparationProcessingAndEngineering') )], 
+            new ElementaryBlock( new Activity('DataProcessingQDataTransformer') ),
+            new ElementaryBlock( new Activity('DataProcessingQPreprocessing') ),
+            new ElementaryBlock( new Activity('DataProcessingQTransformation') ),
+            new ElementaryBlock( new Activity('DataProcessingQModification') )], 
             'or'
         ), 'DataProcessing'
     ),
@@ -230,9 +231,8 @@ const behaviourProtocol = new SequenceBlock([
         new AlternativeBlock([
             new ElementaryBlock( new Activity('FeatureEngineeringQGeneral') ),
             new ElementaryBlock( new Activity('FeatureEngineeringQFeatureTransformer') ),
-            new ElementaryBlock( new Activity('FeatureEngineeringQExploration') ),
-            new ElementaryBlock( new Activity('FeatureEngineeringQAcquisitionAndEngineering') ),
-            new ElementaryBlock( new Activity('FeatureEngineeringQPreparationProcessingAndEngineering') )], 
+            new ElementaryBlock( new Activity('FeatureEngineeringQModification') ),
+            new ElementaryBlock( new Activity('FeatureEngineeringQConstruction') )], 
             'or'
         ), 'FeatureEngineering'
     ),
@@ -263,14 +263,20 @@ const behaviourProtocol = new SequenceBlock([
 
     // Evaluation
     new RepetitionBlock(
-        new ElementaryBlock( new Activity('EvaluationQGeneral')),  
-        'Evaluation', 1
+        new AlternativeBlock([
+            new ElementaryBlock( new Activity('EvaluationQMetric')), 
+            new ElementaryBlock( new Activity('EvaluationQVisualization') )],
+            'or'
+        ),  'Evaluation', 1
     ),
 
     // Testing
     new RepetitionBlock(
-        new ElementaryBlock( new Activity('TestingQGeneral') ),
-        'Testing', 1
+        new AlternativeBlock([
+            new ElementaryBlock( new Activity('TestingQMetric')), 
+            new ElementaryBlock( new Activity('TestingQVisualization') )],
+            'or'
+        ),  'Testing', 1
     ),
 
 
