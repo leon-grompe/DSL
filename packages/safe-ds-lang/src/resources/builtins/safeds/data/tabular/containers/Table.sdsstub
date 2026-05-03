@@ -26,6 +26,10 @@ from safeds.data.tabular.typing import Schema
  * }
  */
 @Category(DataScienceCategory.BasicElement)
+@PipelineActivity([
+    DSPipelineActivity.DataAcquisitionQConstruction,
+    DSPipelineActivity.FeatureEngineeringQConstruction
+])
 class Table(
     data: Map<String, List<Any?>>
 ) {
@@ -77,6 +81,10 @@ class Table(
     @Pure
     @PythonName("from_columns")
     @Category(DataScienceCategory.UtilitiesQConversion)
+    @PipelineActivity([
+        DSPipelineActivity.DataAcquisitionQConstruction,
+        DSPipelineActivity.FeatureEngineeringQConstruction
+    ])
     static fun fromColumns(
         columns: union<Column, List<Column>>
     ) -> table: Table
@@ -191,6 +199,10 @@ class Table(
     @Pure
     @PythonName("add_columns")
     @Category(DataScienceCategory.DataProcessingQTable)
+    @PipelineActivity([
+        DSPipelineActivity.DataAcquisitionQConstruction,
+        DSPipelineActivity.FeatureEngineeringQConstruction
+    ])
     fun addColumns(
         columns: union<Column, List<Column>, Table>
     ) -> newTable: Table
