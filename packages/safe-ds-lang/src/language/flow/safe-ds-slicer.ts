@@ -1,15 +1,12 @@
 import { SafeDsServices } from '../safe-ds-module.js';
 import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsMemberAccess,
-        isSdsCall, isSdsFunction, isSdsDeclaration, isSdsChainedExpression, isSdsExpression, 
-        SdsPlaceholder, SdsStatement, SdsCall, SdsAssignment, 
-        SdsChainedExpression} from '../generated/ast.js';
+        isSdsCall, isSdsFunction, isSdsDeclaration, isSdsChainedExpression, 
+        SdsPlaceholder, SdsStatement, SdsCall, SdsChainedExpression} from '../generated/ast.js';
 import { AstUtils, Stream } from 'langium';
 import { ImpurityReason } from '../purity/model.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
 import { SafeDsPurityComputer } from '../purity/safe-ds-purity-computer.js';
 import { integer } from 'vscode-languageserver';
-import { SafeDsNodeMapper } from '../helpers/safe-ds-node-mapper.js';
-import { constraintListShouldNotBeEmpty } from '../validation/style.js';
 
 export class SafeDsSlicer {
     private readonly purityComputer: SafeDsPurityComputer;
@@ -151,13 +148,15 @@ export class SafeDsSlicer {
         // e.g. SdsList COULD CONTAIN NON PRIMITIVE TYPES
         
         // Recursive call for the referenced placeholder
-        return this.checkIfArgumentIsAssigneeOfSpecificFunction(
-            expr.target.ref, 
-            functionCallName, 
+        if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
+            expr.target.ref, functionCallName, 
             correctAssigneePosition, 
             services, 
             placeholderBackwardSlice
-        );
+        )) {
+            return true;
+        }
+        return false;        
     }
 
     /**
@@ -185,8 +184,7 @@ export class SafeDsSlicer {
         // If call is chained member access, check its receiver for a placeholder
         if (isSdsChainedExpression(call)) {
             if (this.handleChainedExpression(
-                call,
-                functionCallName,
+                call, functionCallName,
                 correctAssigneePosition,
                 services,
                 placeholderBackwardSlice
@@ -206,20 +204,20 @@ export class SafeDsSlicer {
             if (isSdsReference(arg.value)) {
                 const newHolder = arg.value.target.ref;
                 if (isSdsDeclaration(newHolder) && isSdsPlaceholder(newHolder)) {
-                    return this.checkIfArgumentIsAssigneeOfSpecificFunction(
-                        newHolder, 
-                        functionCallName, 
+                    if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
+                        newHolder, functionCallName, 
                         correctAssigneePosition, 
                         services, 
                         placeholderBackwardSlice
-                    );
+                    )) {
+                    return true;
+                    }
                 }
             }
             // Argument is a call
             else if (isSdsCall(arg.value)) {
                     if (this.checkCallArguments(
-                        arg.value, 
-                        functionCallName, 
+                        arg.value, functionCallName, 
                         correctAssigneePosition, 
                         services, 
                         placeholderBackwardSlice
@@ -228,7 +226,7 @@ export class SafeDsSlicer {
                     }
             }
         }
-            return false;
+        return false;
     }
 
     /**
@@ -248,11 +246,24 @@ export class SafeDsSlicer {
         services: SafeDsServices,
         placeholderBackwardSlice: SdsPlaceholder[] = []
     ): boolean {
+        // Direct reference to a receiver
+        if (isSdsReference(chainedExpr.receiver)) {
+            const referencedDecl = chainedExpr.receiver.target.ref;
+            if (isSdsPlaceholder(referencedDecl)) {
+                if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
+                    referencedDecl, functionCallName,
+                    correctAssigneePosition, services,
+                    placeholderBackwardSlice
+                )) {
+                    return true;
+                }
+            }
+        }
+        
         // If the receiver is another chained expression, handle it recursively
         if (isSdsChainedExpression(chainedExpr.receiver)) {
             if (this.handleChainedExpression(
-                chainedExpr.receiver,
-                functionCallName,
+                chainedExpr.receiver, functionCallName,
                 correctAssigneePosition,
                 services,
                 placeholderBackwardSlice
@@ -269,8 +280,7 @@ export class SafeDsSlicer {
                 if (isSdsPlaceholder(referencedDecl)) {
                     // Check if receiver placeholder matches the condition
                     if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
-                        referencedDecl,
-                        functionCallName,
+                        referencedDecl, functionCallName,
                         correctAssigneePosition,
                         services,
                         placeholderBackwardSlice
@@ -282,7 +292,56 @@ export class SafeDsSlicer {
         }
         return false;
     }
+
+    checkCallTargetsSet(
+        call: SdsCall,
+        functionCallName: string,
+        correctAssigneePosition: integer,
+        services: SafeDsServices
+    ): boolean {
+        const candidates = this.extractPlaceholderCandidates(call);
+
+        return (candidates.some(placeholder =>
+            this.checkIfArgumentIsAssigneeOfSpecificFunction(
+                placeholder, functionCallName,
+                correctAssigneePosition,
+                services
+            )
+        ))
+    }
+
+    private extractPlaceholderCandidates(call: SdsCall): SdsPlaceholder[] {
+        const candidates: SdsPlaceholder[] = [];
+
+        // case: receiver
+        const receiver = call.receiver;
+        if (isSdsMemberAccess(receiver) && isSdsReference(receiver.receiver)) {
+            const decl = receiver.receiver.target?.ref;
+            if (isSdsPlaceholder(decl)) {
+                candidates.push(decl);
+            }
+        } 
+        else if (isSdsReference(receiver)) {
+            const decl = receiver.target?.ref;
+            if (isSdsPlaceholder(decl)) {
+                candidates.push(decl);
+            }
+        }
+
+        // case: argument
+        for (const arg of call.argumentList?.arguments ?? []) {
+            if (isSdsReference(arg.value)) {
+                const decl = arg.value.target?.ref;
+                if (isSdsPlaceholder(decl)) {
+                    candidates.push(decl);
+                }
+            }
+        }
+
+        return candidates;            
+    }
 }
+
 
 
 
