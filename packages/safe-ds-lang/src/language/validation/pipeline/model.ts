@@ -1,10 +1,19 @@
-import { V } from 'vitest/dist/chunks/reporters.d.BFLkQcL6.js';
 import { ValidationResult } from './validationDataStructures.js'
-import { start } from 'repl';
+import { DataScope } from './dataScope.js';
+import { SafeDsServices } from '../../safe-ds-module.js';
+import { SdsCall, SdsPlaceholder } from '../../generated/ast.js';
+
 
 export class Activity {
     constructor(
         public activityName: string,
+    ){}
+}
+
+export class ValidationContext {
+    constructor(
+        public activitySequence: Activity[][],
+        public calls: SdsCall[]
     ){}
 }
 
@@ -22,7 +31,7 @@ export abstract class ProtocolBlock {
      * @param startIndex The index to start validation from.
      * @returns A tuple indicating if the validation was successful and the index of the next activity to validate.
      */
-    abstract validate(activitySequence: Activity[][], startIndex: number) : ValidationResult;
+    abstract validate(context: ValidationContext, startIndex: number, services: SafeDsServices) : ValidationResult;
 }
 
 /**
@@ -32,20 +41,40 @@ export abstract class ProtocolBlock {
 export class ElementaryBlock extends ProtocolBlock{
     constructor(
         public activity: Activity,
-        
+        public target?: DataScope,
     ){ super() }
 
-    validate(activitySequence: Activity[][], startIndex: number) : ValidationResult {
-        if (startIndex > activitySequence.length) {
+    validate(context: ValidationContext, startIndex: number, services: SafeDsServices) : ValidationResult {
+        if (startIndex > context.activitySequence.length) {
             return ValidationResult.failure(startIndex, {type: 'elem-block-oob'});
         }
         
-        const currentActivities = activitySequence[startIndex];
+        const currentActivities = context.activitySequence[startIndex];
         const match = currentActivities?.some(
             activity => activity.activityName === this.activity.activityName
                     ||  activity.activityName === 'Any' 
         )
         if (match) {
+            if (this.target != null){
+                const currentCall = context.calls[startIndex];
+                
+                switch (this.target){
+                    // Phase: "DataProcessing", Activity: "Exploration"
+                    // 
+                    case 'Training': {
+
+                    }
+                    // Phase: "Evaluation", Activity: "Metric"/"Visualization"
+                    case 'Validation': {
+
+                    }
+                    // Phase: "Testing", Activity: "Metric"/"Visualization"
+                    case 'Test': {
+
+                    }
+                }
+            }
+            
             return ValidationResult.success(startIndex + 1);
         }
 
@@ -65,10 +94,10 @@ export class SequenceBlock extends ProtocolBlock{
         public blocks: ProtocolBlock[],
     ){ super() }
 
-    validate(activitySequence: Activity[][], startIndex: number) : ValidationResult {
+    validate(context: ValidationContext, startIndex: number, services: SafeDsServices) : ValidationResult {
         let updatedStartingPoint = 0;
         for (const block of this.blocks){
-            const result = block.validate(activitySequence, updatedStartingPoint);
+            const result = block.validate(context, updatedStartingPoint, services);
             if(!result.isValid){
                 return ValidationResult.failure(result.validatedIndex, {
                     type: 'sequence-block-failed',
@@ -93,12 +122,12 @@ export class RepetitionBlock extends ProtocolBlock{
         public max: number = Infinity,
     ){ super() }
 
-    validate(activitySequence: Activity[][], startIndex: number) : ValidationResult {
+    validate(context: ValidationContext, startIndex: number, services: SafeDsServices) : ValidationResult {
         let currentIndex = startIndex;
         
         // enforce the minimum required matches
         for (let counter = 0; counter < this.min; counter++) {
-            const result = this.block.validate(activitySequence, currentIndex);
+            const result = this.block.validate(context, currentIndex, services);
             if (!result.isValid) {
                 return ValidationResult.failure(result.validatedIndex, {
                     type: 'repetition-block-minimum-not-met',
@@ -112,7 +141,7 @@ export class RepetitionBlock extends ProtocolBlock{
         
         // optionally match more times up to max
         for (let counter = this.min; counter < this.max; counter++) {
-            const result = this.block.validate(activitySequence, currentIndex);
+            const result = this.block.validate(context, currentIndex, services);
             if (!result.isValid) {
                 break;
             }
@@ -132,7 +161,7 @@ export class AlternativeBlock extends ProtocolBlock{
         public relation: 'or' | 'xor',
     ){ super() }
 
-    validate(activitySequence: Activity[][], startIndex: number) : ValidationResult {
+    validate(context: ValidationContext, startIndex: number, services: SafeDsServices) : ValidationResult {
         const alternatives = this.blocks
             .filter(b => b instanceof ElementaryBlock)
             .map(b => (b as ElementaryBlock).activity);
@@ -140,7 +169,7 @@ export class AlternativeBlock extends ProtocolBlock{
             switch(this.relation){
             case 'or': {
                 for (const block of this.blocks){
-                    const result = block.validate(activitySequence, startIndex);
+                    const result = block.validate(context, startIndex, services);
                     if(result.isValid) return result;
                 }
                 // TODO: it would probably help to also include the nested ValidationResults
@@ -154,7 +183,7 @@ export class AlternativeBlock extends ProtocolBlock{
                 let validCount = 0;
                 let lastValidIndex = startIndex;
                 for (const block of this.blocks){
-                    const result = block.validate(activitySequence, startIndex);
+                    const result = block.validate(context, startIndex, services);
                     if(result.isValid){
                         validCount++;
                         lastValidIndex = result.validatedIndex;
@@ -178,3 +207,5 @@ export class AlternativeBlock extends ProtocolBlock{
         });       
     }
 }
+
+

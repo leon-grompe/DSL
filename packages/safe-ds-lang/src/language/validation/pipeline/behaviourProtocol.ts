@@ -1,7 +1,7 @@
 import { ValidationAcceptor } from 'langium';
 import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsPlaceholder } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
-import { ProtocolBlock, ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock, Activity } from './model.js';
+import { ProtocolBlock, ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock, Activity, ValidationContext } from './model.js';
 import { ValidationResult, ValidationError} from './validationDataStructures.js'
 
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
@@ -41,8 +41,9 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
                 sequence.push(activities);
             }
         }
+        const context = new ValidationContext(sequence, calls)
 
-        const result = behaviourProtocol.validate(sequence, 0);
+        const result = behaviourProtocol.validate(context, 0, services);
         
         if (!result.isValid){
             const call = calls[result.validatedIndex];
