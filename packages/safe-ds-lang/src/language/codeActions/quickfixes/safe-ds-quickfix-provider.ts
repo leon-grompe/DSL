@@ -1,7 +1,7 @@
 import { Diagnostic } from 'vscode-languageserver';
 import { LangiumDocument } from 'langium';
 import { CODE_ARGUMENT_POSITIONAL } from '../../validation/other/expressions/arguments.js';
-import { CODE_SUGGEST_PIPELINE_STRUCTURE } from '../../validation/pipeline/behaviourProtocol.js';
+import { CODE_SUGGEST_PIPELINE_STRUCTURE } from '../../validation/pipeline/pipelineStructure.js';
 import { SafeDsServices } from '../../safe-ds-module.js';
 import { makeArgumentsAssignedToOptionalParametersNamed } from './arguments.js';
 import { fillEmptyPipelineWithSuggestedStructure } from './fillPipelineWithStructure.js';

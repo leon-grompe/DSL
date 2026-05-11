@@ -4,9 +4,7 @@ import { SafeDsServices } from '../../index.js';
 import { ProtocolBlock, ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock, Activity } from './model.js';
 import { ValidationResult, ValidationError} from './validationDataStructures.js'
 
-
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
-export const CODE_SUGGEST_PIPELINE_STRUCTURE = 'pipeline/pipeline-suggestion'
 
 export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
     const nodeMapper = services.helpers.NodeMapper;
@@ -73,24 +71,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
     };
 };
 
-export const suggestPipelineStructure = (services: SafeDsServices) => {
-    const locator = services.workspace.AstNodeLocator;
-    return (node : SdsPipeline, accept: ValidationAcceptor) => {
-        // check if pipeline is empty (no statements and no comments)
-        if (!/(pipeline\s+\w+\s*\{)(\s*)(\})/.test(node.$cstNode?.text ?? '') || node.body.statements.length > 0){ 
-            return; 
-        }
-        
-        accept('info', 
-            'Pipeline is empty. Suggestion for Pipeline structure available.', {   
-                node: node,
-                code: CODE_SUGGEST_PIPELINE_STRUCTURE,
-                data: { path: locator.getAstNodePath(node) }
-            }
-        );
-        return;
-    }
-}
+
 
 
 export const pipelineMustNotAccessDatasetInWrongActivity = (services: SafeDsServices) => {
