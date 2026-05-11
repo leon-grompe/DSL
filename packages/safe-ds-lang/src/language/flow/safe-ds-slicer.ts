@@ -88,8 +88,7 @@ export class SafeDsSlicer {
      * @param correctAssigneePosition The position the placeholder should be at.
      * @param services SafeDs services to access helpers.
      * @param placeholderBackwardSlice If an Array is provided it will collect all Placeholders relevant for the value of the given Placeholder.
-     * @returns A tuple where the first element is true if the placeholder is an assignee argument at the specified position
-     *          of the function call, and the second element is the placeholder for which it evaluated true (or null).
+     * @returns Returns true, if the placeholder is assignee of specific function at a specific assignee position. False otherwise.
      */
     checkIfArgumentIsAssigneeOfSpecificFunction(
         placeholder: SdsPlaceholder, 
