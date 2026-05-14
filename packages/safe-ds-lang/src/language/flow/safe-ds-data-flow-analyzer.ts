@@ -4,7 +4,7 @@ import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsMemberAccess,
          SdsPlaceholder, SdsCall, SdsChainedExpression} from '../generated/ast.js';
 
 export class SafeDsDataFlowAnalyzer {
-    constructor(){}
+    constructor(services: SafeDsServices) {}
 
     /**
      * Computes whether the given placeholder is an assignee argument at a specific position of a specific function call.
