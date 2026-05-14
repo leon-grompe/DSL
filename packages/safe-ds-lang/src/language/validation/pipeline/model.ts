@@ -1,6 +1,7 @@
 import { ValidationResult } from './validationDataStructures.js'
 import { SafeDsServices } from '../../safe-ds-module.js';
 import { SdsCall } from '../../generated/ast.js';
+import { constraintListShouldNotBeEmpty } from '../style.js';
 
 // DataSet for variable tracking
 export enum DataSet {
@@ -69,44 +70,18 @@ export class ElementaryBlock extends ProtocolBlock{
                 }
                 console.log("==============================================================")
                 //console.log("Target ist " + this.target)
-                console.log("Call ist: " + currentCall.$cstNode?.text)
+                //console.log("Call ist: " + currentCall.$cstNode?.text)
                 
                 if(this.target === DataSet.Training){
-                    const valid = services.flow.DataFlowAnalyzer.checkCallTargets(
-                        currentCall, 'splitRows',
-                        0, services
-                    )
-                    console.log("Training | "+ this.activity.activityName + " | " + valid)
-                }
+                    console.log("Call: " + currentCall.$cstNode?.text)
+                    const valid = services.flow.DataFlowAnalyzer.callReferencesTrainingSet(currentCall, services);
 
-                // this is a problem since a call might include multiple candidates for a backwards slice
-                // eg. val _finalAccuracy = fittedClassifier.accuracy(testSet);
-                // since the classifier was fitted using the training set, position 0 will return true
-                // since the test set is from position 1, position 1 will return true
-                // usually you would expect false, true -> test | true, false -> training | true, true -> validation
-                // and this would only work if there are two splits!!  
- 
-                // FIX: only check arguments and not receivers
-                // since receiver will always be referencing training set
+                } else if (this.target === DataSet.Validation) {
+                    console.log("Call: " + currentCall.$cstNode?.text)
+                    const valid = services.flow.DataFlowAnalyzer.callReferencesTrainingSet(currentCall, services);
 
-                else if (this.target === DataSet.Validation) {
-                    const valid0 = services.flow.DataFlowAnalyzer.checkCallTargets(
-                        currentCall, 'splitRows',
-                        0, services
-                    )
-                    const valid1 = services.flow.DataFlowAnalyzer.checkCallTargets(
-                        currentCall, 'splitRows',
-                        1, services
-                    )
-                    console.log("Validation | "+ this.activity.activityName + " | " + valid0, valid1)
-                }
+                } else if (this.target === DataSet.Test) {
 
-                else if (this.target === DataSet.Test) {
-                    const valid = services.flow.DataFlowAnalyzer.checkCallTargets(
-                        currentCall, 'splitRows',
-                        1, services
-                    )
-                    console.log("Testing | "+ this.activity.activityName + " | " + valid)
                 }
             }
             return ValidationResult.success(startIndex + 1);
