@@ -5,7 +5,6 @@ import { ImpurityReason } from '../purity/model.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
 import { SafeDsPurityComputer } from '../purity/safe-ds-purity-computer.js';
 
-
 export class SafeDsSlicer {
     private readonly purityComputer: SafeDsPurityComputer;
 
