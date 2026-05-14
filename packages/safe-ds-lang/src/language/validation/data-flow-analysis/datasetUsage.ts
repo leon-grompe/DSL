@@ -9,7 +9,7 @@ export const CODE_TEST_DATA_USED_FOR_TRAINING = 'data-flow-analysis/test-data-us
 export const testDataUsedForTraining = (services: SafeDsServices) => {
     const locator = services.workspace.AstNodeLocator;
     const nodeMapper = services.helpers.NodeMapper;
-    const slicer = services.flow.Slicer;
+    const analyzer = services.flow.DataFlowAnalyzer;
     
     return (node: SdsCall, accept: ValidationAcceptor) => {
         // Check if node is 'fit' call
@@ -27,7 +27,7 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
             if (!isSdsPlaceholder(refPlacehldr)){continue;}
             
             const placeholders : SdsPlaceholder[] = [];
-            const found = slicer.checkIfArgumentIsAssigneeOfSpecificFunction(refPlacehldr, 'splitRows', 1, services, placeholders);
+            const found = analyzer.checkIfArgumentIsAssigneeOfSpecificFunction(refPlacehldr, 'splitRows', 1, services, placeholders);
 
             // If found, try to pick the most specific placeholder collected; fall back to the original
             const problemPlaceholder = found ? (placeholders[placeholders.length - 1] ?? refPlacehldr) : null;
