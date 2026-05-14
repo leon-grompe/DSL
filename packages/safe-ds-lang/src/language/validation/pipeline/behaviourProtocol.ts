@@ -1,7 +1,7 @@
 import { ValidationAcceptor } from 'langium';
 import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsPlaceholder } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
-import { ProtocolBlock, ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock, Activity, ValidationContext } from './model.js';
+import { ProtocolBlock, ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock, Activity, ValidationContext, DataSet } from './model.js';
 import { ValidationResult, ValidationError} from './validationDataStructures.js'
 
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
@@ -198,7 +198,8 @@ const behaviourProtocol = new SequenceBlock([
     new RepetitionBlock(
         new AlternativeBlock([
             new ElementaryBlock( new Activity('DataProcessingQGeneral') ),
-            new ElementaryBlock( new Activity('DataProcessingQExploration') ),
+            new ElementaryBlock( new Activity('DataProcessingQExploration'), 
+                                 DataSet.Training),
             new ElementaryBlock( new Activity('DataProcessingQDataTransformer') ),
             new ElementaryBlock( new Activity('DataProcessingQPreprocessing') ),
             new ElementaryBlock( new Activity('DataProcessingQTransformation') ),
@@ -246,8 +247,10 @@ const behaviourProtocol = new SequenceBlock([
     // Evaluation
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock( new Activity('EvaluationQMetric')), 
-            new ElementaryBlock( new Activity('EvaluationQVisualization') )],
+            new ElementaryBlock( new Activity('EvaluationQMetric'),
+                                 DataSet.Validation), 
+            new ElementaryBlock( new Activity('EvaluationQVisualization'),
+                                 DataSet.Validation )],
             'or'
         ),  'Evaluation', 1
     ),
@@ -255,8 +258,10 @@ const behaviourProtocol = new SequenceBlock([
     // Testing
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock( new Activity('TestingQMetric')), 
-            new ElementaryBlock( new Activity('TestingQVisualization') )],
+            new ElementaryBlock( new Activity('TestingQMetric'), 
+                                 DataSet.Test), 
+            new ElementaryBlock( new Activity('TestingQVisualization'), 
+                                 DataSet.Test)],
             'or'
         ),  'Testing'
     ),
