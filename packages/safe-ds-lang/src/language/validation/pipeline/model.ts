@@ -1,9 +1,14 @@
 import { ValidationResult } from './validationDataStructures.js'
-import { DataScope } from './dataScope.js';
 import { SafeDsServices } from '../../safe-ds-module.js';
-import { SdsCall, SdsPlaceholder } from '../../generated/ast.js';
+import { SdsCall } from '../../generated/ast.js';
 
-
+// DataSet for variable tracking
+export enum DataSet {
+    Original = 'Original',
+    Training = 'Training',
+    Test = 'Test',
+    Validation = 'Validation',
+}
 export class Activity {
     constructor(
         public activityName: string,
@@ -41,7 +46,7 @@ export abstract class ProtocolBlock {
 export class ElementaryBlock extends ProtocolBlock{
     constructor(
         public activity: Activity,
-        public target?: DataScope,
+        public target?: DataSet,
     ){ super() }
 
     validate(context: ValidationContext, startIndex: number, services: SafeDsServices) : ValidationResult {
@@ -55,26 +60,55 @@ export class ElementaryBlock extends ProtocolBlock{
                     ||  activity.activityName === 'Any' 
         )
         if (match) {
-            if (this.target != null){
+            // check if only target dataset is used
+            if (this.target){
                 const currentCall = context.calls[startIndex];
+                if (!currentCall) {
+                    console.log("Kein Call gefunden!")
+                    return ValidationResult.success(startIndex + 1);
+                }
+                console.log("==============================================================")
+                //console.log("Target ist " + this.target)
+                console.log("Call ist: " + currentCall.$cstNode?.text)
                 
-                switch (this.target){
-                    // Phase: "DataProcessing", Activity: "Exploration"
-                    // 
-                    case 'Training': {
+                if(this.target === DataSet.Training){
+                    const valid = services.flow.DataFlowAnalyzer.checkCallTargets(
+                        currentCall, 'splitRows',
+                        0, services
+                    )
+                    console.log("Training | "+ this.activity.activityName + " | " + valid)
+                }
 
-                    }
-                    // Phase: "Evaluation", Activity: "Metric"/"Visualization"
-                    case 'Validation': {
+                // this is a problem since a call might include multiple candidates for a backwards slice
+                // eg. val _finalAccuracy = fittedClassifier.accuracy(testSet);
+                // since the classifier was fitted using the training set, position 0 will return true
+                // since the test set is from position 1, position 1 will return true
+                // usually you would expect false, true -> test | true, false -> training | true, true -> validation
+                // and this would only work if there are two splits!!  
+ 
+                // FIX: only check arguments and not receivers
+                // since receiver will always be referencing training set
 
-                    }
-                    // Phase: "Testing", Activity: "Metric"/"Visualization"
-                    case 'Test': {
+                else if (this.target === DataSet.Validation) {
+                    const valid0 = services.flow.DataFlowAnalyzer.checkCallTargets(
+                        currentCall, 'splitRows',
+                        0, services
+                    )
+                    const valid1 = services.flow.DataFlowAnalyzer.checkCallTargets(
+                        currentCall, 'splitRows',
+                        1, services
+                    )
+                    console.log("Validation | "+ this.activity.activityName + " | " + valid0, valid1)
+                }
 
-                    }
+                else if (this.target === DataSet.Test) {
+                    const valid = services.flow.DataFlowAnalyzer.checkCallTargets(
+                        currentCall, 'splitRows',
+                        1, services
+                    )
+                    console.log("Testing | "+ this.activity.activityName + " | " + valid)
                 }
             }
-            
             return ValidationResult.success(startIndex + 1);
         }
 
@@ -95,7 +129,7 @@ export class SequenceBlock extends ProtocolBlock{
     ){ super() }
 
     validate(context: ValidationContext, startIndex: number, services: SafeDsServices) : ValidationResult {
-        let updatedStartingPoint = 0;
+        let updatedStartingPoint = startIndex;
         for (const block of this.blocks){
             const result = block.validate(context, updatedStartingPoint, services);
             if(!result.isValid){
@@ -103,6 +137,14 @@ export class SequenceBlock extends ProtocolBlock{
                     type: 'sequence-block-failed',
                 },  result);
             }
+            /* Identify Phase length
+            else {
+                const phaseEnd = context.calls[result.validatedIndex]
+                if (block instanceof RepetitionBlock){
+                    console.log("Phase: " + block.phaseName + "| until line:  " + phaseEnd?.$cstNode?.range.end.line)
+                }
+            }
+            */
             if (result.validatedIndex > updatedStartingPoint) {
                 updatedStartingPoint = result.validatedIndex;
             }
