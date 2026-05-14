@@ -55,6 +55,7 @@ import { SafeDsExecuteCommandHandler } from './lsp/safe-ds-execute-command-handl
 import { SafeDsServiceRegistry } from './safe-ds-service-registry.js';
 import { SafeDsPythonServer } from './runtime/safe-ds-python-server.js';
 import { SafeDsSlicer } from './flow/safe-ds-slicer.js';
+import { SafeDsDataFlowAnalyzer } from './flow/safe-ds-data-flow-analyzer.js';
 import { SafeDsSyntheticProperties } from './helpers/safe-ds-synthetic-properties.js';
 import { SafeDsLinker } from './scoping/safe-ds-linker.js';
 import { SafeDsCodeActionProvider } from './codeActions/safe-ds-code-action-provider.js';
@@ -86,6 +87,7 @@ export type SafeDsAddedServices = {
     flow: {
         CallGraphComputer: SafeDsCallGraphComputer;
         Slicer: SafeDsSlicer;
+        DataFlowAnalyzer: SafeDsDataFlowAnalyzer;
     };
     generation: {
         MarkdownGenerator: SafeDsMarkdownGenerator;
@@ -161,6 +163,7 @@ export const SafeDsModule: Module<SafeDsServices, PartialLangiumServices & SafeD
     flow: {
         CallGraphComputer: (services) => new SafeDsCallGraphComputer(services),
         Slicer: (services) => new SafeDsSlicer(services),
+        DataFlowAnalyzer: (services) => new SafeDsDataFlowAnalyzer(services),
     },
     generation: {
         MarkdownGenerator: (services) => new SafeDsMarkdownGenerator(services),
