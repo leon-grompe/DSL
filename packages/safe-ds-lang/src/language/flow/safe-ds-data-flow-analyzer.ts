@@ -2,6 +2,8 @@ import { SafeDsServices } from '../safe-ds-module.js';
 import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsMemberAccess,
          isSdsCall, isSdsFunction, isSdsDeclaration, isSdsChainedExpression, 
          SdsPlaceholder, SdsCall, SdsChainedExpression} from '../generated/ast.js';
+import { ClassType, NamedType } from '../typing/model.js';
+import { any } from 'true-myth/task';
 
 export class SafeDsDataFlowAnalyzer {
     constructor(services: SafeDsServices) {}
@@ -79,8 +81,7 @@ export class SafeDsDataFlowAnalyzer {
         // Recursive call for the referenced placeholder
         if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
             expr.target.ref, functionCallName, 
-            correctAssigneePosition, 
-            services, 
+            correctAssigneePosition, services, 
             placeholderBackwardSlice
         )) {
             return true;
@@ -135,8 +136,7 @@ export class SafeDsDataFlowAnalyzer {
                 if (isSdsDeclaration(newHolder) && isSdsPlaceholder(newHolder)) {
                     if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
                         newHolder, functionCallName, 
-                        correctAssigneePosition, 
-                        services, 
+                        correctAssigneePosition, services, 
                         placeholderBackwardSlice
                     )) {
                     return true;
@@ -147,8 +147,7 @@ export class SafeDsDataFlowAnalyzer {
             else if (isSdsCall(arg.value)) {
                 if (this.checkCallArguments(
                     arg.value, functionCallName, 
-                    correctAssigneePosition, 
-                    services, 
+                    correctAssigneePosition, services, 
                     placeholderBackwardSlice
                 )) {
                     return true;
@@ -200,8 +199,7 @@ export class SafeDsDataFlowAnalyzer {
                     // Check if receiver placeholder matches the condition
                     if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
                         referencedDecl, functionCallName,
-                        correctAssigneePosition,
-                        services,
+                        correctAssigneePosition, services,
                         placeholderBackwardSlice
                     )) {
                         return true;
@@ -214,8 +212,7 @@ export class SafeDsDataFlowAnalyzer {
         if (isSdsChainedExpression(chainedExpr.receiver)) {
             if (this.handleChainedExpression(
                 chainedExpr.receiver, functionCallName,
-                correctAssigneePosition,
-                services,
+                correctAssigneePosition, services,
                 placeholderBackwardSlice
             )) {
                 return true;
@@ -273,8 +270,27 @@ export class SafeDsDataFlowAnalyzer {
         return candidates;            
     }
 
-    callReferencesTrainingSet(){
+    callReferencesTrainingSet(call: SdsCall, services: SafeDsServices): boolean {
+        const typeComputer = services.typing.TypeComputer; 
+        const coreTypes = services.typing.CoreTypes;
+        const builtinClasses = services.builtins.Classes;
+        
+        const candidates = this.extractPlaceholderCandidates(call);
+        for (const placeholder of candidates) {
+            const type = typeComputer.computeType(placeholder);
 
+            // Check for core type: Table
+            if (type instanceof NamedType && (
+                type.declaration.name === 'Table' ||
+                type.declaration.name === 'TabularDataset')
+            ) {
+                console.log("Found Type: " + type + " for placeholder: " + placeholder.name)
+            } else {
+                console.log("Found Type: " + type + " for placeholder: " + placeholder.name + " which is not a Table or TabularDataset")
+            }
+
+        }
+        return false;
     }
 
     callReferencesValidationSet(){
