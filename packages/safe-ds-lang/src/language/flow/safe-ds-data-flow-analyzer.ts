@@ -1,12 +1,14 @@
 import { SafeDsServices } from '../safe-ds-module.js';
+import { AstUtils } from 'langium';
 import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsMemberAccess,
          isSdsCall, isSdsFunction, isSdsDeclaration, isSdsChainedExpression, 
          SdsPlaceholder, SdsCall, SdsChainedExpression} from '../generated/ast.js';
-import { ClassType, NamedType } from '../typing/model.js';
-import { any } from 'true-myth/task';
+import { ClassType } from '../typing/model.js';
 
 export class SafeDsDataFlowAnalyzer {
-    constructor(services: SafeDsServices) {}
+    constructor(
+        private services: SafeDsServices
+    ) {}
 
     /**
      * Computes whether the given placeholder is an assignee argument at a specific position of a specific function call.
@@ -22,7 +24,6 @@ export class SafeDsDataFlowAnalyzer {
         placeholder: SdsPlaceholder, 
         functionCallName: string, 
         correctAssigneePosition: number, 
-        services: SafeDsServices, 
         placeholderBackwardSlice: SdsPlaceholder[] = []
     ): boolean
     {     
@@ -45,13 +46,13 @@ export class SafeDsDataFlowAnalyzer {
         }
         
         if (isSdsCall(expr)) {
-            const callable = services.helpers.NodeMapper.callToCallable(expr);
+            const callable = this.services.helpers.NodeMapper.callToCallable(expr);
 
             // Not the target call -> check all arguments recursively
             if (!isSdsFunction(callable) || callable.name !== functionCallName) {
                 return this.checkCallArguments(
                     expr, functionCallName, 
-                    correctAssigneePosition, services, 
+                    correctAssigneePosition, 
                     placeholderBackwardSlice
                 );
             }
@@ -65,7 +66,7 @@ export class SafeDsDataFlowAnalyzer {
                 // Placeholder is at wrong position -> check arguments for deeper matches
                 return this.checkCallArguments(
                     expr, functionCallName, 
-                    correctAssigneePosition, services, 
+                    correctAssigneePosition, 
                     placeholderBackwardSlice
                 );
             }
@@ -81,7 +82,7 @@ export class SafeDsDataFlowAnalyzer {
         // Recursive call for the referenced placeholder
         if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
             expr.target.ref, functionCallName, 
-            correctAssigneePosition, services, 
+            correctAssigneePosition, 
             placeholderBackwardSlice
         )) {
             return true;
@@ -103,7 +104,6 @@ export class SafeDsDataFlowAnalyzer {
         call: SdsCall, 
         functionCallName: string, 
         correctAssigneePosition: number, 
-        services: SafeDsServices,
         placeholderBackwardSlice: SdsPlaceholder[] = []
     ): boolean 
     {
@@ -116,7 +116,6 @@ export class SafeDsDataFlowAnalyzer {
             if (this.handleChainedExpression(
                 call, functionCallName,
                 correctAssigneePosition,
-                services,
                 placeholderBackwardSlice
             )) {
                 return true;
@@ -136,7 +135,7 @@ export class SafeDsDataFlowAnalyzer {
                 if (isSdsDeclaration(newHolder) && isSdsPlaceholder(newHolder)) {
                     if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
                         newHolder, functionCallName, 
-                        correctAssigneePosition, services, 
+                        correctAssigneePosition, 
                         placeholderBackwardSlice
                     )) {
                     return true;
@@ -147,7 +146,7 @@ export class SafeDsDataFlowAnalyzer {
             else if (isSdsCall(arg.value)) {
                 if (this.checkCallArguments(
                     arg.value, functionCallName, 
-                    correctAssigneePosition, services, 
+                    correctAssigneePosition, 
                     placeholderBackwardSlice
                 )) {
                     return true;
@@ -173,7 +172,6 @@ export class SafeDsDataFlowAnalyzer {
         chainedExpr: SdsChainedExpression, 
         functionCallName: string, 
         correctAssigneePosition: number, 
-        services: SafeDsServices,
         placeholderBackwardSlice: SdsPlaceholder[] = []
     ): boolean {
         // Direct reference to a receiver
@@ -182,7 +180,7 @@ export class SafeDsDataFlowAnalyzer {
             if (isSdsPlaceholder(referencedDecl)) {
                 if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
                     referencedDecl, functionCallName,
-                    correctAssigneePosition, services,
+                    correctAssigneePosition,
                     placeholderBackwardSlice
                 )) {
                     return true;
@@ -199,7 +197,7 @@ export class SafeDsDataFlowAnalyzer {
                     // Check if receiver placeholder matches the condition
                     if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
                         referencedDecl, functionCallName,
-                        correctAssigneePosition, services,
+                        correctAssigneePosition,
                         placeholderBackwardSlice
                     )) {
                         return true;
@@ -212,7 +210,7 @@ export class SafeDsDataFlowAnalyzer {
         if (isSdsChainedExpression(chainedExpr.receiver)) {
             if (this.handleChainedExpression(
                 chainedExpr.receiver, functionCallName,
-                correctAssigneePosition, services,
+                correctAssigneePosition,
                 placeholderBackwardSlice
             )) {
                 return true;
@@ -221,83 +219,177 @@ export class SafeDsDataFlowAnalyzer {
         return false;
     }
 
-    checkCallTargets(
-        call: SdsCall,
+
+    checkIfPlaceholderIsAssigneeOfSpecificFunction(
+        placeholder: SdsPlaceholder,
         functionCallName: string,
         correctAssigneePosition: number,
-        services: SafeDsServices
+        placeholderBackwardSlice: SdsPlaceholder[] = []
     ): boolean {
-        const candidates = this.extractPlaceholderCandidates(call);
+        const parentAssignment = AstUtils.getContainerOfType(placeholder, isSdsAssignment);
 
-        return (candidates.some(placeholder =>
-            this.checkIfArgumentIsAssigneeOfSpecificFunction(
-                placeholder, functionCallName,
-                correctAssigneePosition,
-                services
-            )
-        ))
-    }
-
-    // PROBLEM: nicht jedes argument ist direkt candidate, könnte auch geschachtelt sein
-    private extractPlaceholderCandidates(call: SdsCall): SdsPlaceholder[] {
-        const candidates: SdsPlaceholder[] = [];
-
-        // case: receiver
-        const receiver = call.receiver;
-        if (isSdsMemberAccess(receiver) && isSdsReference(receiver.receiver)) {
-            const decl = receiver.receiver.target?.ref;
-            if (isSdsPlaceholder(decl)) {
-                candidates.push(decl);
-            }
-        } 
-        else if (isSdsReference(receiver)) {
-            const decl = receiver.target?.ref;
-            if (isSdsPlaceholder(decl)) {
-                candidates.push(decl);
-            }
+        if (!parentAssignment) {
+            return false;
         }
 
-        // case: argument
-        for (const arg of call.argumentList?.arguments ?? []) {
-            if (isSdsReference(arg.value)) {
-                const decl = arg.value.target?.ref;
-                if (isSdsPlaceholder(decl)) {
-                    candidates.push(decl);
+        if (placeholderBackwardSlice.includes(placeholder)) {
+            return false;
+        }
+        placeholderBackwardSlice.push(placeholder);
+
+        const expr = parentAssignment.expression;
+        if (!expr) {
+            return false;
+        }
+
+        if (isSdsCall(expr)) {
+            const callable = this.services.helpers.NodeMapper.callToCallable(expr);
+            if (
+                isSdsFunction(callable) &&
+                callable.name === functionCallName &&
+                parentAssignment.assigneeList?.assignees[correctAssigneePosition] === placeholder
+            ) {
+                return true;
+            }
+
+            const referencedPlaceholders = this.extractOnlyDataPlaceholders(expr);
+            for (const referencedPlaceholder of referencedPlaceholders) {
+                if (this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
+                    referencedPlaceholder,
+                    functionCallName,
+                    correctAssigneePosition,
+                    placeholderBackwardSlice
+                )) {
+                    return true;
                 }
             }
+            return false;
         }
 
-        return candidates;            
+        if (isSdsReference(expr) && isSdsPlaceholder(expr.target.ref)) {
+            return this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
+                expr.target.ref,
+                functionCallName,
+                correctAssigneePosition,
+                placeholderBackwardSlice
+            );
+        }
+
+        return false;
     }
 
-    callReferencesTrainingSet(call: SdsCall, services: SafeDsServices): boolean {
-        const typeComputer = services.typing.TypeComputer; 
-        const coreTypes = services.typing.CoreTypes;
-        const builtinClasses = services.builtins.Classes;
-        
-        const candidates = this.extractPlaceholderCandidates(call);
-        for (const placeholder of candidates) {
-            const type = typeComputer.computeType(placeholder);
 
-            // Check for core type: Table
-            if (type instanceof NamedType && (
-                type.declaration.name === 'Table' ||
-                type.declaration.name === 'TabularDataset')
-            ) {
-                console.log("Found Type: " + type + " for placeholder: " + placeholder.name)
-            } else {
-                console.log("Found Type: " + type + " for placeholder: " + placeholder.name + " which is not a Table or TabularDataset")
+    /**
+     * Extract all placeholders from a call by traversing its AST. 
+     * @param call The call to extract placeholders from.
+     * @returns An array of all placeholders found in the call.
+     */
+    private extractPlaceholders(call: SdsCall): SdsPlaceholder[] {
+        const candidates = new Set<SdsPlaceholder>();
+
+        AstUtils.streamAllContents(call).forEach(node => {
+            if (!isSdsReference(node)) {
+                return;
             }
+            const decl = node.target?.ref;
+            if (isSdsPlaceholder(decl)) {
+                candidates.add(decl);
+            }
+        });
+        
+        return Array.from(candidates);
+    }
 
+    /**
+     * Extract all placeholders that are data (Image, ImageList, Cell, Row, Column, Table, Dataset) from a call.
+     * @param call The call to extract data placeholders from.
+     * @returns An array of all data placeholders found in the call.
+     */
+    private extractOnlyDataPlaceholders(call: SdsCall): SdsPlaceholder[] {
+        const candidates = this.extractPlaceholders(call);
+        const dataPlaceholders = candidates.filter(placeholder =>
+            this.isData(placeholder)
+        );
+        return dataPlaceholders;
+    }
+
+    callReferencesTrainingSet(call: SdsCall): boolean {
+        const candidates = this.extractOnlyDataPlaceholders(call);
+        
+        for (const placeholder of candidates) {
+            console.log(placeholder.name);
+            if (this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
+                    placeholder, 'splitRows', 0)
+                && 
+                !this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
+                    placeholder, 'splitRows', 1)
+                ) {
+                console.log("Placeholder " + placeholder.name + " is training set");
+                return true;
+            }
         }
         return false;
     }
 
-    callReferencesValidationSet(){
-
+    callReferencesValidationSet(call: SdsCall): boolean{
+        const candidates = this.extractOnlyDataPlaceholders(call);
+        
+        for (const placeholder of candidates) {
+            // console.log(placeholder.name);
+            if (this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
+                    placeholder, 'splitRows', 0)
+                && 
+                this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
+                    placeholder, 'splitRows', 1)
+                ) {
+                console.log("Placeholder " + placeholder.name + " is validation set");
+                return true;
+            }
+        }
+        return false;
     }
 
-    callReferencesTestSet(){
+    callReferencesTestSet(call: SdsCall): boolean{
+        const candidates = this.extractOnlyDataPlaceholders(call);
         
+        for (const placeholder of candidates) {
+            // console.log(placeholder.name);
+            if (!this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
+                    placeholder, 'splitRows', 0)
+                && 
+                this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
+                    placeholder, 'splitRows', 1)
+                ) {
+                console.log("Placeholder " + placeholder.name + " is test set");
+                return true;
+            }
+        }
+        return false;    
+    }
+
+    private isData = (placeholder: SdsPlaceholder): boolean => {
+        const typeComputer = this.services.typing.TypeComputer;
+        const builtinClasses = this.services.builtins.Classes;
+        
+        const type = typeComputer.computeType(placeholder);
+
+        // image
+        const imageMatch        =  typeComputer.computeMatchingSupertype(type as ClassType, builtinClasses.Image);
+        const imageListMatch    =  typeComputer.computeMatchingSupertype(type as ClassType, builtinClasses.ImageList);
+
+        // tabular
+        const cellMatch     = typeComputer.computeMatchingSupertype(type as ClassType, builtinClasses.Cell);
+        const rowMatch      = typeComputer.computeMatchingSupertype(type as ClassType, builtinClasses.Row);
+        const columnMatch   = typeComputer.computeMatchingSupertype(type as ClassType, builtinClasses.Column);
+        const tableMatch    = typeComputer.computeMatchingSupertype(type as ClassType, builtinClasses.Table);
+        
+        // datasets (use only most general supertype)
+        const datasetMatch  = typeComputer.computeMatchingSupertype(type as ClassType, builtinClasses.Dataset);
+
+        if(imageMatch || imageListMatch || cellMatch || rowMatch || columnMatch || tableMatch || datasetMatch){
+            return true;
+        } else { 
+            return false;
+        }
     }
 }
