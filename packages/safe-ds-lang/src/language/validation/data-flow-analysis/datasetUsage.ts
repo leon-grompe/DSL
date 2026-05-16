@@ -27,7 +27,7 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
             if (!isSdsPlaceholder(refPlacehldr)){continue;}
             
             const placeholders : SdsPlaceholder[] = [];
-            const found = analyzer.checkIfArgumentIsAssigneeOfSpecificFunction(refPlacehldr, 'splitRows', 1, services, placeholders);
+            const found = analyzer.checkIfPlaceholderIsAssigneeOfSpecificFunction(refPlacehldr, 'splitRows', 1, placeholders);
 
             // If found, try to pick the most specific placeholder collected; fall back to the original
             const problemPlaceholder = found ? (placeholders[placeholders.length - 1] ?? refPlacehldr) : null;
