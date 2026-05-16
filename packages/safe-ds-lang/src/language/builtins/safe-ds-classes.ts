@@ -7,8 +7,11 @@ const CELL_URI = resourceNameToUri('builtins/safeds/data/tabular/containers/Cell
 const COLUMN_URI = resourceNameToUri('builtins/safeds/data/tabular/containers/Column.sdsstub');
 const CORE_CLASSES_URI = resourceNameToUri('builtins/safeds/lang/coreClasses.sdsstub');
 const IMAGE_URI = resourceNameToUri('builtins/safeds/data/image/containers/Image.sdsstub');
+const IMAGE_LIST_URI = resourceNameToUri('builtins/safeds/data/image/containers/ImageList.sdsstub');
 const ROW_URI = resourceNameToUri('builtins/safeds/data/tabular/containers/Row.sdsstub');
 const TABLE_URI = resourceNameToUri('builtins/safeds/data/tabular/containers/Table.sdsstub');
+const DATASET_URI = resourceNameToUri('builtins/safeds/data/labeled/containers/Dataset.sdsstub');
+const TABULAR_DATASET_URI = resourceNameToUri('builtins/safeds/data/labeled/containers/TabularDataset.sdsstub');
 
 export class SafeDsClasses extends SafeDsModuleMembers<SdsClass> {
     get Any(): SdsClass | undefined {
@@ -39,6 +42,10 @@ export class SafeDsClasses extends SafeDsModuleMembers<SdsClass> {
         return this.getClass('Image', IMAGE_URI);
     }
 
+    get ImageList() : SdsClass | undefined {
+        return this.getClass('ImageList', IMAGE_LIST_URI);
+    }
+
     get List(): SdsClass | undefined {
         return this.getClass('List');
     }
@@ -66,6 +73,15 @@ export class SafeDsClasses extends SafeDsModuleMembers<SdsClass> {
     get Table(): SdsClass | undefined {
         return this.getClass('Table', TABLE_URI);
     }
+
+    get Dataset(): SdsClass | undefined {
+        return this.getClass('Dataset', DATASET_URI);
+    }
+
+    get TabularDataset(): SdsClass | undefined {
+        return this.getClass('TabularDataset', TABULAR_DATASET_URI);
+    }
+
 
     /**
      * Returns whether the given node is a builtin class.

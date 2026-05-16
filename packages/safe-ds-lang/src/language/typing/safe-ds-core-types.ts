@@ -60,6 +60,10 @@ export class SafeDsCoreTypes {
         return this.createCoreType(this.builtinClasses.Image);
     }
 
+    get ImageList(): Type {
+        return this.createCoreType(this.builtinClasses.ImageList);
+    }
+
     get Int(): Type {
         return this.createCoreType(this.builtinClasses.Int);
     }
@@ -116,6 +120,14 @@ export class SafeDsCoreTypes {
 
     get Table(): Type {
         return this.createCoreType(this.builtinClasses.Table);
+    }
+
+    get Dataset(): Type {
+        return this.createCoreType(this.builtinClasses.Dataset);
+    }
+
+    get TabularDataset(): Type {
+        return this.createCoreType(this.builtinClasses.TabularDataset);
     }
 
     private createCoreType(coreClass: SdsClass | undefined, isNullable: boolean = false): Type {
