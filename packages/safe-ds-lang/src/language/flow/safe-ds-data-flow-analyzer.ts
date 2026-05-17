@@ -317,14 +317,12 @@ export class SafeDsDataFlowAnalyzer {
         const candidates = this.extractOnlyDataPlaceholders(call);
         
         for (const placeholder of candidates) {
-            console.log(placeholder.name);
             if (this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
                     placeholder, 'splitRows', 0)
                 && 
                 !this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
                     placeholder, 'splitRows', 1)
                 ) {
-                console.log("Placeholder " + placeholder.name + " is training set");
                 return true;
             }
         }
@@ -335,14 +333,12 @@ export class SafeDsDataFlowAnalyzer {
         const candidates = this.extractOnlyDataPlaceholders(call);
         
         for (const placeholder of candidates) {
-            // console.log(placeholder.name);
             if (this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
                     placeholder, 'splitRows', 0)
                 && 
                 this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
                     placeholder, 'splitRows', 1)
                 ) {
-                console.log("Placeholder " + placeholder.name + " is validation set");
                 return true;
             }
         }
@@ -353,14 +349,12 @@ export class SafeDsDataFlowAnalyzer {
         const candidates = this.extractOnlyDataPlaceholders(call);
         
         for (const placeholder of candidates) {
-            // console.log(placeholder.name);
             if (!this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
                     placeholder, 'splitRows', 0)
                 && 
                 this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
                     placeholder, 'splitRows', 1)
                 ) {
-                console.log("Placeholder " + placeholder.name + " is test set");
                 return true;
             }
         }
