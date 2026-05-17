@@ -1,4 +1,4 @@
-import { Activity } from './model.js'
+import { Activity, DataSet } from './model.js'
 
 export type ValidationError = 
     | {type: 'sequence-block-failed'; name?: string }     
@@ -6,11 +6,13 @@ export type ValidationError =
     | {type: 'elem-block-oob' }
     | {type: 'elem-block-activity-mismatch'; expected: Activity; found: Activity[] }
     
-    | {type: 'alternative-block-no-match'; alternatives: Activity[]}
+    | {type: 'alternative-block-no-match'; alternatives: Activity[] }
     | {type: 'or-block-no-match'; alternatives: Activity[]}
     | {type: 'xor-block-multiple-matches'; alternatives: Activity[]}
     
     | {type: 'repetition-block-minimum-not-met'; min: number; actual: number; phaseName?: string }
+
+    | {type: 'dataset-mismatch'; expected: DataSet; found: DataSet} 
 
 
 export class ValidationResult {
