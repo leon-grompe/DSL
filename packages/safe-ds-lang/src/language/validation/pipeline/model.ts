@@ -148,14 +148,14 @@ export class SequenceBlock extends ProtocolBlock{
                     type: 'sequence-block-failed',
                 },  result);
             }
-            /* Identify Phase length
+            // Identify Phase length
             else {
                 const phaseEnd = context.calls[result.validatedIndex]
                 if (block instanceof RepetitionBlock){
                     console.log("Phase: " + block.phaseName + "| until line:  " + phaseEnd?.$cstNode?.range.end.line)
                 }
             }
-            */
+            
             if (result.validatedIndex > updatedStartingPoint) {
                 updatedStartingPoint = result.validatedIndex;
             }
@@ -173,6 +173,7 @@ export class RepetitionBlock extends ProtocolBlock{
         public phaseName?: string,
         public min: number = 0,
         public max: number = Infinity,
+        public exitDataset?: DataSet,
     ){ super() }
 
     validate(context: ValidationContext, startIndex: number, services: SafeDsServices) : ValidationResult {
@@ -194,6 +195,35 @@ export class RepetitionBlock extends ProtocolBlock{
         
         // optionally match more times up to max
         for (let counter = this.min; counter < this.max; counter++) {
+            // lookahead to check if the mistake is that the phase ended and the next phase started
+            if (this.exitDataset && currentIndex < context.calls.length) {
+                const nextCall = context.calls[currentIndex];
+                const analyzer = services.flow.DataFlowAnalyzer;
+                if (!nextCall) break; 
+                
+                const isNextOnExitSet = this.callUsesDataset(nextCall, this.exitDataset, analyzer);
+                if (isNextOnExitSet) break;
+            }
+            
+            // propagate validation?
+            const result = this.block.validate(context, currentIndex, services);
+            if (!result.isValid) { 
+                if (this.containsDatasetMismatch(result)) {
+                    return ValidationResult.failure(result.validatedIndex, {
+                        type: 'repetition-block-minimum-not-met',
+                        min: this.min,
+                        actual: counter,
+                        phaseName: this.phaseName,
+                    }, result);  
+                }  
+                break;       
+            }
+            currentIndex = result.validatedIndex;
+        }
+        return ValidationResult.success(currentIndex);
+
+        // optionally match more times up to max
+        for (let counter = this.min; counter < this.max; counter++) {
             const result = this.block.validate(context, currentIndex, services);
             if (!result.isValid) {
                 
@@ -211,6 +241,18 @@ export class RepetitionBlock extends ProtocolBlock{
         }
         
         return ValidationResult.success(currentIndex);
+    }
+    private callUsesDataset = (
+        call: SdsCall, 
+        target: DataSet, 
+        analyzer: SafeDsDataFlowAnalyzer
+    ): boolean => {
+        switch(target) {
+            case DataSet.Training:   return analyzer.callReferencesTrainingSet(call);
+            case DataSet.Validation: return analyzer.callReferencesValidationSet(call);
+            case DataSet.Test:       return analyzer.callReferencesTestSet(call);
+            default:                 return false;
+        }
     }
 }
 
