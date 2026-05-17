@@ -73,20 +73,6 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
 };
 
 
-
-
-export const pipelineMustNotAccessDatasetInWrongActivity = (services: SafeDsServices) => {
-    const nodeMapper = services.helpers.NodeMapper;
-    const builtinAnnotations = services.builtins.Annotations;
-    const slicer = services.flow.Slicer;
-
-    return (node: SdsPipeline, accept: ValidationAcceptor) => {
-        const statements = node.body.statements;
-        
-    }
-}
-
-
 const computeValidationMessage = (result: ValidationResult): string => {
     const nestedErrors = extractNestedValidationErrors(result);
     const messages: string[] = [];
@@ -104,7 +90,7 @@ const computeValidationMessage = (result: ValidationResult): string => {
                 break;
             }
             case 'alternative-block-no-match': {
-                messages.push('None of the allowed activities in matched.');
+                messages.push('None of the found activities matched to allowed activities.');
                 break;
             }
             case 'or-block-no-match': {
@@ -137,6 +123,10 @@ const computeValidationMessage = (result: ValidationResult): string => {
                 break;
             }
             case 'sequence-block-failed': {  
+                break;
+            }
+            case 'dataset-mismatch': {
+                messages.push(`Dataset mismatch: expected ${error.expected} dataset but found ${error.found} dataset.`);
                 break;
             }
         }
@@ -265,7 +255,4 @@ const behaviourProtocol = new SequenceBlock([
             'or'
         ),  'Testing'
     ),
-
-
 ])
-
