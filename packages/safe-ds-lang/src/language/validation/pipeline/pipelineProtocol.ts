@@ -77,7 +77,14 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
 const computeValidationMessage = (result: ValidationResult): string => {
     const nestedErrors = extractNestedValidationErrors(result);
     const messages: string[] = [];
+    
     let phase: string = '';
+    for (const error of nestedErrors){
+        if (error.type === 'repetition-block-minimum-not-met' && error.phaseName) {
+            phase = `'${error.phaseName}'`;
+            break;
+        }
+    }   
 
     for (const error of nestedErrors){
         switch (error.type){

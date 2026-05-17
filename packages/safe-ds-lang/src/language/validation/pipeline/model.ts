@@ -234,10 +234,13 @@ export class AlternativeBlock extends ProtocolBlock{
                 for (const block of this.blocks) {
                     const result = block.validate(context, startIndex, services);
                     if (result.isValid) return result;
-                    // break early if dataset mismatch detected
                     if (this.containsDatasetMismatch(result)) {
-                        return result;
-                    } 
+                        // Wrap statt direkter Return: or-block-no-match als äußerer Fehler
+                        return ValidationResult.failure(startIndex, {
+                            type: 'or-block-no-match',
+                            alternatives: alternatives
+                        }, result); // ← result als baseError
+                    }
                 }
                 return ValidationResult.failure(startIndex, {
                     type: 'or-block-no-match',
