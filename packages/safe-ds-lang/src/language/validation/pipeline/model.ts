@@ -1,7 +1,7 @@
-import { ValidationResult } from './validationDataStructures.js'
+import { ValidationError, ValidationResult } from './validationDataStructures.js'
 import { SafeDsServices } from '../../safe-ds-module.js';
 import { SdsCall } from '../../generated/ast.js';
-import { constraintListShouldNotBeEmpty } from '../style.js';
+import { SafeDsDataFlowAnalyzer } from '../../flow/safe-ds-data-flow-analyzer.js';
 
 // DataSet for variable tracking
 export enum DataSet {
@@ -10,6 +10,7 @@ export enum DataSet {
     Test = 'Test',
     Validation = 'Validation',
 }
+
 export class Activity {
     constructor(
         public activityName: string,
@@ -51,6 +52,8 @@ export class ElementaryBlock extends ProtocolBlock{
     ){ super() }
 
     validate(context: ValidationContext, startIndex: number, services: SafeDsServices) : ValidationResult {
+        const analyzer = services.flow.DataFlowAnalyzer;
+        
         if (startIndex > context.activitySequence.length) {
             return ValidationResult.failure(startIndex, {type: 'elem-block-oob'});
         }
@@ -60,29 +63,15 @@ export class ElementaryBlock extends ProtocolBlock{
             activity => activity.activityName === this.activity.activityName
                     ||  activity.activityName === 'Any' 
         )
+        
         if (match) {
             // check if only target dataset is used
             if (this.target){
                 const currentCall = context.calls[startIndex];
                 if (!currentCall) {
-                    console.log("Kein Call gefunden!")
                     return ValidationResult.success(startIndex + 1);
                 }
-                console.log("==============================================================")
-                //console.log("Target ist " + this.target)
-                //console.log("Call ist: " + currentCall.$cstNode?.text)
-                
-                if(this.target === DataSet.Training){
-                    console.log("Call: " + currentCall.$cstNode?.text)
-                    const valid = services.flow.DataFlowAnalyzer.callReferencesTrainingSet(currentCall, services);
-
-                } else if (this.target === DataSet.Validation) {
-                    console.log("Call: " + currentCall.$cstNode?.text)
-                    const valid = services.flow.DataFlowAnalyzer.callReferencesTrainingSet(currentCall, services);
-
-                } else if (this.target === DataSet.Test) {
-
-                }
+                this.handleDatasetMismatch(startIndex, currentCall, analyzer);
             }
             return ValidationResult.success(startIndex + 1);
         }
@@ -92,6 +81,43 @@ export class ElementaryBlock extends ProtocolBlock{
             expected: new Activity(this.activity.activityName), 
             found: currentActivities ?? [new Activity('EndOfPipeline')]
         });
+    }
+
+    private handleDatasetMismatch(startIndex: number, currentCall: SdsCall, analyzer: SafeDsDataFlowAnalyzer) : ValidationResult {
+        const isTraining = analyzer.callReferencesTrainingSet(currentCall);
+        const isValidation = analyzer.callReferencesValidationSet(currentCall);
+        const isTest = analyzer.callReferencesTestSet(currentCall);
+
+        if(this.target === DataSet.Training){ 
+            if (!isTraining){
+                const actual = isValidation ? DataSet.Validation : isTest ? DataSet.Test : DataSet.Original;
+
+                return this.returnDatasetMismatch(startIndex, this.target, actual);
+            }
+        } else if (this.target === DataSet.Validation) { 
+            if (!isValidation){
+                const actual = isTraining ? DataSet.Training : isTest ? DataSet.Test : DataSet.Original;
+
+                return this.returnDatasetMismatch(startIndex, this.target, actual);
+            }                    
+        } else if (this.target === DataSet.Test) {
+            if (!isTest){
+                const actual = isTraining ? DataSet.Training : isValidation ? DataSet.Validation : DataSet.Original;
+
+                return this.returnDatasetMismatch(startIndex, this.target, actual);
+            }
+        } else if (this.target === DataSet.Original) {
+            
+        }
+        return ValidationResult.success(startIndex + 1);
+    }
+
+    private returnDatasetMismatch(startIndex: number, expected: DataSet, actual: DataSet) : ValidationResult {
+        return ValidationResult.failure(startIndex, {
+            type: 'dataset-mismatch',
+            expected: expected,
+            found: actual
+        })
     }
 }
 
@@ -183,15 +209,17 @@ export class AlternativeBlock extends ProtocolBlock{
             .filter(b => b instanceof ElementaryBlock)
             .map(b => (b as ElementaryBlock).activity);
         
-            switch(this.relation){
+        switch(this.relation){
             case 'or': {
-                for (const block of this.blocks){
+                for (const block of this.blocks) {
                     const result = block.validate(context, startIndex, services);
-                    if(result.isValid) return result;
+                    if (result.isValid) {
+                        return result;
+                    }
                 }
                 // TODO: it would probably help to also include the nested ValidationResults
                 return ValidationResult.failure(startIndex, {
-                    type: 'or-block-no-match', 
+                    type: 'or-block-no-match',
                     alternatives: alternatives
                 });
             }
@@ -199,9 +227,9 @@ export class AlternativeBlock extends ProtocolBlock{
             case 'xor': {
                 let validCount = 0;
                 let lastValidIndex = startIndex;
-                for (const block of this.blocks){
+                for (const block of this.blocks) {
                     const result = block.validate(context, startIndex, services);
-                    if(result.isValid){
+                    if(result.isValid) {
                         validCount++;
                         lastValidIndex = result.validatedIndex;
                     }
@@ -216,6 +244,7 @@ export class AlternativeBlock extends ProtocolBlock{
                         alternatives: alternatives
                     });
                 }
+                break;
             }
         }
         return ValidationResult.failure(startIndex, {
