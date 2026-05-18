@@ -105,23 +105,19 @@ export class ElementaryBlock extends ProtocolBlock{
         if(this.target === DataSet.Training){ 
             if (!isTraining){
                 const actual = isValidation ? DataSet.Validation : isTest ? DataSet.Test : DataSet.Original;
-
                 return this.returnDatasetMismatch(startIndex, this.target, actual);
             }
         } else if (this.target === DataSet.Validation) { 
             if (!isValidation){
                 const actual = isTraining ? DataSet.Training : isTest ? DataSet.Test : DataSet.Original;
-
                 return this.returnDatasetMismatch(startIndex, this.target, actual);
             }
         } else if (this.target === DataSet.Test) {
             if (!isTest){
                 const actual = isTraining ? DataSet.Training : isValidation ? DataSet.Validation : DataSet.Original;
-
                 return this.returnDatasetMismatch(startIndex, this.target, actual);
             }
-        }
-        return ValidationResult.success(startIndex + 1);
+        } return ValidationResult.success(startIndex + 1);
     }
 
     private returnDatasetMismatch(startIndex: number, expected: DataSet, actual: DataSet) : ValidationResult {
@@ -224,32 +220,9 @@ export class RepetitionBlock extends ProtocolBlock{
             currentIndex = result.validatedIndex;
         }
         return ValidationResult.success(currentIndex);
-
-        // optionally match more times up to max
-        for (let counter = this.min; counter < this.max; counter++) {
-            const result = this.block.validate(context, currentIndex, services);
-            if (!result.isValid) {
-                
-                if (this.containsDatasetMismatch(result)) {
-                    return ValidationResult.failure(result.validatedIndex, {
-                        type: 'repetition-block-minimum-not-met',
-                        min: this.min,
-                        actual: counter,
-                        phaseName: this.phaseName,
-                    }, result);
-                }
-                break;
-            }
-            currentIndex = result.validatedIndex;
-        }
-        
-        return ValidationResult.success(currentIndex);
     }
-    private callUsesDataset = (
-        call: SdsCall, 
-        target: DataSet, 
-        analyzer: SafeDsDataFlowAnalyzer
-    ): boolean => {
+
+    private callUsesDataset = (call: SdsCall, target: DataSet, analyzer: SafeDsDataFlowAnalyzer): boolean => {
         switch(target) {
             case DataSet.Training:   return analyzer.callReferencesTrainingSet(call);
             case DataSet.Validation: return analyzer.callReferencesValidationSet(call);
