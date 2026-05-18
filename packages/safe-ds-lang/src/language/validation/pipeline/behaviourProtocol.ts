@@ -96,7 +96,7 @@ export const behaviourProtocol = new SequenceBlock([
             new ElementaryBlock( new Activity('EvaluationQVisualization'),
                                  DataSet.Validation )],
             'or'
-        ),  'Evaluation', 1
+        ),  'Evaluation', 1, Infinity, DataSet.Test
     ),
 
     // Testing
