@@ -1,4 +1,4 @@
-import { ValidationAcceptor } from 'langium';
+import { ValidationAcceptor, ValidationSeverity } from 'langium';
 import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsPlaceholder } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
 import { ProtocolBlock, ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock, Activity, ValidationContext, DataSet } from './model.js';
@@ -48,11 +48,11 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         
         if (!result.isValid){
             const call = calls[result.validatedIndex];
-            const validationMessage = computeValidationMessage(result)
+            const [validationMessage, severity] = computeValidationMessageAndSeverity(result);
             
             // mistake is inside the pipeline => validation message on wrong call
             if (call) {
-                accept('warning',
+                accept(severity,
                     validationMessage, {
                         node: call,
                         code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
@@ -61,7 +61,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
             }
             // something is missing at the end of the pipeline => validation message on the end of the pipeline
             else {
-                accept('warning',
+                accept(severity,
                     'Pipeline is missing at least one phase after this statement. ' + validationMessage, {
                         node: calls.at(calls.length-1) ?? node,
                         code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
@@ -73,24 +73,53 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
     };
 };
 
-
-const computeValidationMessage = (result: ValidationResult): string => {
+const computeValidationMessageAndSeverity = (result: ValidationResult): [string, ValidationSeverity] => {
     const nestedErrors = extractNestedValidationErrors(result);
-    const messages: string[] = [];
     
-    let phase: string = '';
-    for (const error of nestedErrors){
+    // dataset error is most critical error, break if detected
+    const datasetError = nestedErrors.find(e => e.type === 'dataset-mismatch');
+    if (datasetError && datasetError.type === 'dataset-mismatch') {
+        return [`Dataset mismatch: expected ${datasetError.expected} dataset but found ${datasetError.found} dataset.`,
+                'error'];
+    }
+
+    let phase = '';
+    for (const error of nestedErrors) {
         if (error.type === 'repetition-block-minimum-not-met' && error.phaseName) {
             phase = `'${error.phaseName}'`;
             break;
         }
-    }   
+    }
 
-    for (const error of nestedErrors){
-        switch (error.type){
+    const messages: string[] = [];
+
+    for (const error of nestedErrors) {
+        switch (error.type) {
+            case 'sequence-block-failed': {
+                break; // no relevant information
+            }
+            case 'repetition-block-minimum-not-met': {
+                if (error.min > 1 && error.actual > 1) {
+                    messages.push(`Phase ${phase} requires at least ${error.min} occurrences but found ${error.actual}.`);
+                } else {
+                    messages.push(`Detected activity is not allowed during phase ${phase}.`);
+                }
+                break;
+            }
+            case 'or-block-no-match': {
+                const subMessage = phase !== '' ? `phase ${phase}` : 'current phase';
+                const names = error.alternatives
+                    .map(a => `'${sliceActivityName(a.activityName)}'`)
+                    .join(', ');
+                messages.push(`Expected one of the following activities during ${subMessage}: ${names}.`);
+                break;
+            }
             case 'elem-block-activity-mismatch': {
-                const foundNames = error.found.map((a: Activity) => `'${a.activityName}'`).join(', ');
-                messages.push(`Expected activity '${error.expected.activityName}' but found ${foundNames}.`);
+                const foundNames = error.found
+                    .map(a => `'${sliceActivityName(a.activityName)}'`)
+                    .join(', ');
+                messages.push( `Expected '${replaceQ(error.expected.activityName)}' ` + 
+                               `but found ${[...new Set(error.found.map(a => `'${replaceQ(a.activityName)}'`))].join(', ')}.`);
                 break;
             }
             case 'elem-block-oob': {
@@ -98,48 +127,27 @@ const computeValidationMessage = (result: ValidationResult): string => {
                 break;
             }
             case 'alternative-block-no-match': {
-                messages.push('None of the found activities matched to allowed activities.');
-                break;
-            }
-            case 'or-block-no-match': {
-                const expectedActivitesString = [] as string[];
-                for (const alternative of error.alternatives){
-                    expectedActivitesString.push(alternative.activityName);
-                }
-
-                let subMessage : String = '';
-                
-                // use phase name if possible
-                if (phase != ''){ subMessage = 'phase ' + phase; }
-                // use generic phrase otherwise
-                else { subMessage = 'current phase'; }
-                
-                messages.push(`Expected one of the following activities during ${subMessage} but found none: ` + expectedActivitesString.map(p => `'${p}'`).join(', ') + '.');
                 break;
             }
             case 'xor-block-multiple-matches': {
-                messages.push('Multiple exclusive activities were found (expected exactly one).');
-                break;
-            }
-            case 'repetition-block-minimum-not-met': {
-                if (error.phaseName){ phase = `'` + error.phaseName + `'`; }
-                
-                // dont show add message if minimum is less than 1 or no activity detected
-                if (error.min > 1 && error.actual > 1){
-                    messages.push(`Detected phase ${phase} requires at least ${error.min} occurrences but found ${error.actual}.`);
-                }
-                break;
-            }
-            case 'sequence-block-failed': {  
-                break;
-            }
-            case 'dataset-mismatch': {
-                messages.push(`Dataset mismatch: expected ${error.expected} dataset but found ${error.found} dataset.`);
-                break;
+                break; // not relevant in behaviour protocol
             }
         }
     }
-    return messages.join(' ');
+
+    return [messages.join('\n'), 'warning'];
+}
+
+const sliceActivityName = (activityName: string): string => {
+    const qIndex = activityName.indexOf('Q');
+    return qIndex !== -1 ? activityName.slice(qIndex + 1) : activityName;
+}
+const slicePhaseName = (activityName: string): string => {
+    const qIndex = activityName.indexOf('Q');
+    return qIndex !== -1 ? activityName.slice(0, qIndex) : activityName;
+}
+const replaceQ = (activityName: string): string => {
+    return activityName.replace('Q', ' - ');
 }
 
 const extractNestedValidationErrors = (result: ValidationResult): ValidationError[] => {
