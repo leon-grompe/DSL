@@ -68,12 +68,11 @@ export class ElementaryBlock extends ProtocolBlock{
         }
         
         const currentActivities = context.activitySequence[startIndex];
-        const match = currentActivities?.some(
-            activity => activity.activityName === this.activity.activityName
-                    ||  activity.activityName === 'Any' 
-        )
+
+        const activityMatch = currentActivities?.some(activity => activity.activityName === this.activity.activityName);
+        const anyMatch = currentActivities?.some(activity => activity.activityName === 'Any');
         
-        if (match) {
+        if (activityMatch) {
             // check if only target dataset is used
             if (this.target){
                 const currentCall = context.calls[startIndex];
@@ -85,8 +84,11 @@ export class ElementaryBlock extends ProtocolBlock{
                     return datasetResult;
                 }
             }
+        }
+        if (activityMatch || anyMatch) {
             return ValidationResult.success(startIndex + 1);
-        } else {
+        }
+        else {
             return ValidationResult.failure(startIndex, {
                 type: 'elem-block-activity-mismatch', 
                 expected: new Activity(this.activity.activityName), 
@@ -208,6 +210,7 @@ export class RepetitionBlock extends ProtocolBlock{
             // propagate validation?
             const result = this.block.validate(context, currentIndex, services);
             if (!result.isValid) { 
+                // propagate daset mismatch error 
                 if (this.containsDatasetMismatch(result)) {
                     return ValidationResult.failure(result.validatedIndex, {
                         type: 'repetition-block-minimum-not-met',
