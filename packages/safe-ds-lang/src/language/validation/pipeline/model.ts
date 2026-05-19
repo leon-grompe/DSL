@@ -1,4 +1,4 @@
-import { ValidationError, ValidationResult } from './validationDataStructures.js'
+import { ValidationResult } from './validationDataStructures.js'
 import { SafeDsServices } from '../../safe-ds-module.js';
 import { SdsCall } from '../../generated/ast.js';
 import { SafeDsDataFlowAnalyzer } from '../../flow/safe-ds-data-flow-analyzer.js';

@@ -1,7 +1,7 @@
 import { ValidationAcceptor, ValidationSeverity } from 'langium';
-import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsPlaceholder } from '../../generated/ast.js';
+import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
-import { ProtocolBlock, ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock, Activity, ValidationContext, DataSet } from './model.js';
+import { Activity, ValidationContext } from './model.js';
 import { ValidationResult, ValidationError} from './validationDataStructures.js'
 import { behaviourProtocol } from './behaviourProtocol.js';
 
