@@ -9,217 +9,15 @@ export class SafeDsDataFlowAnalyzer {
     constructor(
         private services: SafeDsServices
     ) {}
-
+    
     /**
-     * Computes whether the given placeholder is an assignee argument at a specific position of a specific function call.
-     * Stops as soon as first match is found.
+     * Checks if a placeholder is assigned to a specific assginee position by a specific function.
      * @param placeholder The placeholder to check.
-     * @param functionCallName The name of the function call.
-     * @param correctAssigneePosition The position the placeholder should be at.
-     * @param services SafeDs services to access helpers.
-     * @param placeholderBackwardSlice If an Array is provided it will collect all Placeholders relevant for the value of the given Placeholder.
-     * @returns Returns true, if the placeholder is assignee of specific function at a specific assignee position. False otherwise.
+     * @param functionCallName The name of the function callable.
+     * @param correctAssigneePosition The assignee position to check.
+     * @param placeholderBackwardSlice Accumulates the backwardsslice to the placeholder.
+     * @returns True, if the placeholder is assigned by the specified function at the specified position. False otherwise.
      */
-    checkIfArgumentIsAssigneeOfSpecificFunction(
-        placeholder: SdsPlaceholder, 
-        functionCallName: string, 
-        correctAssigneePosition: number, 
-        placeholderBackwardSlice: SdsPlaceholder[] = []
-    ): boolean
-    {     
-        const parentAssignment = placeholder.$container?.$container;
-
-        if (!isSdsAssignment(parentAssignment)) { 
-            return false; 
-        }
-
-        // Skip placeholders of statement if already visited
-        if (placeholderBackwardSlice.includes(placeholder)) {
-            return false;
-        }
-        // Remember visited placeholders of statement
-        placeholderBackwardSlice.push(placeholder);
-        
-        const expr = parentAssignment.expression;
-        if (!expr) { 
-            return false; 
-        }
-        
-        if (isSdsCall(expr)) {
-            const callable = this.services.helpers.NodeMapper.callToCallable(expr);
-
-            // Not the target call -> check all arguments recursively
-            if (!isSdsFunction(callable) || callable.name !== functionCallName) {
-                return this.checkCallArguments(
-                    expr, functionCallName, 
-                    correctAssigneePosition, 
-                    placeholderBackwardSlice
-                );
-            }
-            
-            // Is the target call -> check if placeholder is at correct position
-            if (parentAssignment.assigneeList?.assignees[correctAssigneePosition] === placeholder) {
-                // Placeholder is at correct position -> return true
-                return true;
-            }
-            else {
-                // Placeholder is at wrong position -> check arguments for deeper matches
-                return this.checkCallArguments(
-                    expr, functionCallName, 
-                    correctAssigneePosition, 
-                    placeholderBackwardSlice
-                );
-            }
-        }
-        
-        // Expression is a reference to another placeholder
-        if (!isSdsReference(expr) || !isSdsDeclaration(expr.target) || !isSdsPlaceholder(expr.target.ref)) { 
-            return false; 
-        }
-        // MAYBE NEED TO CHECK FOR OTHER TYPES
-        // e.g. SdsList COULD CONTAIN NON PRIMITIVE TYPES
-        
-        // Recursive call for the referenced placeholder
-        if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
-            expr.target.ref, functionCallName, 
-            correctAssigneePosition, 
-            placeholderBackwardSlice
-        )) {
-            return true;
-        }
-        return false;        
-    }
-
-    /**
-     * Helper to check all arguments of a call for a placeholder being an assignee of a specific function.
-     * @param call The call to check.
-     * @param functionCallName The name of the function call. Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
-     * @param correctAssigneePosition The position the placeholder should be at. Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
-     * @param services SafeDs services to access helpers.
-     * @param placeholderBackwardSlice  Array to collect the Placeholders in the backward slice of the given Placeholder. 
-     *                                  Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
-     * @returns True if checkIfArgumentIsAssigneeOfSpecificFunction returned true for any argument, false otherwise.
-     */
-    private checkCallArguments(
-        call: SdsCall, 
-        functionCallName: string, 
-        correctAssigneePosition: number, 
-        placeholderBackwardSlice: SdsPlaceholder[] = []
-    ): boolean 
-    {
-        if (!call) { 
-            return false; 
-        }
-        
-        // If call is chained member access, check its receiver for a placeholder
-        if (isSdsChainedExpression(call)) {
-            if (this.handleChainedExpression(
-                call, functionCallName,
-                correctAssigneePosition,
-                placeholderBackwardSlice
-            )) {
-                return true;
-            }
-        }
-
-        // Handle all actual arguments
-        const args = call.argumentList?.arguments;
-        if (!args) { 
-            return false; 
-        }
-        
-        for (const arg of args) {
-            // Argument is a reference to a placeholder
-            if (isSdsReference(arg.value)) {
-                const newHolder = arg.value.target.ref;
-                if (isSdsDeclaration(newHolder) && isSdsPlaceholder(newHolder)) {
-                    if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
-                        newHolder, functionCallName, 
-                        correctAssigneePosition, 
-                        placeholderBackwardSlice
-                    )) {
-                    return true;
-                    }
-                }
-            }
-            // Argument is a call
-            else if (isSdsCall(arg.value)) {
-                if (this.checkCallArguments(
-                    arg.value, functionCallName, 
-                    correctAssigneePosition, 
-                    placeholderBackwardSlice
-                )) {
-                    return true;
-                }
-            }
-            // Member access?
-            // Chained expression?
-        }
-        return false;
-    }
-
-    /**
-     * Helper to handle nested chained expressions when checking for placeholders.
-     * @param chainedExpr The chained expression to check.
-     * @param functionCallName The name of the function call. Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
-     * @param correctAssigneePosition The position the placeholder should be at. Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
-     * @param services SafeDs services to access helpers.
-     * @param placeholderBackwardSlice Array to collect the Placeholders in the backward slice of the given Placeholder. 
-     *                                 Same as in checkIfArgumentIsAssigneeOfSpecificFunction.
-     * @returns True if checkIfArgumentIsAssigneeOfSpecificFunction returned true for the receiver placeholder, false otherwise.
-     */
-    private handleChainedExpression(
-        chainedExpr: SdsChainedExpression, 
-        functionCallName: string, 
-        correctAssigneePosition: number, 
-        placeholderBackwardSlice: SdsPlaceholder[] = []
-    ): boolean {
-        // Direct reference to a receiver
-        if (isSdsReference(chainedExpr.receiver)) {
-            const referencedDecl = chainedExpr.receiver.target.ref;
-            if (isSdsPlaceholder(referencedDecl)) {
-                if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
-                    referencedDecl, functionCallName,
-                    correctAssigneePosition,
-                    placeholderBackwardSlice
-                )) {
-                    return true;
-                }
-            }
-        }
-        
-        // If the receiver is a member access, check its receiver for a placeholder
-        if (isSdsMemberAccess(chainedExpr.receiver)) {
-            const receiverExpr = chainedExpr.receiver.receiver;
-            if (isSdsReference(receiverExpr)) {
-                const referencedDecl = receiverExpr.target?.ref;
-                if (isSdsPlaceholder(referencedDecl)) {
-                    // Check if receiver placeholder matches the condition
-                    if (this.checkIfArgumentIsAssigneeOfSpecificFunction(
-                        referencedDecl, functionCallName,
-                        correctAssigneePosition,
-                        placeholderBackwardSlice
-                    )) {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        // If the receiver is another chained expression, handle it recursively
-        if (isSdsChainedExpression(chainedExpr.receiver)) {
-            if (this.handleChainedExpression(
-                chainedExpr.receiver, functionCallName,
-                correctAssigneePosition,
-                placeholderBackwardSlice
-            )) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-
     checkIfPlaceholderIsAssigneeOfSpecificFunction(
         placeholder: SdsPlaceholder,
         functionCallName: string,
@@ -313,6 +111,11 @@ export class SafeDsDataFlowAnalyzer {
         return dataPlaceholders;
     }
 
+    /**
+     * Checks if any data placeholders in a call reference the training set (assigned by first splitRows at position 0)
+     * @param call 
+     * @returns True, if the call references the training set through data. False otherwise.
+     */
     callReferencesTrainingSet(call: SdsCall): boolean {
         const candidates = this.extractOnlyDataPlaceholders(call);
         
@@ -329,6 +132,11 @@ export class SafeDsDataFlowAnalyzer {
         return false;
     }
 
+    /**
+     * Checks if any data placeholders in a call reference the validation set (assigned by second splitRows at position 0)
+     * @param call 
+     * @returns True, if the call references the validation set through data. False otherwise.
+     */
     callReferencesValidationSet(call: SdsCall): boolean{
         const candidates = this.extractOnlyDataPlaceholders(call);
         
@@ -345,6 +153,11 @@ export class SafeDsDataFlowAnalyzer {
         return false;
     }
 
+    /**
+     * Checks if any data placeholders in a call reference the test set (assigned by second splitRows at position 1)
+     * @param call 
+     * @returns True, if the call references the test set through data. False otherwise.
+     */
     callReferencesTestSet(call: SdsCall): boolean{
         const candidates = this.extractOnlyDataPlaceholders(call);
         
@@ -361,6 +174,11 @@ export class SafeDsDataFlowAnalyzer {
         return false;    
     }
 
+    /**
+     * Checks if a placeholder is actual data (Image, ImageList, any Tabular data or a Dataset).
+     * @param placeholder 
+     * @returns True if the placeholder is data. False otherwise.
+     */
     private isData = (placeholder: SdsPlaceholder): boolean => {
         const typeComputer = this.services.typing.TypeComputer;
         const builtinClasses = this.services.builtins.Classes;
