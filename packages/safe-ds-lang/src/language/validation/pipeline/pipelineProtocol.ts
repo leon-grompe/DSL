@@ -76,13 +76,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
 const computeValidationMessageAndSeverity = (result: ValidationResult): [string, ValidationSeverity] => {
     const nestedErrors = extractNestedValidationErrors(result);
     
-    // dataset error is most critical error, break if detected
-    const datasetError = nestedErrors.find(e => e.type === 'dataset-mismatch');
-    if (datasetError && datasetError.type === 'dataset-mismatch') {
-        return [`Dataset mismatch: expected ${datasetError.expected} dataset but found ${datasetError.found} dataset.`,
-                'error'];
-    }
-
+    // get the current phase to use in validation messages, if applicable
     let phase = '';
     for (const error of nestedErrors) {
         if (error.type === 'repetition-block-minimum-not-met' && error.phaseName) {
@@ -91,8 +85,18 @@ const computeValidationMessageAndSeverity = (result: ValidationResult): [string,
         }
     }
 
-    const messages: string[] = [];
-
+    // dataset error is most critical error, break if detected
+    const datasetError = nestedErrors.find(e => e.type === 'dataset-mismatch');
+    if (datasetError && datasetError.type === 'dataset-mismatch') {
+        const formattedActivites = getActivityOnPhaseMatch(datasetError.activities ?? [], phase).map(name => `${name}`).join(', ');
+        
+        return [`Dataset mismatch: During phase ${phase} the activity '${formattedActivites}' may only be `+ 
+                `performed on the '${datasetError.expected}' dataset, not the '${datasetError.found}' dataset.`,
+                'error'];
+    }
+    
+    // then get all other errors and concatenate corresponding messages
+    const messages: string[] = []; 
     for (const error of nestedErrors) {
         switch (error.type) {
             case 'sequence-block-failed': {
@@ -138,18 +142,6 @@ const computeValidationMessageAndSeverity = (result: ValidationResult): [string,
     return [messages.join('\n'), 'warning'];
 }
 
-const sliceActivityName = (activityName: string): string => {
-    const qIndex = activityName.indexOf('Q');
-    return qIndex !== -1 ? activityName.slice(qIndex + 1) : activityName;
-}
-const slicePhaseName = (activityName: string): string => {
-    const qIndex = activityName.indexOf('Q');
-    return qIndex !== -1 ? activityName.slice(0, qIndex) : activityName;
-}
-const replaceQ = (activityName: string): string => {
-    return activityName.replace('Q', ' - ');
-}
-
 const extractNestedValidationErrors = (result: ValidationResult): ValidationError[] => {
     const errors = [] as ValidationError[];
     let current: ValidationResult | undefined = result;
@@ -160,4 +152,28 @@ const extractNestedValidationErrors = (result: ValidationResult): ValidationErro
         current = current.baseError;
     }
     return errors;
+}
+
+// string manipulation helpers for better validation messages
+const sliceActivityName = (activityName: string | undefined): string => {
+    if (!activityName) return '';
+    const qIndex = activityName.indexOf('Q');
+    return qIndex !== -1 ? activityName.slice(qIndex + 1) : activityName;
+}
+const slicePhaseName = (activityName: string | undefined): string => {
+    if (!activityName) return '';
+    const qIndex = activityName.indexOf('Q');
+    return qIndex !== -1 ? activityName.slice(0, qIndex) : activityName;
+}
+const replaceQ = (activityName: string | undefined): string => {
+    if (!activityName) return '';
+    return activityName.replace('Q', ' - ');
+}
+const getActivityOnPhaseMatch = (activities: Activity[], phaseName: string): string[] => {
+    const cleanPhaseName = phaseName.replaceAll("'", '').trim();
+    
+    return activities.map(a => a.activityName)
+        .filter(name => name.split('Q')[0] === cleanPhaseName)
+        .map(item => item.split('Q')[1])
+        .filter((item): item is string => item !== undefined);
 }

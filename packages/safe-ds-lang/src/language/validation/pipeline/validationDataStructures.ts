@@ -12,7 +12,7 @@ export type ValidationError =
     
     | {type: 'repetition-block-minimum-not-met'; min: number; actual: number; phaseName?: string }
 
-    | {type: 'dataset-mismatch'; expected: DataSet; found: DataSet} 
+    | {type: 'dataset-mismatch'; expected: DataSet; found: DataSet, activities?: Activity[]} 
 
 
 export class ValidationResult {

@@ -79,7 +79,7 @@ export class ElementaryBlock extends ProtocolBlock{
                 if (!currentCall) {
                     return ValidationResult.success(startIndex + 1);
                 }
-                const datasetResult = this.handleDatasetMismatch(startIndex, currentCall, analyzer);
+                const datasetResult = this.handleDatasetMismatch(startIndex, currentCall, analyzer, currentActivities);
                 if (!datasetResult.isValid){
                     return datasetResult;
                 }
@@ -97,7 +97,13 @@ export class ElementaryBlock extends ProtocolBlock{
         }
     }
 
-    private handleDatasetMismatch(startIndex: number, currentCall: SdsCall, analyzer: SafeDsDataFlowAnalyzer) : ValidationResult {
+    // TODO: change fallback on original set, since it is wrong if the placeholder is unknown.
+    private handleDatasetMismatch(
+        startIndex: number, 
+        currentCall: SdsCall, 
+        analyzer: SafeDsDataFlowAnalyzer, 
+        activities: Activity[] | undefined
+    ) : ValidationResult {
         const isTraining = analyzer.callReferencesTrainingSet(currentCall);
         const isValidation = analyzer.callReferencesValidationSet(currentCall);
         const isTest = analyzer.callReferencesTestSet(currentCall);
@@ -106,30 +112,36 @@ export class ElementaryBlock extends ProtocolBlock{
             case DataSet.Training:
                 if (!isTraining) {
                     const actual = isValidation ? DataSet.Validation : isTest ? DataSet.Test : DataSet.Original;
-                    return this.returnDatasetMismatch(startIndex, this.target, actual);
+                    return this.returnDatasetMismatch(startIndex, this.target, actual, activities);
                 }
                 break;
             case DataSet.Validation:
                 if (!isValidation) {
                     const actual = isTraining ? DataSet.Training : isTest ? DataSet.Test : DataSet.Original;
-                    return this.returnDatasetMismatch(startIndex, this.target, actual);
+                    return this.returnDatasetMismatch(startIndex, this.target, actual, activities);
                 }
                 break;
             case DataSet.Test:
                 if (!isTest) {
                     const actual = isTraining ? DataSet.Training : isValidation ? DataSet.Validation : DataSet.Original;
-                    return this.returnDatasetMismatch(startIndex, this.target, actual);
+                    return this.returnDatasetMismatch(startIndex, this.target, actual, activities);
                 }
                 break;
         }
         return ValidationResult.success(startIndex + 1);
     }
 
-    private returnDatasetMismatch(startIndex: number, expected: DataSet, actual: DataSet) : ValidationResult {
+    private returnDatasetMismatch(
+        startIndex: number, 
+        expected: DataSet, 
+        actual: DataSet, 
+        activities: Activity[] | undefined
+    ) : ValidationResult {
         return ValidationResult.failure(startIndex, {
             type: 'dataset-mismatch',
             expected: expected,
-            found: actual
+            found: actual,
+            activities: activities
         })
     }
 }
