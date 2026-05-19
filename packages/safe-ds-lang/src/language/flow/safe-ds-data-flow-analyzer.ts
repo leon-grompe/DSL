@@ -1,8 +1,7 @@
 import { SafeDsServices } from '../safe-ds-module.js';
 import { AstUtils } from 'langium';
-import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsMemberAccess,
-         isSdsCall, isSdsFunction, isSdsDeclaration, isSdsChainedExpression, 
-         SdsPlaceholder, SdsCall, SdsChainedExpression} from '../generated/ast.js';
+import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, 
+         SdsPlaceholder, SdsCall } from '../generated/ast.js';
 import { ClassType } from '../typing/model.js';
 
 export class SafeDsDataFlowAnalyzer {
