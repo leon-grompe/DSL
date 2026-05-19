@@ -164,6 +164,11 @@ enum DSPipelineActivity {
      */
     TestingQMetric
     TestingQVisualization
+
+    /**
+     * Can be used as a wildcard.
+     */
+    Any
 }
 
 
