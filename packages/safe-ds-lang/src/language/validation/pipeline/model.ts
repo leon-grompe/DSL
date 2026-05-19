@@ -102,22 +102,27 @@ export class ElementaryBlock extends ProtocolBlock{
         const isValidation = analyzer.callReferencesValidationSet(currentCall);
         const isTest = analyzer.callReferencesTestSet(currentCall);
 
-        if(this.target === DataSet.Training){ 
-            if (!isTraining){
-                const actual = isValidation ? DataSet.Validation : isTest ? DataSet.Test : DataSet.Original;
-                return this.returnDatasetMismatch(startIndex, this.target, actual);
-            }
-        } else if (this.target === DataSet.Validation) { 
-            if (!isValidation){
-                const actual = isTraining ? DataSet.Training : isTest ? DataSet.Test : DataSet.Original;
-                return this.returnDatasetMismatch(startIndex, this.target, actual);
-            }
-        } else if (this.target === DataSet.Test) {
-            if (!isTest){
-                const actual = isTraining ? DataSet.Training : isValidation ? DataSet.Validation : DataSet.Original;
-                return this.returnDatasetMismatch(startIndex, this.target, actual);
-            }
-        } return ValidationResult.success(startIndex + 1);
+        switch (this.target) {
+            case DataSet.Training:
+                if (!isTraining) {
+                    const actual = isValidation ? DataSet.Validation : isTest ? DataSet.Test : DataSet.Original;
+                    return this.returnDatasetMismatch(startIndex, this.target, actual);
+                }
+                break;
+            case DataSet.Validation:
+                if (!isValidation) {
+                    const actual = isTraining ? DataSet.Training : isTest ? DataSet.Test : DataSet.Original;
+                    return this.returnDatasetMismatch(startIndex, this.target, actual);
+                }
+                break;
+            case DataSet.Test:
+                if (!isTest) {
+                    const actual = isTraining ? DataSet.Training : isValidation ? DataSet.Validation : DataSet.Original;
+                    return this.returnDatasetMismatch(startIndex, this.target, actual);
+                }
+                break;
+        }
+        return ValidationResult.success(startIndex + 1);
     }
 
     private returnDatasetMismatch(startIndex: number, expected: DataSet, actual: DataSet) : ValidationResult {
@@ -265,7 +270,8 @@ export class AlternativeBlock extends ProtocolBlock{
                     alternatives: alternatives
                 });
             }
-
+            // Unfinished Implementation, not needed for current protocol
+            /*
             case 'xor': {
                 let validCount = 0;
                 let lastValidIndex = startIndex;
@@ -291,6 +297,7 @@ export class AlternativeBlock extends ProtocolBlock{
                 }
                 break;
             }
+            */
         }
         return ValidationResult.failure(startIndex, {
             type: 'alternative-block-no-match',
