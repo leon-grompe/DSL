@@ -66,7 +66,8 @@ export const behaviourProtocol = new SequenceBlock([
 
     // Feature Selection
     new RepetitionBlock(
-        new ElementaryBlock( new Activity('FeatureSelectionQGeneral') ),
+        new ElementaryBlock( new Activity('FeatureSelectionQGeneral'),
+                             DataSet.Training ),
         'FeatureSelection'
     ),
 
