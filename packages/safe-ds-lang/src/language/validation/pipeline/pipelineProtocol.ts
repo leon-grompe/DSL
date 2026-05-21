@@ -10,7 +10,6 @@ export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
 export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
     const nodeMapper = services.helpers.NodeMapper;
     const builtinAnnotations = services.builtins.Annotations;
-    const analyzer = services.flow.DataFlowAnalyzer;
 
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
         // skip this validation if the pipeline is empty to avoid confusion with other validations
@@ -43,31 +42,6 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         }
 
         const context = new ValidationContext(sequence, calls, paramArgMaps);
-        console.log('\n=== VALIDATION CONTEXT DEBUG ===');
-        for (let i = 0; i < calls.length; i++) {
-            const callText = calls[i]?.$cstNode?.text?.split('\n')[0];
-            const activities = sequence[i]?.map(a => a.activityName).join(', ');
-            //const fromSeg = context.fromSegment[i] ? ' [FROM SEGMENT]' : '';
-            
-            // dataset analysis
-            const call = calls[i]!;
-            const paramArgMap = paramArgMaps[i] ?? new Map();
-            const isTrain = analyzer.callReferencesTrainingSet(call, paramArgMap);
-            const isTest  = analyzer.callReferencesTestSet(call, paramArgMap);
-            const isVal   = analyzer.callReferencesValidationSet(call, paramArgMap);
-            const dataset = isTrain ? 'Training' : isTest ? 'Test' : isVal ? 'Validation' : 'Original';
-            
-            //console.log(`[${i}]${fromSeg}`);
-            console.log(`     call:       ${callText}`);
-            console.log(`     activities: ${activities}`);
-            console.log(`     dataset:    ${dataset}`);
-            console.log(`     paramArgMap: {${
-                Array.from(paramArgMap.entries())
-                    .map(([p, e]) => `${p.name} → ${e.$cstNode?.text}`)
-                    .join(', ')
-            }}`);
-        }
-        console.log('=== END CONTEXT DEBUG ===\n');
 
         const result = behaviourProtocol.validate(context, 0, services);
         
