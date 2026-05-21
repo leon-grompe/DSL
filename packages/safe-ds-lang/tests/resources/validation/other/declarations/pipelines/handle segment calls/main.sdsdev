@@ -1,0 +1,24 @@
+package tests.validation.other.declarations.pipelines.handleSegmentCalls
+// $TEST$ no error r"Dataset mismatch"
+pipeline titanic {
+    val rawData = Table.fromCsvFile("titanic.csv");
+    val rawTraining, val rawTest = rawData.splitRows(percentageInFirst = 0.7);
+    val imputer = SimpleImputer(SimpleImputer.Strategy.Median, columnNames = ["age", "fare"]).fit(rawTraining);
+    val encoder = OneHotEncoder(columnNames = ["sex"]).fit(rawTraining);
+
+    val trainingSet = preprocessAfterSplit(rawTraining, imputer, encoder);
+    val testSet = preprocessAfterSplit(rawTest, imputer, encoder);
+    val classifier = GradientBoostingClassifier(treeCount = 10, learningRate = 0.2).fit(trainingSet);
+    val _accuracy = classifier.accuracy(testSet);
+}
+
+segment preprocessAfterSplit(
+    table: Table,
+    imputer: TableTransformer,
+    encoder: TableTransformer,
+) -> dataset: TabularDataset {
+    yield dataset = table
+        .transformTable(imputer)
+        .transformTable(encoder)
+        .toTabularDataset(targetName = "survived", extraNames = ["id", "name"]);
+}

@@ -1,6 +1,6 @@
 import { ValidationResult } from './validationDataStructures.js'
 import { SafeDsServices } from '../../safe-ds-module.js';
-import { SdsCall } from '../../generated/ast.js';
+import { SdsCall, SdsParameter, SdsExpression } from '../../generated/ast.js';
 import { SafeDsDataFlowAnalyzer } from '../../flow/safe-ds-data-flow-analyzer.js';
 
 // DataSet for variable tracking
@@ -20,7 +20,8 @@ export class Activity {
 export class ValidationContext {
     constructor(
         public activitySequence: Activity[][],
-        public calls: SdsCall[]
+        public calls: SdsCall[],
+        public paramArgMaps: Map<SdsParameter, SdsExpression>[]
     ){}
 }
 
@@ -79,7 +80,12 @@ export class ElementaryBlock extends ProtocolBlock{
                 if (!currentCall) {
                     return ValidationResult.success(startIndex + 1);
                 }
-                const datasetResult = this.handleDatasetMismatch(startIndex, currentCall, analyzer, currentActivities);
+                const datasetResult = this.handleDatasetMismatch(
+                    startIndex, currentCall, analyzer, 
+                    currentActivities,
+                    context.paramArgMaps[startIndex],
+
+                );
                 if (!datasetResult.isValid){
                     return datasetResult;
                 }
@@ -102,11 +108,12 @@ export class ElementaryBlock extends ProtocolBlock{
         startIndex: number, 
         currentCall: SdsCall, 
         analyzer: SafeDsDataFlowAnalyzer, 
-        activities: Activity[] | undefined
+        activities: Activity[] | undefined,
+        paramArgMap: Map<SdsParameter, SdsExpression> | undefined
     ) : ValidationResult {
-        const isTraining = analyzer.callReferencesTrainingSet(currentCall);
-        const isValidation = analyzer.callReferencesValidationSet(currentCall);
-        const isTest = analyzer.callReferencesTestSet(currentCall);
+        const isTraining = analyzer.callReferencesTrainingSet(currentCall, paramArgMap);
+        const isValidation = analyzer.callReferencesValidationSet(currentCall, paramArgMap);
+        const isTest = analyzer.callReferencesTestSet(currentCall, paramArgMap);
 
         switch (this.target) {
             case DataSet.Training:

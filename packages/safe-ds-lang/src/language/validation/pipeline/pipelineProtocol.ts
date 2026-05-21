@@ -1,5 +1,5 @@
 import { ValidationAcceptor, ValidationSeverity } from 'langium';
-import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline } from '../../generated/ast.js';
+import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsParameter, SdsExpression } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
 import { Activity, ValidationContext } from './model.js';
 import { ValidationResult, ValidationError} from './validationDataStructures.js'
@@ -10,6 +10,7 @@ export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
 export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
     const nodeMapper = services.helpers.NodeMapper;
     const builtinAnnotations = services.builtins.Annotations;
+    const analyzer = services.flow.DataFlowAnalyzer;
 
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
         // skip this validation if the pipeline is empty to avoid confusion with other validations
@@ -17,16 +18,12 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
 
         const calls = [] as SdsCall[];
         const sequence = [] as Activity[][];
-        
-        // fill the sequence of found calls in the pipeline
-        for (const statement of node.body.statements){
+        const paramArgMaps = [] as Map<SdsParameter, SdsExpression>[];
+
+        for (const statement of node.body.statements) {
             const statementCalls = nodeMapper.statementToCalls(statement);
 
-            for (const call of statementCalls){
-                calls.push(call);
-                
-                // for each call, find the corresponding annotations and add an array of them to the sequence
-                // if no annotation is found, add an array with singular activity 'Any' instead
+            for (const { call, paramArgMap } of statementCalls) {
                 const callable = nodeMapper.callToCallable(call);
                 if (!callable || !(isSdsFunction(callable) || isSdsClass(callable))) continue;
 
@@ -38,11 +35,39 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
                 const activities = annotations.length > 0
                     ? annotations.map(name => new Activity(name))
                     : [new Activity('Any')];
-                
+
+                calls.push(call);
                 sequence.push(activities);
+                paramArgMaps.push(paramArgMap);  // ← store alongside
             }
         }
-        const context = new ValidationContext(sequence, calls)
+
+        const context = new ValidationContext(sequence, calls, paramArgMaps);
+        console.log('\n=== VALIDATION CONTEXT DEBUG ===');
+        for (let i = 0; i < calls.length; i++) {
+            const callText = calls[i]?.$cstNode?.text?.split('\n')[0];
+            const activities = sequence[i]?.map(a => a.activityName).join(', ');
+            //const fromSeg = context.fromSegment[i] ? ' [FROM SEGMENT]' : '';
+            
+            // dataset analysis
+            const call = calls[i]!;
+            const paramArgMap = paramArgMaps[i] ?? new Map();
+            const isTrain = analyzer.callReferencesTrainingSet(call, paramArgMap);
+            const isTest  = analyzer.callReferencesTestSet(call, paramArgMap);
+            const isVal   = analyzer.callReferencesValidationSet(call, paramArgMap);
+            const dataset = isTrain ? 'Training' : isTest ? 'Test' : isVal ? 'Validation' : 'Original';
+            
+            //console.log(`[${i}]${fromSeg}`);
+            console.log(`     call:       ${callText}`);
+            console.log(`     activities: ${activities}`);
+            console.log(`     dataset:    ${dataset}`);
+            console.log(`     paramArgMap: {${
+                Array.from(paramArgMap.entries())
+                    .map(([p, e]) => `${p.name} → ${e.$cstNode?.text}`)
+                    .join(', ')
+            }}`);
+        }
+        console.log('=== END CONTEXT DEBUG ===\n');
 
         const result = behaviourProtocol.validate(context, 0, services);
         
@@ -62,7 +87,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
             // something is missing at the end of the pipeline => validation message on the end of the pipeline
             else {
                 accept(severity,
-                    'Pipeline is missing at least one phase after this statement. ' + validationMessage, {
+                    'Pipeline is missing at least one phase after this statement.\n' + validationMessage, {
                         node: calls.at(calls.length-1) ?? node,
                         code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
                     },

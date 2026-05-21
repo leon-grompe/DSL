@@ -1,7 +1,7 @@
 import { SafeDsServices } from '../safe-ds-module.js';
 import { AstUtils } from 'langium';
-import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, 
-         SdsPlaceholder, SdsCall } from '../generated/ast.js';
+import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsParameter,
+         SdsPlaceholder, SdsCall, SdsParameter, SdsExpression } from '../generated/ast.js';
 import { ClassType } from '../typing/model.js';
 
 export class SafeDsDataFlowAnalyzer {
@@ -49,6 +49,27 @@ export class SafeDsDataFlowAnalyzer {
                 return true;
             }
 
+            // recurse into segments
+            if (isSdsSegment(callable)) {
+                for (const segmentStatement of callable.body.statements) {
+                    if (!isSdsAssignment(segmentStatement)) continue;
+
+                    const assignees = segmentStatement.assigneeList?.assignees ?? [];
+                    for (const assignee of assignees) {
+                        if (!isSdsPlaceholder(assignee)) continue; 
+
+                        if (this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
+                            assignee,
+                            functionCallName,
+                            correctAssigneePosition,
+                            placeholderBackwardSlice
+                        )) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
             const referencedPlaceholders = this.extractOnlyDataPlaceholders(expr);
             for (const referencedPlaceholder of referencedPlaceholders) {
                 if (this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
@@ -81,16 +102,28 @@ export class SafeDsDataFlowAnalyzer {
      * @param call The call to extract placeholders from.
      * @returns An array of all placeholders found in the call.
      */
-    private extractPlaceholders(call: SdsCall): SdsPlaceholder[] {
+    private extractPlaceholders(
+        call: SdsCall, 
+        paramArgMap: Map<SdsParameter, SdsExpression> = new Map()
+    ): SdsPlaceholder[] {
         const candidates = new Set<SdsPlaceholder>();
-
         AstUtils.streamAllContents(call).forEach(node => {
-            if (!isSdsReference(node)) {
-                return;
-            }
+            if (!isSdsReference(node)) return;
+            
             const decl = node.target?.ref;
+            
+            // Direct placeholder reference — existing behaviour
             if (isSdsPlaceholder(decl)) {
                 candidates.add(decl);
+                return;
+            }
+            
+            // Parameter reference — resolve through paramArgMap to get the pipeline placeholder
+            if (isSdsParameter(decl)) {
+                const boundExpr = paramArgMap.get(decl);
+                if (boundExpr && isSdsReference(boundExpr) && isSdsPlaceholder(boundExpr.target.ref)) {
+                    candidates.add(boundExpr.target.ref);
+                }
             }
         });
         
@@ -102,8 +135,11 @@ export class SafeDsDataFlowAnalyzer {
      * @param call The call to extract data placeholders from.
      * @returns An array of all data placeholders found in the call.
      */
-    private extractOnlyDataPlaceholders(call: SdsCall): SdsPlaceholder[] {
-        const candidates = this.extractPlaceholders(call);
+    private extractOnlyDataPlaceholders(
+        call: SdsCall, 
+        paramArgMap: Map<SdsParameter, SdsExpression> = new Map()
+    ): SdsPlaceholder[] {
+        const candidates = this.extractPlaceholders(call, paramArgMap);
         const dataPlaceholders = candidates.filter(placeholder =>
             this.isData(placeholder)
         );
@@ -115,16 +151,18 @@ export class SafeDsDataFlowAnalyzer {
      * @param call 
      * @returns True, if the call references the training set through data. False otherwise.
      */
-    callReferencesTrainingSet(call: SdsCall): boolean {
-        const candidates = this.extractOnlyDataPlaceholders(call);
+    callReferencesTrainingSet(
+        call: SdsCall, 
+        paramArgMap: Map<SdsParameter, SdsExpression> = new Map()
+    ): boolean {
+        const candidates = this.extractOnlyDataPlaceholders(call, paramArgMap);
         
         for (const placeholder of candidates) {
             if (this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
                     placeholder, 'splitRows', 0)
                 && 
                 !this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
-                    placeholder, 'splitRows', 1)
-                ) {
+                    placeholder, 'splitRows', 1)) {
                 return true;
             }
         }
@@ -136,8 +174,11 @@ export class SafeDsDataFlowAnalyzer {
      * @param call 
      * @returns True, if the call references the validation set through data. False otherwise.
      */
-    callReferencesValidationSet(call: SdsCall): boolean{
-        const candidates = this.extractOnlyDataPlaceholders(call);
+    callReferencesValidationSet(
+        call: SdsCall, 
+        paramArgMap: Map<SdsParameter, SdsExpression> = new Map()
+    ): boolean{
+        const candidates = this.extractOnlyDataPlaceholders(call, paramArgMap);
         
         for (const placeholder of candidates) {
             if (this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
@@ -157,8 +198,11 @@ export class SafeDsDataFlowAnalyzer {
      * @param call 
      * @returns True, if the call references the test set through data. False otherwise.
      */
-    callReferencesTestSet(call: SdsCall): boolean{
-        const candidates = this.extractOnlyDataPlaceholders(call);
+    callReferencesTestSet(
+        call: SdsCall, 
+        paramArgMap: Map<SdsParameter, SdsExpression> = new Map()
+    ): boolean{
+        const candidates = this.extractOnlyDataPlaceholders(call, paramArgMap);
         
         for (const placeholder of candidates) {
             if (!this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
