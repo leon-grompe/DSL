@@ -1,9 +1,6 @@
-import { AstUtils, ValidationAcceptor, ValidationSeverity } from 'langium';
-import { isSdsCall, isSdsFunction, isSdsPlaceholder, SdsAssignment, SdsCall, SdsPipeline, SdsParameter, SdsExpression, SdsStatement, isSdsAssignment, isSdsReference } from '../../generated/ast.js';
+import { AstUtils, ValidationAcceptor } from 'langium';
+import { isSdsCall, isSdsFunction, isSdsPlaceholder, SdsAssignment, SdsPipeline, isSdsAssignment, isSdsReference } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
-import { Activity, ValidationContext } from './model.js';
-import { ValidationResult, ValidationError} from './validationDataStructures.js'
-import { behaviourProtocol } from './behaviourProtocol.js';
 
 export const CODE_DATASET_SPLITTING = 'pipeline/dataset-splitting';
 
@@ -13,7 +10,7 @@ export const pipelineShouldContainMultipleSplits = (services: SafeDsServices) =>
     const analyzer = services.flow.DataFlowAnalyzer;
     
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
-        const splitStatements: { assignment: SdsAssignment; call: SdsCall }[] = [];
+        const splitStatements: SdsAssignment[] = [];
         
         for (const statement of node.body.statements) {
             if (!isSdsAssignment(statement)) continue;
@@ -24,31 +21,61 @@ export const pipelineShouldContainMultipleSplits = (services: SafeDsServices) =>
                 const callable = nodeMapper.callToCallable(call);
                 
                 if (callable && isSdsFunction(callable) && callable.name === 'splitRows') {
-                    splitStatements.push({assignment: statement, call: call });
+                    splitStatements.push(statement);
                 }
             }
         }
 
-        //if (splits.length === 1)
-        // splitting test into validation and test is recommended
-
-        
-        for (const current of splitStatements) {
-            const otherAssignees = splitStatements
-                .filter(s => s !== current)
-                .flatMap(s => s.assignment.assigneeList?.assignees ?? []);
-
-            AstUtils.streamAllContents(current.assignment).forEach(node => {
-                if (isSdsReference(node) && isSdsPlaceholder(node.target.ref)) {
-                    if (otherAssignees.includes(node.target.ref)) {
-                        console.log("reference points to placeholder from another split call")
-                        // does it reference the assignee at index 1?
-                        // if yes -> its good
-                        // if not -> its bad, need to change it
-                       
-                    }
+        // only one split -> recommend another
+        if (splitStatements.length === 1) {
+            accept( 'info',
+                'Splitting the original data into 3 parts (training, validation, test) is recommended.', {
+                    node: splitStatements[0]?.expression ?? node,
+                    code: CODE_DATASET_SPLITTING
                 }
-            });
+            )
+            return;
+        }
+
+        // flag to check if there are splits that reference each other
+        let hasChainedSplit = false;
+        
+        // multiple splits
+        for (const assignment of splitStatements) {
+            const assignees = assignment.assigneeList?.assignees ?? [];
+
+            for (const otherAssignment of splitStatements) {
+                if (assignment === otherAssignment) continue;
+
+                AstUtils.streamAllContents(otherAssignment).forEach(astNode => {
+                    if (isSdsReference(astNode) && isSdsPlaceholder(astNode.target.ref)) {
+                        // otherAssignment references another split at position 1 (correct)
+                        if (assignees[1] === astNode.target.ref){
+                            hasChainedSplit = true;
+                        }
+                        // otherAssignment references another split at another position (incorrect)
+                        else if (assignees.includes(astNode.target.ref)){
+                            hasChainedSplit = true;
+                            accept( 'info',
+                                'Only the second assignee (which combines test and validation data) should be split a second time.', {
+                                    node: otherAssignment.expression ?? node,
+                                    code: CODE_DATASET_SPLITTING
+                                }
+                            )
+                        }
+                    }
+                })
+            }
+        }
+
+        // mutiple splits, but no split references another
+        if (!hasChainedSplit) {
+            accept('info',
+                'Splitting the original data into 3 parts (training, validation, test) is recommended.', {
+                    node: splitStatements[0] ?? node,
+                    code: CODE_DATASET_SPLITTING
+                }
+            );
         }
     }
 }
