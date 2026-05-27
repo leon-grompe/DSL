@@ -1,7 +1,10 @@
 import { SafeDsServices } from '../safe-ds-module.js';
 import { AstUtils } from 'langium';
 import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsParameter,
-         SdsPlaceholder, SdsCall, SdsParameter, SdsExpression } from '../generated/ast.js';
+         SdsPlaceholder, SdsCall, SdsParameter, SdsExpression, SdsAssignee,
+         SdsStatement,
+         SdsPipeline,
+         SdsAssignment} from '../generated/ast.js';
 import { ClassType } from '../typing/model.js';
 
 export class SafeDsDataFlowAnalyzer {
@@ -9,6 +12,50 @@ export class SafeDsDataFlowAnalyzer {
         private services: SafeDsServices
     ) {}
     
+    /* THIS APPROACH DOES NOT WORK, SINCE WE WOULD NEED TO KEEP TRACK OF ALL PLACEHOLDERS TO COMPARE TO
+    checkAssigneePositionForSplit(assigneeLists: SdsAssignee[][], correctPosition: number) : Boolean {
+        const lastElement = assigneeLists[assigneeLists.length - 1];
+        return true;
+    }
+
+    getAssignmentsFromFunctionInBackwardSlice(
+        placeholder: SdsPlaceholder,
+        functionCallName: string,
+    ) : SdsAssignee[][] {
+        const pipeline = AstUtils.findRootNode(placeholder) as SdsPipeline;
+        const pipelineStatements = pipeline.body.statements;
+        const backwardsslice = this.services.flow.Slicer.computeBackwardSliceOfPlaceholder(pipelineStatements, placeholder);
+
+        const relevantAssigneeLists : SdsAssignee[][] = [];
+        for (const statement of backwardsslice) {
+            if (!isSdsAssignment(statement)) continue;
+            this.findAssigneesOfFunctionCall(statement, functionCallName, relevantAssigneeLists);
+        }
+        return relevantAssigneeLists;
+    }
+
+    findAssigneesOfFunctionCall(
+        assignment: SdsAssignment, 
+        functionCallName: string, 
+        relevantAssigneeLists: SdsAssignee[][]
+    ) {
+        const expression = assignment.expression;
+        if(!isSdsCall(expression)) return;
+        
+        const callable = this.services.helpers.NodeMapper.callToCallable(expression);
+        if (
+            (isSdsFunction(callable) || isSdsSegment(callable)) &&
+            callable.name === functionCallName
+        ) {
+            if (assignment.assigneeList?.assignees) {
+                relevantAssigneeLists.push(assignment.assigneeList?.assignees)
+            }
+            return;
+        }
+    }
+    */
+                
+
     /**
      * Checks if a placeholder is assigned to a specific assginee position by a specific function.
      * @param placeholder The placeholder to check.
