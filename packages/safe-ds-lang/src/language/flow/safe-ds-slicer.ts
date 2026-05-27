@@ -1,15 +1,18 @@
 import { SafeDsServices } from '../safe-ds-module.js';
-import { isSdsAssignment, isSdsPlaceholder, isSdsReference, SdsPlaceholder, SdsStatement, } from '../generated/ast.js';
-import { AstUtils, Stream } from 'langium';
+import { isSdsAssignment, isSdsPlaceholder, isSdsReference, SdsPlaceholder, SdsStatement, isSdsCall, SdsReference, isSdsFunction, isSdsSegment, SdsLocalVariable } from '../generated/ast.js';
+import { AstUtils, EMPTY_STREAM, Stream } from 'langium';
 import { ImpurityReason } from '../purity/model.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
 import { SafeDsPurityComputer } from '../purity/safe-ds-purity-computer.js';
+import { SafeDsNodeMapper } from '../helpers/safe-ds-node-mapper.js';
 
 export class SafeDsSlicer {
     private readonly purityComputer: SafeDsPurityComputer;
+    private readonly nodeMapper: SafeDsNodeMapper;
 
     constructor(services: SafeDsServices) {
         this.purityComputer = services.purity.PurityComputer;
+        this.nodeMapper = services.helpers.NodeMapper;
     }
 
     /**
@@ -81,6 +84,56 @@ export class SafeDsSlicer {
         const parentStatement = target.$container as SdsStatement;
         
         return this.computeBackwardSliceToTargetsWithoutPurity(statements, [parentStatement]);
+    }
+
+    computeForwardSliceFromVariable(target: SdsLocalVariable): Set<SdsLocalVariable> {
+        const result : SdsReference[] = [];
+        const workingStack : SdsLocalVariable[] = [target];
+        const visited = new Set<SdsLocalVariable>();
+        
+        while (workingStack.length > 0) {
+            const current = workingStack.pop();
+            if (!current || visited.has(current)) continue;
+            visited.add(current);
+
+            const refs = this.nodeMapper.localVariableToReference(current).toArray();
+            for (const ref of refs) {
+                
+                if (isSdsPlaceholder(ref.target.ref)) result.push(ref);
+
+                // follow the reference to its containing assignment
+                const containingAssignment = AstUtils.getContainerOfType(ref, isSdsAssignment)
+                const assignees = containingAssignment?.assigneeList?.assignees;
+                if (!assignees) continue;
+
+                // differentiate between function and segment
+                if (isSdsCall(containingAssignment?.expression)){
+                    const callable = this.nodeMapper.callToCallable(containingAssignment?.expression)
+                    
+                    // case: function -> basic logic
+                    if (isSdsFunction(callable)) {
+                        // add all assignees to the working stack
+                        for (const assignee of assignees) {
+                            if (isSdsPlaceholder(assignee) && !visited.has(assignee)) {
+                                workingStack.push(assignee);
+                            }
+                        }
+                    }
+                    // case: segment
+                    else if (isSdsSegment(callable)) {
+                        const matchingArg = containingAssignment.expression.argumentList.arguments
+                            .find(arg => isSdsReference(arg.value) && arg.value.target.ref === current);
+                        if (!matchingArg) continue;
+
+                        const matchingParam = this.nodeMapper.argumentToParameter(matchingArg);
+                        if (!matchingParam) continue;
+
+                        workingStack.push(matchingParam);
+                    }
+                }
+            }
+        }
+        return visited;
     }
 }
 
