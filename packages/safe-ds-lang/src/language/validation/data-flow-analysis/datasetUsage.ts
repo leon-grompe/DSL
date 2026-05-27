@@ -1,12 +1,212 @@
-import { ValidationAcceptor } from 'langium';
+import { AstUtils, EMPTY_STREAM, ValidationAcceptor } from 'langium';
 import { SafeDsServices } from '../../safe-ds-module.js';
-import { SdsPlaceholder, SdsCall, isSdsFunction, isSdsReference, isSdsPlaceholder } from '../../generated/ast.js';
-
+import { SdsPlaceholder, SdsCall, isSdsFunction, isSdsReference, isSdsPlaceholder, SdsPipeline, SdsStatement, isSdsAssignment, isSdsCall, SdsAssignee, SdsAssignment, SdsFunction, SdsReference, isSdsMemberAccess, isSdsSegment, SdsDeclaration, SdsArgument, isSdsArgument, SdsLocalVariable, isSdsParameter } from '../../generated/ast.js';
+import { SafeDsNodeMapper } from '../../helpers/safe-ds-node-mapper.js';
+import { Stream } from 'langium';
 
 export const CODE_TEST_DATA_USED_FOR_TRAINING = 'data-flow-analysis/test-data-used-for-training';
 
 
 export const testDataUsedForTraining = (services: SafeDsServices) => {
+    const nodeMapper = services.helpers.NodeMapper; 
+    return (node: SdsPipeline, accept: ValidationAcceptor) => {
+        const pipelineStatements = node.body.statements;
+        /*
+        console.log("Ich bin hier!");
+        if (isSdsAssignment(pipelineStatements[1])){
+            if (isSdsCall(pipelineStatements[1].expression)){
+                console.log("Output von rawData.splitRows(percentageInFirst = 0.7);")
+                console.log(pipelineStatements[1].expression.receiver)
+            }
+        }
+        if (isSdsAssignment(pipelineStatements[2])){
+            if (isSdsCall(pipelineStatements[2].expression)){
+                //console.log("Output von SimpleImputer(SimpleImputer.Strategy.Median, selector = ['age', 'fare']).fit(rawTraining);")
+                //console.log(pipelineStatements[2].expression.receiver)
+            }
+            console.log("============================================================================")
+            if (isSdsCall(pipelineStatements[2].expression)){
+                console.log("Output von SimpleImputer(SimpleImputer.Strategy.Median, selector = ['age', 'fare']).fit(rawTraining);")
+                const values = pipelineStatements[2].expression.argumentList.arguments.map(arg => arg.value);
+                console.log(values)
+            }
+        }
+        */
+        
+        checkSplitCalls(pipelineStatements, nodeMapper);
+    }
+}
+
+function checkSplitCalls(pipeline : SdsStatement[], nodeMapper : SafeDsNodeMapper) : Boolean {
+
+    // ---------------------------------------------------------------------------------
+    // Forward slice of split calls
+    // ---------------------------------------------------------------------------------
+ 
+    // Extract assignments with split calls
+    const assignments = pipeline.filter(statement => isSdsAssignment(statement));
+    const assignmentsWithSplitCalls = assignments.filter(assignment => isSplitCall(assignment, nodeMapper));
+
+    // Determine forward slice of first result argument of the first split call:   
+    const trainingSetPlaceholder = assignmentsWithSplitCalls[0]?.assigneeList?.assignees[0];
+
+    // Accumulator for the forward slice.    
+    const forwardSlice : SdsCall[] = [];
+    getFunctionCallsInForwardSlice(trainingSetPlaceholder as SdsPlaceholder, forwardSlice, nodeMapper);
+
+    console.log("SLICE ==============================================");
+    console.log(forwardSlice.map(call => call.$cstNode?.text));
+
+    // ---------------------------------------------------------------------------------
+    // Training calls 
+    // ---------------------------------------------------------------------------------
+
+    // Extract training calls
+    const assignmentsWithTrainingCalls = assignments.filter(assignment => isTrainingCall(assignment, nodeMapper));
+    const fitCalls = assignmentsWithTrainingCalls.map(assignment => assignment.expression as SdsCall);
+
+    console.log("FIT ==============================================");
+    console.log(fitCalls.map(call => call.$cstNode?.text));
+    // TODO for Leon: Genau wie bei dem forward slice auch hier die Segments durchsuchen, 
+    // um auch darin training calls zu finden, die inidrekt in der Pipeline enthalten sind.
+
+    // ---------------------------------------------------------------------------------
+    // Check if there are training calls that are not in the forward slice of the first split call. 
+    // ---------------------------------------------------------------------------------
+    
+    const trainingCallsNotInForwardSlice = 
+        fitCalls.filter(training_call => !forwardSlice.includes(training_call));
+    
+    
+    // TODO for Leon: Fehlerbehandlung für die training calls, die NICHT im forward slice sind.
+    console.log("FIT NOT IN FORWARD SLICE ======================");
+    console.log(trainingCallsNotInForwardSlice.map(call => call.$cstNode?.text));
+    
+    return trainingCallsNotInForwardSlice.length > 0;
+}
+
+function isSplitCall(statement : SdsStatement, nodeMapper : SafeDsNodeMapper) : Boolean {
+    // Each statement is an assignment and the split call can only
+    // appear on its right hand side, as a a function call with the 
+    // name "split" 
+    if (!(isSdsAssignment(statement) && isSdsCall(statement.expression))) return false; 
+      
+    const callable = nodeMapper.callToCallable(statement.expression);
+        
+    return  isSdsFunction(callable) && 
+            (callable.name === 'splitRows' ||
+            callable.name === 'split');
+}
+
+function isTrainingCall(statement : SdsStatement, nodeMapper: SafeDsNodeMapper) : Boolean {
+    // Each statement is an assignment and the training call can only
+    // appear on its right hand side, as a a function call with the 
+    // name "fit" and some more contitions that I leave to TODO to you to implement
+    if (!(isSdsAssignment(statement) && isSdsCall(statement.expression))) return false; 
+      
+    const callable = nodeMapper.callToCallable(statement.expression);
+        
+    return isSdsFunction(callable) && callable.name === 'fit';
+}
+
+// The forward slice of a placeholder is the set of statements 
+// that are data dependent on it. However, we only want function calls.
+function getFunctionCallsInForwardSlice(
+    localVariable : SdsLocalVariable, 
+    slice : SdsCall[], 
+    nodeMapper : SafeDsNodeMapper
+) : void {
+    let references : Stream<SdsReference> = EMPTY_STREAM;
+    if (isSdsPlaceholder(localVariable)) {
+        references = nodeMapper.placeholderToReferences(localVariable);
+    }
+
+    if (isSdsParameter(localVariable)) {
+        references = nodeMapper.parameterToReferences(localVariable);
+    }
+
+    references.forEach(reference => {
+
+        // Handle references expands the slice and returns the
+        // assignment with which we must continue the traversal, if any.
+        const containingAssignment = handleReference(reference, slice, nodeMapper);
+        
+        // Append the references to the placeholders on the LHS of the assignment 
+        // to the references to be processed in the next iterations of the loop. 
+        addReferencesToLHS(containingAssignment, references, nodeMapper);
+   
+    });
+}
+
+// Append to the second argument all the references to the placeholders 
+// on the LHS of the assignment passed in the first argument.
+function addReferencesToLHS(
+    assignment: SdsAssignment | undefined, 
+    references: Stream<SdsReference>, 
+    nodeMapper : SafeDsNodeMapper
+) : void {
+    const lhs_placeholders = assignment?.assigneeList?.assignees;
+    if (!lhs_placeholders) return;
+    
+    lhs_placeholders.forEach(placeholder => {
+        references.concat(nodeMapper.placeholderToReferences(placeholder as SdsPlaceholder))
+    })
+}
+
+
+
+/* Each reference is either the RHS of an assignment or the argument
+ * of a function call or of a segment call. In the second case we need
+ * to find the containing function call and add it to the forward slice. 
+ * 
+ * If the reference is the argument of a segment call, we need to 
+ * recursively analyse the segment definition, treating the argument 
+ * to parameter mapping in which the placeholder appears like an 
+ * additional assignment.
+ *
+ * If the placeholder or its containing callable are the RHS of 
+ * an assignment, we also need to add recusively the functions in the
+ * forward slice of all placeholders on the LHS of that assignment.
+ */
+function handleReference(
+    reference: SdsReference, 
+    slice: SdsCall[], 
+    nodeMapper : SafeDsNodeMapper
+): SdsAssignment | undefined {
+    // The assignment with whose LHS we need to continue the forward slice traversal.
+    const containingAssignment = AstUtils.getContainerOfType(reference, isSdsAssignment); // can be undefined
+
+    // The parent of the placeholder is either an assignment, a function call or a segment call. 
+    const parent = reference.$container;
+    const containingCall = AstUtils.getContainerOfType(reference, isSdsCall);
+    
+    
+    
+    
+    if (containingCall) {
+        const callable = nodeMapper.callToCallable(containingCall);
+        if (isSdsFunction(callable)) {
+            slice.push(containingCall);
+        }
+        if (isSdsSegment(callable)) {
+            // Find the parameter to which the placeholder is assigned in the call.
+            const relevantArg = AstUtils.getContainerOfType(reference, isSdsArgument);
+            const parameter = nodeMapper.argumentToParameter(relevantArg);
+
+            // Call our function recursively and add the result to our slice.
+            // CAUTION: Here we are assuming that the parameter is a placeholder. 
+            // TODO for Leon: Check this assumption and possibly adapt the code! 
+            getFunctionCallsInForwardSlice(parameter as SdsLocalVariable, slice, nodeMapper);
+        }
+    }
+    return containingAssignment;
+}
+
+
+
+// ----------------------------------------------------------------------
+
+export const testDataUsedForTraining1 = (services: SafeDsServices) => {
     const locator = services.workspace.AstNodeLocator;
     const nodeMapper = services.helpers.NodeMapper;
     const analyzer = services.flow.DataFlowAnalyzer;
