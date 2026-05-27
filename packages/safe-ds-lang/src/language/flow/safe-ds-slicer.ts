@@ -1,6 +1,7 @@
 import { SafeDsServices } from '../safe-ds-module.js';
-import { isSdsAssignment, isSdsPlaceholder, isSdsReference, SdsPlaceholder, SdsStatement, isSdsCall, SdsReference, isSdsFunction, isSdsSegment, SdsLocalVariable, isSdsYield } from '../generated/ast.js';
-import { AstUtils, EMPTY_STREAM, Stream } from 'langium';
+import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsYield,
+         SdsPlaceholder, SdsStatement, SdsAssignee, SdsLocalVariable, SdsSegment, SdsCall } from '../generated/ast.js';
+import { AstUtils, Stream } from 'langium';
 import { ImpurityReason } from '../purity/model.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
 import { SafeDsPurityComputer } from '../purity/safe-ds-purity-computer.js';
@@ -8,6 +9,7 @@ import { SafeDsNodeMapper } from '../helpers/safe-ds-node-mapper.js';
 import { result } from 'true-myth';
 import { isDataView } from 'util/types';
 import { SafeDsDataFlowAnalyzer } from './safe-ds-data-flow-analyzer.js';
+import { vi } from 'vitest';
 
 export class SafeDsSlicer {
     private readonly purityComputer: SafeDsPurityComputer;
@@ -91,18 +93,24 @@ export class SafeDsSlicer {
         return this.computeBackwardSliceToTargetsWithoutPurity(statements, [parentStatement]);
     }
 
+    /**
+     * Computes the forward slice from a variable.
+     * The result contains all variables that are derived from the target and are data.
+     */
     computeForwardSliceFromVariable(target: SdsLocalVariable): SdsLocalVariable[] {
         const workingStack : SdsLocalVariable[] = [target];
-        const visited : SdsLocalVariable[] = [];
+        const visited = new Set<SdsLocalVariable>;
         
         while (workingStack.length > 0) {
             const currentVariable = workingStack.pop();
-            if (!currentVariable || visited.includes(currentVariable)) continue;
+            if (!currentVariable || visited.has(currentVariable)) continue;
             // skip non-data variables
             if (!this.analyzer.isData(currentVariable)) continue;
             
-            visited.push(currentVariable);
+            // add the current variable to visited and therefore to the result
+            visited.add(currentVariable);
 
+            // get all references of the current variable
             const refs = this.nodeMapper.localVariableToReference(currentVariable).toArray();
             for (const ref of refs) {
 
@@ -113,58 +121,88 @@ export class SafeDsSlicer {
 
                 // differentiate between function and segment
                 if (isSdsCall(containingAssignment?.expression)){
-                    this.differentiateFunctionAndSegment();
                     const callable = this.nodeMapper.callToCallable(containingAssignment?.expression)
                     
                     // case: function -> basic logic
                     if (isSdsFunction(callable)) {
-                        this.handleFunction();
-                        // add all assignees to the working stack
-                        for (const assignee of assignees) {
-                            if (isSdsPlaceholder(assignee) && !visited.includes(assignee)) {
-                                workingStack.push(assignee);
-                            }
-                        }
+                        this.handleFunction(assignees, workingStack, visited);
                     }
-                    // case: segment
+                    // case: segment -> more complex logic
                     else if (isSdsSegment(callable)) {
-                        this.handleSegment();
-                        const matchingArg = containingAssignment.expression.argumentList.arguments
-                            .find(arg => isSdsReference(arg.value) && arg.value.target.ref === currentVariable);
-                        if (!matchingArg) continue;
-
-                        const matchingParam = this.nodeMapper.argumentToParameter(matchingArg);
-                        if (!matchingParam) continue;
-
-                        workingStack.push(matchingParam);
-
-                        const yields = AstUtils.streamAllContents(callable).filter(isSdsYield).toArray();
-                        for (const yieldStmnt of yields) {
-                            const resultIndex = callable.resultList?.results.findIndex(r => r === yieldStmnt.result?.ref);
-                            if (resultIndex === undefined || resultIndex > 0) continue;
-
-                            const matchingAssignee = assignees[resultIndex];
-                            if (isSdsPlaceholder(matchingAssignee) && !visited.includes(matchingAssignee)) {
-                                workingStack.push(matchingAssignee);
-                            }
-                        }
+                        this.handleSegment(callable, assignees, currentVariable, containingAssignment.expression, workingStack, visited);
                     }
                 }
             }
         }
-        return visited;
+        return Array.from(visited);
     }
 
-    private differentiateFunctionAndSegment():void {
+    /**
+     * Propagates the forward slice through a function call.
+     * @param assignees The assignees of the containing assignment.
+     * @param workingStack The current working stack which is being filled by this function.
+     * @param visited The already visited variables which are being updated by this function.
+     */
+    private handleFunction(
+        assignees: SdsAssignee[],
+        workingStack: SdsLocalVariable[],
+        visited: Set<SdsLocalVariable>
+    ): void {
+        // add unvisited assignees to the stack
+        for (const assignee of assignees) {
+            if (isSdsPlaceholder(assignee) && !visited.has(assignee)) {
+                // Continue forward slicing from this assignee
+                workingStack.push(assignee);
+            }
+        }
+    }
+
+    /**
+     * Propagates the forward slice through a segment call.
+     * @param callable The segment being called
+     * @param assignees The assignees of the containing assignment at the call site.
+     * @param currentVariable The variable currently being sliced.
+     * @param expression The call expression (right side of the assignment).
+     * @param workingStack The current working stack which is being filled by this function.
+     * @param visited The already visited variables which are being updated by this function.
+     */
+    private handleSegment(
+        callable: SdsSegment,
+        assignees: SdsAssignee[],
+        currentVariable: SdsLocalVariable,
+        expression: SdsCall,
+        workingStack: SdsLocalVariable[],
+        visited: Set<SdsLocalVariable>
+    ): void {
+        // Find the argument that references the current variable
+        const matchingArg = expression.argumentList.arguments.find(arg => 
+            isSdsReference(arg.value) 
+            && arg.value.target.ref === currentVariable);
+        if (!matchingArg) return;
+
+        // Map the argument to its corresponding parameter inside the segment
+        const matchingParam = this.nodeMapper.argumentToParameter(matchingArg);
+        if (!matchingParam) return;
         
-    }
+        // Continue the forward slice from the parameter inside the segment body
+        workingStack.push(matchingParam);
 
-    private handleFunction():void {
+        // Map yields back to assigness at the call site
+        // The yield corresponds to the result of the segment which corresponds to the assignee at the call site
+        const yields = AstUtils.streamAllContents(callable).filter(isSdsYield).toArray();
+        for (const yieldStmnt of yields) {
+            // Find the position of this yield's result in the segment's result list
+            const resultIndex = callable.resultList?.results
+                .findIndex(r => r === yieldStmnt.result?.ref);
+            if (resultIndex === undefined || resultIndex < 0) continue;
 
-    }
-
-    private handleSegment():void {
-
+            // The assignee at the same position at the call site receives the result
+            const matchingAssignee = assignees[resultIndex];
+            if (isSdsPlaceholder(matchingAssignee) && !visited.has(matchingAssignee)) {
+                // Continue the forward slice from the assignee that has been assigned this result
+                workingStack.push(matchingAssignee);
+            }
+        }
     }
 }
 
