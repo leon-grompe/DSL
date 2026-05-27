@@ -6,14 +6,18 @@ import { getAssignees } from '../helpers/nodeProperties.js';
 import { SafeDsPurityComputer } from '../purity/safe-ds-purity-computer.js';
 import { SafeDsNodeMapper } from '../helpers/safe-ds-node-mapper.js';
 import { result } from 'true-myth';
+import { isDataView } from 'util/types';
+import { SafeDsDataFlowAnalyzer } from './safe-ds-data-flow-analyzer.js';
 
 export class SafeDsSlicer {
     private readonly purityComputer: SafeDsPurityComputer;
     private readonly nodeMapper: SafeDsNodeMapper;
+    private readonly analyzer: SafeDsDataFlowAnalyzer;
 
     constructor(services: SafeDsServices) {
         this.purityComputer = services.purity.PurityComputer;
         this.nodeMapper = services.helpers.NodeMapper;
+        this.analyzer = services.flow.DataFlowAnalyzer;
     }
 
     /**
@@ -92,11 +96,14 @@ export class SafeDsSlicer {
         const visited : SdsLocalVariable[] = [];
         
         while (workingStack.length > 0) {
-            const current = workingStack.pop();
-            if (!current || visited.includes(current)) continue;
-            visited.push(current);
+            const currentVariable = workingStack.pop();
+            if (!currentVariable || visited.includes(currentVariable)) continue;
+            // skip non-data variables
+            if (!this.analyzer.isData(currentVariable)) continue;
+            
+            visited.push(currentVariable);
 
-            const refs = this.nodeMapper.localVariableToReference(current).toArray();
+            const refs = this.nodeMapper.localVariableToReference(currentVariable).toArray();
             for (const ref of refs) {
 
                 // follow the reference to its containing assignment
@@ -123,7 +130,7 @@ export class SafeDsSlicer {
                     else if (isSdsSegment(callable)) {
                         this.handleSegment();
                         const matchingArg = containingAssignment.expression.argumentList.arguments
-                            .find(arg => isSdsReference(arg.value) && arg.value.target.ref === current);
+                            .find(arg => isSdsReference(arg.value) && arg.value.target.ref === currentVariable);
                         if (!matchingArg) continue;
 
                         const matchingParam = this.nodeMapper.argumentToParameter(matchingArg);
@@ -157,7 +164,7 @@ export class SafeDsSlicer {
     }
 
     private handleSegment():void {
-        
+
     }
 }
 
