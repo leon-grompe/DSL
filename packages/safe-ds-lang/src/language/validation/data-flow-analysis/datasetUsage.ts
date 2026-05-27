@@ -11,27 +11,6 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
     const nodeMapper = services.helpers.NodeMapper; 
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
         const pipelineStatements = node.body.statements;
-        /*
-        console.log("Ich bin hier!");
-        if (isSdsAssignment(pipelineStatements[1])){
-            if (isSdsCall(pipelineStatements[1].expression)){
-                console.log("Output von rawData.splitRows(percentageInFirst = 0.7);")
-                console.log(pipelineStatements[1].expression.receiver)
-            }
-        }
-        if (isSdsAssignment(pipelineStatements[2])){
-            if (isSdsCall(pipelineStatements[2].expression)){
-                //console.log("Output von SimpleImputer(SimpleImputer.Strategy.Median, selector = ['age', 'fare']).fit(rawTraining);")
-                //console.log(pipelineStatements[2].expression.receiver)
-            }
-            console.log("============================================================================")
-            if (isSdsCall(pipelineStatements[2].expression)){
-                console.log("Output von SimpleImputer(SimpleImputer.Strategy.Median, selector = ['age', 'fare']).fit(rawTraining);")
-                const values = pipelineStatements[2].expression.argumentList.arguments.map(arg => arg.value);
-                console.log(values)
-            }
-        }
-        */
         
         checkSplitCalls(pipelineStatements, nodeMapper);
     }
@@ -46,6 +25,10 @@ function checkSplitCalls(pipeline : SdsStatement[], nodeMapper : SafeDsNodeMappe
     // Extract assignments with split calls
     const assignments = pipeline.filter(statement => isSdsAssignment(statement));
     const assignmentsWithSplitCalls = assignments.filter(assignment => isSplitCall(assignment, nodeMapper));
+    // THEORETISCH AUCH REKURSIV DURCH SEGMENTS EXTRAHIEREN (wie unten)
+
+    console.log("SPLIT ==============================================");
+    console.log(assignmentsWithSplitCalls.map(assignment => assignment.$cstNode?.text));
 
     // Determine forward slice of first result argument of the first split call:   
     const trainingSetPlaceholder = assignmentsWithSplitCalls[0]?.assigneeList?.assignees[0];
@@ -69,6 +52,7 @@ function checkSplitCalls(pipeline : SdsStatement[], nodeMapper : SafeDsNodeMappe
     console.log(fitCalls.map(call => call.$cstNode?.text));
     // TODO for Leon: Genau wie bei dem forward slice auch hier die Segments durchsuchen, 
     // um auch darin training calls zu finden, die inidrekt in der Pipeline enthalten sind.
+    // EXTRAHIERE REKURSIV DURCH DIE SEGMENTS
 
     // ---------------------------------------------------------------------------------
     // Check if there are training calls that are not in the forward slice of the first split call. 
@@ -79,6 +63,7 @@ function checkSplitCalls(pipeline : SdsStatement[], nodeMapper : SafeDsNodeMappe
     
     
     // TODO for Leon: Fehlerbehandlung für die training calls, die NICHT im forward slice sind.
+    // EIGENTLICHE VALIDATION LOGIK
     console.log("FIT NOT IN FORWARD SLICE ======================");
     console.log(trainingCallsNotInForwardSlice.map(call => call.$cstNode?.text));
     
@@ -86,9 +71,8 @@ function checkSplitCalls(pipeline : SdsStatement[], nodeMapper : SafeDsNodeMappe
 }
 
 function isSplitCall(statement : SdsStatement, nodeMapper : SafeDsNodeMapper) : Boolean {
-    // Each statement is an assignment and the split call can only
-    // appear on its right hand side, as a a function call with the 
-    // name "split" 
+    // Each statement is an assignment and the split call can only appear 
+    // on its right hand side, as a a function call with the name "split" 
     if (!(isSdsAssignment(statement) && isSdsCall(statement.expression))) return false; 
       
     const callable = nodeMapper.callToCallable(statement.expression);
@@ -99,9 +83,9 @@ function isSplitCall(statement : SdsStatement, nodeMapper : SafeDsNodeMapper) : 
 }
 
 function isTrainingCall(statement : SdsStatement, nodeMapper: SafeDsNodeMapper) : Boolean {
-    // Each statement is an assignment and the training call can only
-    // appear on its right hand side, as a a function call with the 
-    // name "fit" and some more contitions that I leave to TODO to you to implement
+    // Each statement is an assignment and the training call can only appear 
+    // on its right hand side, as a a function call with the name "fit" 
+    // (and some more contitions that I leave to TODO to you to implement)
     if (!(isSdsAssignment(statement) && isSdsCall(statement.expression))) return false; 
       
     const callable = nodeMapper.callToCallable(statement.expression);
@@ -125,6 +109,8 @@ function getFunctionCallsInForwardSlice(
         references = nodeMapper.parameterToReferences(localVariable);
     }
 
+    console.log("REFERENCES")
+    console.log(references.map(ref => ref.target.ref?.$cstNode?.text))
     references.forEach(reference => {
 
         // Handle references expands the slice and returns the
@@ -153,8 +139,6 @@ function addReferencesToLHS(
     })
 }
 
-
-
 /* Each reference is either the RHS of an assignment or the argument
  * of a function call or of a segment call. In the second case we need
  * to find the containing function call and add it to the forward slice. 
@@ -177,14 +161,13 @@ function handleReference(
     const containingAssignment = AstUtils.getContainerOfType(reference, isSdsAssignment); // can be undefined
 
     // The parent of the placeholder is either an assignment, a function call or a segment call. 
-    const parent = reference.$container;
     const containingCall = AstUtils.getContainerOfType(reference, isSdsCall);
-    
-    
-    
-    
+    console.log("CONTAINING CALL")
+    console.log(containingCall?.$cstNode?.text);
     if (containingCall) {
         const callable = nodeMapper.callToCallable(containingCall);
+        console.log("CALLABLE")
+        console.log(callable?.$cstNode?.text)
         if (isSdsFunction(callable)) {
             slice.push(containingCall);
         }
@@ -193,9 +176,11 @@ function handleReference(
             const relevantArg = AstUtils.getContainerOfType(reference, isSdsArgument);
             const parameter = nodeMapper.argumentToParameter(relevantArg);
 
+            console.log("HANDLE REFERENCE SEGMENT")
+            console.log(relevantArg?.$cstNode?.text)
+            console.log(parameter?.$cstNode?.text)
+            console.log("===== ENDE =====")
             // Call our function recursively and add the result to our slice.
-            // CAUTION: Here we are assuming that the parameter is a placeholder. 
-            // TODO for Leon: Check this assumption and possibly adapt the code! 
             getFunctionCallsInForwardSlice(parameter as SdsLocalVariable, slice, nodeMapper);
         }
     }
