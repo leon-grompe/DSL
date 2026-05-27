@@ -294,4 +294,29 @@ export class SafeDsDataFlowAnalyzer {
             return false;
         }
     }
+
+    extractAssignmentsWithSpecificCall(statements: SdsStatement[], callableName: string) : SdsAssignment[] {
+        const assignments = statements.filter(statement => isSdsAssignment(statement));
+        const assignmentsWithSpecificCalls = assignments.filter(assignment => this.isSpecificCall(assignment, callableName));
+        
+        return assignmentsWithSpecificCalls;
+    }
+
+    /**
+     * Checks whether a statement contains a specific call.
+     * When using the callable name 'split' or 'splitRows' it will check for both to work for tabular and image data.
+     */
+    isSpecificCall(statement: SdsStatement, callableName: string) : boolean {
+        if (!(isSdsAssignment(statement) && isSdsCall(statement.expression))) return false; 
+      
+        const callable = this.services.helpers.NodeMapper.callToCallable(statement.expression);
+        
+        if (callableName === 'split' || callableName === 'splitRows') {
+            return isSdsFunction(callable) && 
+                (callable.name === 'splitRows' ||
+                callable.name === 'split');
+        } else {
+            return isSdsFunction(callable) && callable.name === callableName;
+        }
+    }
 }
