@@ -171,13 +171,14 @@ export class SequenceBlock extends ProtocolBlock{
                 },  result);
             }
             // Identify Phase length
+            /*
             else {
                 const phaseEnd = context.calls[result.validatedIndex]
                 if (block instanceof RepetitionBlock){
                     console.log("Phase: " + block.phaseName + "| until line:  " + phaseEnd?.$cstNode?.range.end.line)
                 }
             }
-            
+            */
             if (result.validatedIndex > updatedStartingPoint) {
                 updatedStartingPoint = result.validatedIndex;
             }
