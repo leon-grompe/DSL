@@ -14,6 +14,7 @@ import {
     isSdsNamedType,
     isSdsOutputStatement,
     isSdsParameter,
+    isSdsPlaceholder,
     isSdsReference,
     isSdsSegment,
     isSdsType,
@@ -25,6 +26,7 @@ import {
     SdsCall,
     SdsCallable,
     SdsExpression,
+    SdsLocalVariable,
     SdsParameter,
     SdsPlaceholder,
     SdsReference,
@@ -284,6 +286,23 @@ export class SafeDsNodeMapper {
         return AstUtils.findLocalReferences(node, containingBlock)
             .map((it) => it.$refNode?.astNode)
             .filter(isSdsReference);
+    }
+
+    /**
+     * Uses either 'parameterToReferences' or 'placeholderToReferences' depending on the input to return all references that target the input local variable.
+     */
+    localVariableToReference(node: SdsLocalVariable | undefined): Stream<SdsReference> {
+        if (!node) {
+            return EMPTY_STREAM;
+        }
+
+        if (isSdsParameter(node)) {
+            return this.parameterToReferences(node);
+        } else if (isSdsPlaceholder(node)) {
+            return this.placeholderToReferences(node);
+        } else {
+            return EMPTY_STREAM;
+        }
     }
 
     /**
