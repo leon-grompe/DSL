@@ -296,6 +296,10 @@ export class SafeDsDataFlowAnalyzer {
         }
     }
 
+    /**
+     * Extracts all assignments that contain a specific call.
+     * When using the callable name 'split' or 'splitRows' it will filter both to work for tabular and image data.
+     */
     extractAssignmentsWithSpecificCall(statements: SdsStatement[], callableName: string) : SdsAssignment[] {
         const assignments = statements.filter(statement => isSdsAssignment(statement));
         const assignmentsWithSpecificCalls = assignments.filter(assignment => this.isSpecificCall(assignment, callableName));
