@@ -4,7 +4,8 @@ import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunc
          SdsPlaceholder, SdsCall, SdsParameter, SdsExpression, SdsAssignee,
          SdsStatement,
          SdsPipeline,
-         SdsAssignment} from '../generated/ast.js';
+         SdsAssignment,
+         SdsLocalVariable} from '../generated/ast.js';
 import { ClassType } from '../typing/model.js';
 
 export class SafeDsDataFlowAnalyzer {
@@ -266,14 +267,14 @@ export class SafeDsDataFlowAnalyzer {
 
     /**
      * Checks if a placeholder is actual data (Image, ImageList, any Tabular data or a Dataset).
-     * @param placeholder 
+     * @param localVariable 
      * @returns True if the placeholder is data. False otherwise.
      */
-    private isData = (placeholder: SdsPlaceholder): boolean => {
+    isData = (localVariable: SdsLocalVariable): boolean => {
         const typeComputer = this.services.typing.TypeComputer;
         const builtinClasses = this.services.builtins.Classes;
         
-        const type = typeComputer.computeType(placeholder);
+        const type = typeComputer.computeType(localVariable);
 
         // image
         const imageMatch        =  typeComputer.computeMatchingSupertype(type as ClassType, builtinClasses.Image);
