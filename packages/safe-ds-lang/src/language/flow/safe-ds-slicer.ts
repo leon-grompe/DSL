@@ -1,10 +1,11 @@
 import { SafeDsServices } from '../safe-ds-module.js';
-import { isSdsAssignment, isSdsPlaceholder, isSdsReference, SdsPlaceholder, SdsStatement, isSdsCall, SdsReference, isSdsFunction, isSdsSegment, SdsLocalVariable } from '../generated/ast.js';
+import { isSdsAssignment, isSdsPlaceholder, isSdsReference, SdsPlaceholder, SdsStatement, isSdsCall, SdsReference, isSdsFunction, isSdsSegment, SdsLocalVariable, isSdsYield } from '../generated/ast.js';
 import { AstUtils, EMPTY_STREAM, Stream } from 'langium';
 import { ImpurityReason } from '../purity/model.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
 import { SafeDsPurityComputer } from '../purity/safe-ds-purity-computer.js';
 import { SafeDsNodeMapper } from '../helpers/safe-ds-node-mapper.js';
+import { result } from 'true-myth';
 
 export class SafeDsSlicer {
     private readonly purityComputer: SafeDsPurityComputer;
@@ -86,20 +87,17 @@ export class SafeDsSlicer {
         return this.computeBackwardSliceToTargetsWithoutPurity(statements, [parentStatement]);
     }
 
-    computeForwardSliceFromVariable(target: SdsLocalVariable): Set<SdsLocalVariable> {
-        const result : SdsReference[] = [];
+    computeForwardSliceFromVariable(target: SdsLocalVariable): SdsLocalVariable[] {
         const workingStack : SdsLocalVariable[] = [target];
-        const visited = new Set<SdsLocalVariable>();
+        const visited : SdsLocalVariable[] = [];
         
         while (workingStack.length > 0) {
             const current = workingStack.pop();
-            if (!current || visited.has(current)) continue;
-            visited.add(current);
+            if (!current || visited.includes(current)) continue;
+            visited.push(current);
 
             const refs = this.nodeMapper.localVariableToReference(current).toArray();
             for (const ref of refs) {
-                
-                if (isSdsPlaceholder(ref.target.ref)) result.push(ref);
 
                 // follow the reference to its containing assignment
                 const containingAssignment = AstUtils.getContainerOfType(ref, isSdsAssignment)
@@ -108,19 +106,22 @@ export class SafeDsSlicer {
 
                 // differentiate between function and segment
                 if (isSdsCall(containingAssignment?.expression)){
+                    this.differentiateFunctionAndSegment();
                     const callable = this.nodeMapper.callToCallable(containingAssignment?.expression)
                     
                     // case: function -> basic logic
                     if (isSdsFunction(callable)) {
+                        this.handleFunction();
                         // add all assignees to the working stack
                         for (const assignee of assignees) {
-                            if (isSdsPlaceholder(assignee) && !visited.has(assignee)) {
+                            if (isSdsPlaceholder(assignee) && !visited.includes(assignee)) {
                                 workingStack.push(assignee);
                             }
                         }
                     }
                     // case: segment
                     else if (isSdsSegment(callable)) {
+                        this.handleSegment();
                         const matchingArg = containingAssignment.expression.argumentList.arguments
                             .find(arg => isSdsReference(arg.value) && arg.value.target.ref === current);
                         if (!matchingArg) continue;
@@ -129,11 +130,34 @@ export class SafeDsSlicer {
                         if (!matchingParam) continue;
 
                         workingStack.push(matchingParam);
+
+                        const yields = AstUtils.streamAllContents(callable).filter(isSdsYield).toArray();
+                        for (const yieldStmnt of yields) {
+                            const resultIndex = callable.resultList?.results.findIndex(r => r === yieldStmnt.result?.ref);
+                            if (resultIndex === undefined || resultIndex > 0) continue;
+
+                            const matchingAssignee = assignees[resultIndex];
+                            if (isSdsPlaceholder(matchingAssignee) && !visited.includes(matchingAssignee)) {
+                                workingStack.push(matchingAssignee);
+                            }
+                        }
                     }
                 }
             }
         }
         return visited;
+    }
+
+    private differentiateFunctionAndSegment():void {
+        
+    }
+
+    private handleFunction():void {
+
+    }
+
+    private handleSegment():void {
+        
     }
 }
 
