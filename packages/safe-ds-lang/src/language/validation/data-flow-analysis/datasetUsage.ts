@@ -10,33 +10,26 @@ export const CODE_TEST_DATA_USED_FOR_TRAINING = 'data-flow-analysis/test-data-us
 export const testDataUsedForTraining = (services: SafeDsServices) => {
     const nodeMapper = services.helpers.NodeMapper; 
     const analyzer = services.flow.DataFlowAnalyzer;
-    
+    const locator = services.workspace.AstNodeLocator;
+
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
         const pipelineStatements = node.body.statements;
         const assignments = pipelineStatements.filter(isSdsAssignment);
 
         // Extract assignments with split calls
         const splitAssignments = analyzer.extractAssignmentsWithSpecificCall(assignments, 'split');
-            //console.log('\n' + "SPLIT ==============================================");
-            //console.log(assignmentsWithSplitCalls.map(assignment => assignment.$cstNode?.text));
 
         // Extract training calls
         const fitAssignments = analyzer.extractAssignmentsWithSpecificCall(assignments, 'fit');
         const fitCalls = fitAssignments.map(assignment => assignment.expression as SdsCall);
-            //console.log('\n' + "FITS ==============================================");
-            //console.log(fitCalls.map(call => call.$cstNode?.text));
 
         // Determine placeholder to compute forward slice from
         const trainingSetPlaceholder = splitAssignments[0]?.assigneeList?.assignees[0];
-            //console.log("TRAINING SET =======================================")
-            //console.log(trainingSetPlaceholder?.$cstNode?.text);
 
         // Compute all forward references of the training set
         const forwardVariables = services.flow.Slicer.computeForwardSliceFromVariable(trainingSetPlaceholder as SdsPlaceholder);
-            console.log("FORWARD SLICE VARIABLES ===========================")
-            console.log(forwardVariables.map(variable => variable.$cstNode?.text));
-            //console.log(Array.from(forwardReferences).map(ref => ref.target.ref?.$cstNode?.text))
-
+            //console.log("FORWARD SLICE VARIABLES ===========================")
+            //console.log(forwardVariables.map(variable => variable.$cstNode?.text));
 
         for (const call of fitCalls) {
             const argumentArray = call.argumentList.arguments;
@@ -44,15 +37,19 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
                 if (forwardVariables.some(variable => 
                     isSdsReference(argument.value) &&
                     variable === argument.value.target.ref)) {
-                        //console.log("EQUAL FOR: " + call.$cstNode?.text);
-                        //console.log("WITH ARGUMENT: " + argument.$cstNode?.text);
+                        continue;
                 } else {
-                    //console.log("NOT EQUAL FOR: " + call.$cstNode?.text);
-                    //console.log("WITH ARGUMENT " + argument.$cstNode?.text);
+                    accept('warning', 
+                        `Only the training dataset (first assignee in line ${trainingSetPlaceholder?.$cstNode?.range.start.line}) should be used for fitting.`, {
+                        node: argument,
+                        property: 'value',
+                        code: CODE_TEST_DATA_USED_FOR_TRAINING,
+                        data: { path: locator.getAstNodePath(argument) },
+                    });
                 }
             }
         }
-        checkSplitCalls(pipelineStatements, nodeMapper);
+        //checkSplitCalls(pipelineStatements, nodeMapper);
     }
 }
 
