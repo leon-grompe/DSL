@@ -73,6 +73,15 @@ export class SafeDsSlicer {
 
         return aggregator.statements;
     }
+    
+    /**
+     * Computes the subset of the given statements that are needed to calculate the target placeholder.
+     */
+    computeBackwardSliceOfPlaceholder(statements: SdsStatement[], target: SdsPlaceholder): SdsStatement[] {
+        const parentStatement = target.$container as SdsStatement;
+        
+        return this.computeBackwardSliceToTargetsWithoutPurity(statements, [parentStatement]);
+    }
 }
 
 
