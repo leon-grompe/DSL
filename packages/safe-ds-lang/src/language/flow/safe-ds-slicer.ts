@@ -1,15 +1,12 @@
 import { SafeDsServices } from '../safe-ds-module.js';
-import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsYield,
+import { isSdsAssignment, isSdsPlaceholder, isSdsParameter, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsYield,
          SdsPlaceholder, SdsStatement, SdsAssignee, SdsLocalVariable, SdsSegment, SdsCall } from '../generated/ast.js';
 import { AstUtils, Stream } from 'langium';
 import { ImpurityReason } from '../purity/model.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
 import { SafeDsPurityComputer } from '../purity/safe-ds-purity-computer.js';
 import { SafeDsNodeMapper } from '../helpers/safe-ds-node-mapper.js';
-import { result } from 'true-myth';
-import { isDataView } from 'util/types';
 import { SafeDsDataFlowAnalyzer } from './safe-ds-data-flow-analyzer.js';
-import { vi } from 'vitest';
 
 export class SafeDsSlicer {
     private readonly purityComputer: SafeDsPurityComputer;
@@ -125,12 +122,18 @@ export class SafeDsSlicer {
                     
                     // case: function -> basic logic
                     if (isSdsFunction(callable)) {
-                        this.handleFunction(assignees, workingStack, visited);
+                        this.propagateToAssignees(assignees, workingStack, visited);
                     }
                     // case: segment -> more complex logic
                     else if (isSdsSegment(callable)) {
-                        this.handleSegment(callable, assignees, currentVariable, containingAssignment.expression, workingStack, visited);
+                        this.handleSegment( callable, assignees, currentVariable, 
+                                            containingAssignment.expression, 
+                                            workingStack, visited);
                     }
+                }
+                else {
+                    // non-call expression (reference, member access, type cast, etc.)
+                    this.propagateToAssignees(assignees, workingStack, visited);
                 }
             }
         }
@@ -143,7 +146,7 @@ export class SafeDsSlicer {
      * @param workingStack The current working stack which is being filled by this function.
      * @param visited The already visited variables which are being updated by this function.
      */
-    private handleFunction(
+    private propagateToAssignees(
         assignees: SdsAssignee[],
         workingStack: SdsLocalVariable[],
         visited: Set<SdsLocalVariable>
@@ -187,17 +190,11 @@ export class SafeDsSlicer {
         // Continue the forward slice from the parameter inside the segment body
         workingStack.push(matchingParam);
 
-        // Map yields back to assigness at the call site
+        // Map yields back to assignees at the call site
         // The yield corresponds to the result of the segment which corresponds to the assignee at the call site
         const yields = AstUtils.streamAllContents(callable).filter(isSdsYield).toArray();
         for (const yieldStmnt of yields) {
-            // Find the position of this yield's result in the segment's result list
-            const resultIndex = callable.resultList?.results
-                .findIndex(r => r === yieldStmnt.result?.ref);
-            if (resultIndex === undefined || resultIndex < 0) continue;
-
-            // The assignee at the same position at the call site receives the result
-            const matchingAssignee = assignees[resultIndex];
+            const matchingAssignee = this.nodeMapper.yieldToCallSiteAssignee(yieldStmnt, assignees);
             if (isSdsPlaceholder(matchingAssignee) && !visited.has(matchingAssignee)) {
                 // Continue the forward slice from the assignee that has been assigned this result
                 workingStack.push(matchingAssignee);
