@@ -1,11 +1,10 @@
 import { SafeDsServices } from '../safe-ds-module.js';
 import { AstUtils } from 'langium';
 import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsParameter,
-         SdsPlaceholder, SdsCall, SdsParameter, SdsExpression, SdsAssignee,
-         SdsStatement,
-         SdsPipeline,
-         SdsAssignment,
-         SdsLocalVariable} from '../generated/ast.js';
+         SdsPlaceholder, SdsCall, SdsParameter, SdsExpression, SdsStatement, SdsAssignment, SdsLocalVariable, SdsSegment,
+         SdsAssignee, SdsPipeline, 
+         isSdsYield,
+         isSdsAssignee} from '../generated/ast.js';
 import { ClassType } from '../typing/model.js';
 
 export class SafeDsDataFlowAnalyzer {
@@ -297,14 +296,45 @@ export class SafeDsDataFlowAnalyzer {
     }
 
     /**
-     * Extracts all assignments that contain a specific call.
+     * Extracts all assignments from 'statements' that contain a specific call.
      * When using the callable name 'split' or 'splitRows' it will filter both to work for tabular and image data.
      */
-    extractAssignmentsWithSpecificCall(statements: SdsStatement[], callableName: string) : SdsAssignment[] {
-        const assignments = statements.filter(statement => isSdsAssignment(statement));
-        const assignmentsWithSpecificCalls = assignments.filter(assignment => this.isSpecificCall(assignment, callableName));
-        
-        return assignmentsWithSpecificCalls;
+    extractAssignmentsWithSpecificCall(
+        statements: SdsStatement[], 
+        callableName: string,
+        visitedSegments = new Set<SdsSegment>(),
+        callSiteAssignees?: SdsAssignee[]
+    ): SdsAssignment[] {
+        const result: SdsAssignment[] = [];
+
+        for (const statement of statements) {
+            if (isSdsAssignment(statement) && this.isSpecificCall(statement, callableName)) {
+                result.push(statement);
+            }
+
+            if (isSdsAssignment(statement) && isSdsCall(statement.expression)) {
+                const callable = this.services.helpers.NodeMapper.callToCallable(statement.expression);
+                if (isSdsSegment(callable) && callable.body && !visitedSegments.has(callable)) {
+                    visitedSegments.add(callable);
+                    
+                    // map yields to call site assignees
+                    const outerAssignees = callSiteAssignees ?? statement.assigneeList?.assignees ?? [];
+                    const yields = AstUtils.streamAllContents(callable).filter(isSdsYield).toArray();
+
+                    const mappedAssignees = yields
+                        .map(yieldStmt => this.services.helpers.NodeMapper.yieldToCallSiteAssignee(yieldStmt, outerAssignees))
+                        .filter((assignee): assignee is SdsAssignee => assignee !== undefined);
+                    
+                    result.push(...this.extractAssignmentsWithSpecificCall(
+                        callable.body.statements,
+                        callableName,
+                        visitedSegments,
+                        mappedAssignees
+                    ));
+                }
+            }
+        }
+        return result;
     }
 
     /**
