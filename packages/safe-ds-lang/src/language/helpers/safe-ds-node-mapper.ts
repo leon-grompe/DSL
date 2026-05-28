@@ -31,6 +31,7 @@ import {
     SdsPlaceholder,
     SdsReference,
     SdsResult,
+    SdsSegment,
     SdsStatement,
     SdsTypeArgument,
     SdsTypeParameter,
@@ -321,6 +322,22 @@ export class SafeDsNodeMapper {
         return AstUtils.findLocalReferences(node, containingSegment)
             .map((it) => it.$refNode?.astNode)
             .filter(isSdsYield);
+    }
+
+    /**
+     * Returns the assignee at the call site that corresponds to the given yield.
+     * @param yieldStmt The yield to map.
+     * @param callSiteAssignees The assignees at the call site.
+     */
+    yieldToCallSiteAssignee(yieldStmt: SdsYield, callSiteAssignees: SdsAssignee[]): SdsAssignee | undefined {
+        const containingSegment = AstUtils.getContainerOfType(yieldStmt, isSdsSegment);
+        if (!containingSegment) return undefined;
+
+        const resultIndex = containingSegment.resultList?.results
+            .findIndex(r => r === yieldStmt.result?.ref);
+        if (resultIndex === undefined || resultIndex < 0) return undefined;
+
+        return callSiteAssignees[resultIndex];
     }
 
     /**
