@@ -12,6 +12,12 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
     const analyzer = services.flow.DataFlowAnalyzer;
     const locator = services.workspace.AstNodeLocator;
 
+    // TODO:
+    // EXTRACT ASSIGNMENTS FUNCTION NEEDS TO PROPERLY EXTRACT THE ASSIGNEE AT THE CALL SITE NOT INSIDE THE SEGMENT
+    // IF THE ERROR OCCURS INSIDE A SEGMENT, WE SHOULD SHOW THE VALIDATION ON THE ARGUMENT IN THE SEGMENT CALL (not the segment body)
+    // ADJUST LINE NUMBER IN VALIDATION MESSAGE FOR 0-BASED LINE NUMBERS
+    // maybe just start over cause i am completely confused :(
+
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
         const pipelineStatements = node.body.statements;
         const assignments = pipelineStatements.filter(isSdsAssignment);
@@ -71,7 +77,7 @@ function checkSplitCalls(pipeline : SdsStatement[], nodeMapper : SafeDsNodeMappe
     const trainingSetPlaceholder = assignmentsWithSplitCalls[0]?.assigneeList?.assignees[0];
     
     //console.log("PLACEHOLDER TO REFS");
-    const references = nodeMapper.placeholderToReferences(trainingSetPlaceholder as SdsPlaceholder).toArray();
+    //const references = nodeMapper.placeholderToReferences(trainingSetPlaceholder as SdsPlaceholder).toArray();
     //console.log(references.map(ref => ref.target.ref?.$cstNode?.text));
     
     // Accumulator for the forward slice.    
