@@ -1,6 +1,6 @@
 import { SafeDsServices } from '../safe-ds-module.js';
 import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsYield,
-         SdsPlaceholder, SdsStatement, SdsLocalVariable, SdsYield, SdsCall, SdsAssignee, SdsSegment, SdsReference, 
+         SdsPlaceholder, SdsStatement, SdsLocalVariable, SdsYield, SdsCall, SdsSegment, SdsReference,
          isSdsStatement,
          SdsAssignment} from '../generated/ast.js';
 import { AstUtils, Stream } from 'langium';
@@ -103,13 +103,25 @@ export class SafeDsSlicer {
     }
 
     /**
+     * Traverses the forward slice from 'start', accumulating all reached data variables
+     * into 'resultAccumulator'. Delegates to 'collectReachedYields'; the yield return
+     * value is discarded here since the top-level caller only needs the variables.
+     */
+    private accumulateVariablesInForwardSlice(
+        startVariable: SdsLocalVariable,
+        resultAccumulator: Set<SdsLocalVariable>,
+    ): void {
+        this.collectReachedYields(startVariable, resultAccumulator);
+    }
+
+    /**
      * Iterates over a growing worklist of references, starting from all uses of 'start'.
-     * For each reference, 'handleReference' determines which downstream placeholders are
-     * reached; 'addReferencesToLhs' expands those into their own references and appends
-     * them to the worklist — mirroring the pseudocode structure exactly.
+     * For each reference, 'handleReference' determines which downstream placeholders are reached. 
+     * 'addReferencesToLHS' expands those into their own references and appends them to the worklist.
      *
-     * Returns the yields reached during traversal so the caller can map only those to
-     * call-site assignees (precise propagation through segment calls).
+     * Accumulates all reached data variables into 'resultAccumulator' as wanted a side effect.
+     * Returns the yields reached during traversal so that 'getSegmentOutPlaceholders' can
+     * map only those yields to call-site assignees (precise propagation through segments).
      *
      * 'visited' is per-invocation so the same segment entered from different call sites
      * always starts fresh — segment parameters are shared AST nodes across all call sites.
@@ -117,7 +129,7 @@ export class SafeDsSlicer {
      * Limitation: only direct variable references as segment arguments are followed
      * ('seg(data)' is followed, 'seg(transform(data))' is not).
      */
-    private accumulateVariablesInForwardSlice(
+    private collectReachedYields(
         startVariable: SdsLocalVariable,
         resultAccumulator: Set<SdsLocalVariable>,
     ): Set<SdsYield> {
@@ -125,11 +137,11 @@ export class SafeDsSlicer {
 
         // 'startVariable' itself is part of the slice
         resultAccumulator.add(startVariable);
-        
+
         // Seed the worklist with 'startVariable' and initialize result
         const visited = new Set<SdsLocalVariable>([startVariable]);
         const reachedYields = new Set<SdsYield>();
-        
+
         // Get the references of the start variable
         const references = this.nodeMapper.localVariableToReference(startVariable).toArray();
 
@@ -137,7 +149,7 @@ export class SafeDsSlicer {
         for (const ref of references) {
             // Determine which placeholders the value flows into at this reference site.
             const nextPlaceholders = this.handleReference(ref, startVariable, resultAccumulator, reachedYields);
-            
+
             // Expand each new placeholder into its own references and append to the worklist.
             this.addReferencesToLHS(nextPlaceholders, references, visited, resultAccumulator);
         }
@@ -151,9 +163,8 @@ export class SafeDsSlicer {
      *
      * The reference must appear on the RHS of an assignment. Depending on the RHS:
      * - Non-call or built-in function: all LHS placeholders are returned.
-     * - User-defined segment: only placeholders for yields actually reached from
-     *   'current' are returned (see 'getSegmentOutPlaceholders').
-     * - Other callables (classes, lambdas): nothing returned.
+     * - Segment: only placeholders for yields actually reached from 'current' are returned 
+     *   (see 'getSegmentOutPlaceholders').
      *
      * Any yield on the LHS is always recorded in 'reachedYields' so the caller knows
      * this variable flowed out of the segment through that yield.
@@ -194,7 +205,7 @@ export class SafeDsSlicer {
             return lhs.filter(isSdsPlaceholder);
         }
         if (isSdsSegment(callable)) {
-            // User-defined segment: recurse to find exactly which yields are reached,
+            // Segment: recurse to find exactly which yields are reached,
             // then return only the corresponding call-site placeholders.
             return this.getSegmentOutPlaceholders(current, containingAssignment, resultAccumulator, reachedYields);
         }
@@ -226,12 +237,11 @@ export class SafeDsSlicer {
     }
 
     /**
-     * Recurses into a segment call for each parameter that receives 'current' as a direct
-     * argument. Returns only the call-site placeholders for yields actually reached from
-     * 'current' — not all LHS slots (precise propagation, fixes the pseudocode issue).
+     * Recurses into a segment call for each parameter that receives 'current' as a direct argument. 
+     * Returns only the call-site placeholders for yields actually reached from 'current'.
      *
-     * If a call-site assignee is itself a yield (nested segment), it is recorded in
-     * 'reachedYields' and bubbled up to the caller instead.
+     * If a call-site assignee is itself a yield (nested segment), it is recorded in 'reachedYields' 
+     * and bubbled up to the caller instead.
      */
     private getSegmentOutPlaceholders(
         current: SdsLocalVariable,
@@ -257,7 +267,7 @@ export class SafeDsSlicer {
 
             // Recurse into the segment from this parameter. A fresh 'visited' set is created inside,
             // so the same segment entered from a different call site is not incorrectly skipped.
-            const segYields = this.accumulateVariablesInForwardSlice(param, resultAccumulator);
+            const segYields = this.collectReachedYields(param, resultAccumulator);
             
             // Iterate over the reached yields and map them to the corresponding assignee
             for (const yieldStmt of segYields) {
