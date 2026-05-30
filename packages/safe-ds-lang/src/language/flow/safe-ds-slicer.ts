@@ -135,7 +135,9 @@ export class SafeDsSlicer {
     ): Set<SdsYield> {
         if (!this.analyzer.isData(startVariable)) return new Set();
 
-        // 'startVariable' itself is part of the slice
+        // 'startVariable' itself is part of the slice, if it is on pipeline-level.
+        // Segment parameters are traversal intermediaries, not outputs, so they get skipped. ???
+        // if (isSdsPlaceholder(startVariable)) 
         resultAccumulator.add(startVariable);
 
         // Seed the worklist with 'startVariable' and initialize result
