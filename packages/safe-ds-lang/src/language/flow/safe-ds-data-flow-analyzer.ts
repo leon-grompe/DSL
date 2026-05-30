@@ -2,9 +2,7 @@ import { SafeDsServices } from '../safe-ds-module.js';
 import { AstUtils } from 'langium';
 import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsParameter,
          SdsPlaceholder, SdsCall, SdsParameter, SdsExpression, SdsStatement, SdsAssignment, SdsLocalVariable, SdsSegment,
-         SdsAssignee, SdsPipeline, 
-         isSdsYield,
-         isSdsAssignee} from '../generated/ast.js';
+         } from '../generated/ast.js';
 import { ClassType } from '../typing/model.js';
 
 export class SafeDsDataFlowAnalyzer {
@@ -296,45 +294,61 @@ export class SafeDsDataFlowAnalyzer {
     }
 
     /**
-     * Extracts all assignments from 'statements' that contain a specific call.
+     * Extracts all assignments from 'statements' whose call either directly matches
+     * 'callableName', or is a segment call that contains 'callableName' somewhere inside it.
+     * In the segment case the segment-call assignment is returned, not the internal one.
      * When using the callable name 'split' or 'splitRows' it will filter both to work for tabular and image data.
      */
     extractAssignmentsWithSpecificCall(
-        statements: SdsStatement[], 
+        statements: SdsStatement[],
         callableName: string,
-        visitedSegments = new Set<SdsSegment>(),
-        callSiteAssignees?: SdsAssignee[]
     ): SdsAssignment[] {
         const result: SdsAssignment[] = [];
 
         for (const statement of statements) {
-            if (isSdsAssignment(statement) && this.isSpecificCall(statement, callableName)) {
+            if (!isSdsAssignment(statement)) continue;
+
+            if (this.isSpecificCall(statement, callableName)) {
+                // Direct call: return this assignment.
                 result.push(statement);
-            }
-
-            if (isSdsAssignment(statement) && isSdsCall(statement.expression)) {
+            } else if (isSdsCall(statement.expression)) {
+                // Segment call: return this assignment if the specific call is inside the segment.
                 const callable = this.services.helpers.NodeMapper.callToCallable(statement.expression);
-                if (isSdsSegment(callable) && callable.body && !visitedSegments.has(callable)) {
-                    visitedSegments.add(callable);
-                    
-                    // map yields to call site assignees
-                    const outerAssignees = callSiteAssignees ?? statement.assigneeList?.assignees ?? [];
-                    const yields = AstUtils.streamAllContents(callable).filter(isSdsYield).toArray();
-
-                    const mappedAssignees = yields
-                        .map(yieldStmt => this.services.helpers.NodeMapper.yieldToCallSiteAssignee(yieldStmt, outerAssignees))
-                        .filter((assignee): assignee is SdsAssignee => assignee !== undefined);
-                    
-                    result.push(...this.extractAssignmentsWithSpecificCall(
-                        callable.body.statements,
-                        callableName,
-                        visitedSegments,
-                        mappedAssignees
-                    ));
+                if (isSdsSegment(callable) && this.segmentContainsSpecificCall(callable, callableName, new Set())) {
+                    result.push(statement);
                 }
             }
         }
+
         return result;
+    }
+
+    /**
+     * Returns true if 'segment' contains a call matching 'callableName', either directly
+     * or inside a nested segment call. 'visited' prevents re-entering the same segment.
+     */
+    private segmentContainsSpecificCall(
+        segment: SdsSegment,
+        callableName: string,
+        visited: Set<SdsSegment>,
+    ): boolean {
+        if (visited.has(segment)) return false;
+        visited.add(segment);
+
+        for (const statement of segment.body?.statements ?? []) {
+            if (!isSdsAssignment(statement)) continue;
+
+            if (this.isSpecificCall(statement, callableName)) return true;
+
+            if (isSdsCall(statement.expression)) {
+                const callable = this.services.helpers.NodeMapper.callToCallable(statement.expression);
+                if (isSdsSegment(callable) && this.segmentContainsSpecificCall(callable, callableName, visited)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
