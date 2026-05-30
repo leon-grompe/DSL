@@ -1,6 +1,6 @@
 import { SafeDsServices } from '../safe-ds-module.js';
-import { isSdsAssignment, isSdsPlaceholder, isSdsParameter, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsYield,
-         SdsPlaceholder, SdsStatement, SdsAssignee, SdsLocalVariable, SdsSegment, SdsCall } from '../generated/ast.js';
+import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsYield,
+         SdsPlaceholder, SdsStatement, SdsLocalVariable, SdsYield, SdsCall, SdsAssignee, SdsSegment } from '../generated/ast.js';
 import { AstUtils, Stream } from 'langium';
 import { ImpurityReason } from '../purity/model.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
@@ -92,112 +92,129 @@ export class SafeDsSlicer {
 
     /**
      * Computes the forward slice from a variable.
-     * The result contains all variables that are derived from the target and are data.
+     * Returns all data variables that are derived from the target.
      */
     computeForwardSliceFromVariable(target: SdsLocalVariable): SdsLocalVariable[] {
-        const workingStack : SdsLocalVariable[] = [target];
-        const visited = new Set<SdsLocalVariable>;
-        
-        while (workingStack.length > 0) {
-            const currentVariable = workingStack.pop();
-            if (!currentVariable || visited.has(currentVariable)) continue;
-            // skip non-data variables
-            if (!this.analyzer.isData(currentVariable)) continue;
-            
-            // add the current variable to visited and therefore to the result
-            visited.add(currentVariable);
-
-            // get all references of the current variable
-            const refs = this.nodeMapper.localVariableToReference(currentVariable).toArray();
-            for (const ref of refs) {
-
-                // follow the reference to its containing assignment
-                const containingAssignment = AstUtils.getContainerOfType(ref, isSdsAssignment)
-                const assignees = containingAssignment?.assigneeList?.assignees;
-                if (!assignees) continue;
-
-                // differentiate between function and segment
-                if (isSdsCall(containingAssignment?.expression)){
-                    const callable = this.nodeMapper.callToCallable(containingAssignment?.expression)
-                    
-                    // case: function -> basic logic
-                    if (isSdsFunction(callable)) {
-                        this.propagateToAssignees(assignees, workingStack, visited);
-                    }
-                    // case: segment -> more complex logic
-                    else if (isSdsSegment(callable)) {
-                        this.handleSegment( callable, assignees, currentVariable, 
-                                            containingAssignment.expression, 
-                                            workingStack, visited);
-                    }
-                }
-                else {
-                    // non-call expression (reference, member access, type cast, etc.)
-                    this.propagateToAssignees(assignees, workingStack, visited);
-                }
-            }
-        }
-        return Array.from(visited);
+        const result = new Set<SdsLocalVariable>();
+        this.forwardSliceInScope(target, result);
+        return Array.from(result);
     }
 
     /**
-     * Propagates the forward slice through a function call.
-     * @param assignees The assignees of the containing assignment.
-     * @param workingStack The current working stack which is being filled by this function.
-     * @param visited The already visited variables which are being updated by this function.
+     * Worklist-based forward traversal starting from `start`.
+     *
+     * All data variables that `start` flows into are added to `result` (shared across all
+     * recursive calls so the final accumulation is in one place).
+     *
+     * Returns the set of yields that were reached during this traversal. The caller uses
+     * this to decide which call-site assignees to continue propagating into — only those
+     * that correspond to a reached yield, not all of them.
+     *
+     * `visited` is per-invocation (not shared) so that the same segment can be entered
+     * independently from different call sites. Segment parameters are single AST nodes
+     * shared across all call sites; a global visited set would cause the second call site
+     * to skip a parameter it had already processed for the first.
+     *
+     * Limitation: only direct variable references as arguments are followed into segments
+     * (e.g. `seg(data)` is followed, `seg(transform(data))` is not).
      */
-    private propagateToAssignees(
-        assignees: SdsAssignee[],
-        workingStack: SdsLocalVariable[],
-        visited: Set<SdsLocalVariable>
-    ): void {
-        // add unvisited assignees to the stack
-        for (const assignee of assignees) {
-            if (isSdsPlaceholder(assignee) && !visited.has(assignee)) {
-                // Continue forward slicing from this assignee
-                workingStack.push(assignee);
+    private forwardSliceInScope(
+        start: SdsLocalVariable,
+        result: Set<SdsLocalVariable>,
+    ): Set<SdsYield> {
+        const worklist: SdsLocalVariable[] = [start];
+        const visited = new Set<SdsLocalVariable>();
+        const reachedYields = new Set<SdsYield>();
+
+        while (worklist.length > 0) {
+            const current = worklist.pop()!;
+            if (visited.has(current)) continue;
+            // Only track data-typed variables (Image, Table, Dataset, etc.)
+            if (!this.analyzer.isData(current)) continue;
+
+            visited.add(current);
+            result.add(current);
+
+            // Find every place in the code where `current` is referenced.
+            for (const ref of this.nodeMapper.localVariableToReference(current).toArray()) {
+                // We only care about references that appear on the RHS of an assignment,
+                // because those are the only places where a variable's value flows somewhere.
+                const assignment = AstUtils.getContainerOfType(ref, isSdsAssignment);
+                if (!assignment) continue;
+
+                const lhs = getAssignees(assignment);
+                const rhs = assignment.expression;
+
+                // If any LHS slot is a yield, this variable has flowed out of the segment
+                // through that yield — record it so the caller can propagate past the call site.
+                // This is independent of what the RHS looks like.
+                for (const assignee of lhs) {
+                    if (isSdsYield(assignee)) reachedYields.add(assignee);
+                }
+
+                if (!rhs) continue;
+
+                const callable = isSdsCall(rhs) ? this.nodeMapper.callToCallable(rhs) : undefined;
+
+                if (!isSdsCall(rhs) || isSdsFunction(callable)) {
+                    // Either not a call (e.g. a plain reference `b = a`) or a built-in function
+                    // whose body we cannot inspect. In both cases, conservatively assume all
+                    // LHS placeholders depend on this variable.
+                    for (const assignee of lhs) {
+                        if (isSdsPlaceholder(assignee)) worklist.push(assignee);
+                    }
+                } else if (isSdsSegment(callable)) {
+                    // User-defined segment: recurse into it to get precise yield information,
+                    // then map only the yields that were actually reached to call-site assignees.
+                    this.propagateThroughSegment(current, rhs, callable, lhs, worklist, result, reachedYields);
+                }
+                // Other callables (classes, lambdas, …) are ignored — no propagation.
             }
         }
+
+        return reachedYields;
     }
 
     /**
-     * Propagates the forward slice through a segment call.
-     * @param callable The segment being called
-     * @param assignees The assignees of the containing assignment at the call site.
-     * @param currentVariable The variable currently being sliced.
-     * @param expression The call expression (right side of the assignment).
-     * @param workingStack The current working stack which is being filled by this function.
-     * @param visited The already visited variables which are being updated by this function.
+     * Enters a segment call on behalf of `current` and propagates the slice through it.
+     *
+     * For each parameter that receives `current` as a direct argument, we recurse into the
+     * segment. The recursion returns which of the segment's yields were reached. We then
+     * look up which call-site assignees correspond to those yields and add only those to the
+     * worklist — avoiding false propagation through yields that `current` never flows into.
+     *
+     * If a call-site assignee is itself a yield (nested segment call), we bubble it up to
+     * the caller's `reachedYields` set rather than pushing it onto the worklist.
      */
-    private handleSegment(
-        callable: SdsSegment,
-        assignees: SdsAssignee[],
-        currentVariable: SdsLocalVariable,
-        expression: SdsCall,
-        workingStack: SdsLocalVariable[],
-        visited: Set<SdsLocalVariable>
+    private propagateThroughSegment(
+        current: SdsLocalVariable,
+        call: SdsCall,
+        segment: SdsSegment,
+        callSiteAssignees: SdsAssignee[],
+        worklist: SdsLocalVariable[],
+        result: Set<SdsLocalVariable>,
+        reachedYields: Set<SdsYield>,
     ): void {
-        // Find the argument that references the current variable
-        const matchingArg = expression.argumentList.arguments.find(arg => 
-            isSdsReference(arg.value) 
-            && arg.value.target.ref === currentVariable);
-        if (!matchingArg) return;
+        const paramArgMap = this.nodeMapper.callToParamArgMap(call);
 
-        // Map the argument to its corresponding parameter inside the segment
-        const matchingParam = this.nodeMapper.argumentToParameter(matchingArg);
-        if (!matchingParam) return;
-        
-        // Continue the forward slice from the parameter inside the segment body
-        workingStack.push(matchingParam);
+        for (const [param, argExpr] of paramArgMap) {
+            // Only follow the argument that is a direct reference to `current`.
+            // Expressions like `f(data)` as an argument are not tracked.
+            if (!isSdsReference(argExpr) || argExpr.target.ref !== current) continue;
 
-        // Map yields back to assignees at the call site
-        // The yield corresponds to the result of the segment which corresponds to the assignee at the call site
-        const yields = AstUtils.streamAllContents(callable).filter(isSdsYield).toArray();
-        for (const yieldStmnt of yields) {
-            const matchingAssignee = this.nodeMapper.yieldToCallSiteAssignee(yieldStmnt, assignees);
-            if (isSdsPlaceholder(matchingAssignee) && !visited.has(matchingAssignee)) {
-                // Continue the forward slice from the assignee that has been assigned this result
-                workingStack.push(matchingAssignee);
+            // Recurse into the segment body starting from this parameter.
+            // A fresh `visited` set is created inside, so the same segment traversed
+            // from a different call site starts clean.
+            const segYields = this.forwardSliceInScope(param, result);
+
+            // Map the reached yields to their corresponding call-site positions.
+            for (const { yieldStmt, assignee } of this.nodeMapper.segmentYieldsWithAssignees(segment, callSiteAssignees)) {
+                if (!segYields.has(yieldStmt)) continue; // this yield was not reached from `current`
+                if (isSdsPlaceholder(assignee)) {
+                    worklist.push(assignee); // continue the slice in the outer scope
+                } else if (isSdsYield(assignee)) {
+                    reachedYields.add(assignee); // nested: result feeds an outer segment yield
+                }
             }
         }
     }
