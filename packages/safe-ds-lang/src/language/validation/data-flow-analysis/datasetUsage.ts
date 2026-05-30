@@ -31,6 +31,7 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
         const forwardVariables = services.flow.Slicer.computeForwardSliceFromVariable(trainingSetPlaceholder as SdsPlaceholder);
         console.log("SLICE")
         console.log(forwardVariables.map(v => v.$cstNode?.text))
+        console.log(forwardVariables.map(v => v.$type))
         for (const call of fitCalls) {
             const argumentArray = call.argumentList.arguments;
             for (const argument of argumentArray) {
