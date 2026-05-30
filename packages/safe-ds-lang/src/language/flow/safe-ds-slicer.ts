@@ -1,6 +1,7 @@
 import { SafeDsServices } from '../safe-ds-module.js';
 import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsYield,
-         SdsPlaceholder, SdsStatement, SdsLocalVariable, SdsYield, SdsCall, SdsAssignee, SdsSegment } from '../generated/ast.js';
+         SdsPlaceholder, SdsStatement, SdsLocalVariable, SdsYield, SdsCall, SdsAssignee, SdsSegment, SdsReference, 
+         isSdsStatement} from '../generated/ast.js';
 import { AstUtils, Stream } from 'langium';
 import { ImpurityReason } from '../purity/model.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
@@ -101,122 +102,161 @@ export class SafeDsSlicer {
     }
 
     /**
-     * Worklist-based forward traversal starting from `start`.
+     * Iterates over a growing worklist of references, starting from all uses of 'start'.
+     * For each reference, 'handleReference' determines which downstream placeholders are
+     * reached; 'addReferencesToLhs' expands those into their own references and appends
+     * them to the worklist — mirroring the pseudocode structure exactly.
      *
-     * All data variables that `start` flows into are added to `result` (shared across all
-     * recursive calls so the final accumulation is in one place).
+     * Returns the yields reached during traversal so the caller can map only those to
+     * call-site assignees (precise propagation through segment calls).
      *
-     * Returns the set of yields that were reached during this traversal. The caller uses
-     * this to decide which call-site assignees to continue propagating into — only those
-     * that correspond to a reached yield, not all of them.
+     * 'visited' is per-invocation so the same segment entered from different call sites
+     * always starts fresh — segment parameters are shared AST nodes across all call sites.
      *
-     * `visited` is per-invocation (not shared) so that the same segment can be entered
-     * independently from different call sites. Segment parameters are single AST nodes
-     * shared across all call sites; a global visited set would cause the second call site
-     * to skip a parameter it had already processed for the first.
-     *
-     * Limitation: only direct variable references as arguments are followed into segments
-     * (e.g. `seg(data)` is followed, `seg(transform(data))` is not).
+     * Limitation: only direct variable references as segment arguments are followed
+     * ('seg(data)' is followed, 'seg(transform(data))' is not).
      */
     private forwardSliceInScope(
         start: SdsLocalVariable,
         result: Set<SdsLocalVariable>,
     ): Set<SdsYield> {
-        const worklist: SdsLocalVariable[] = [start];
-        const visited = new Set<SdsLocalVariable>();
+        if (!this.analyzer.isData(start)) return new Set();
+
+        // 'start' itself is part of the slice; seed the worklist with its references.
+        result.add(start);
+        const visited = new Set<SdsLocalVariable>([start]);
         const reachedYields = new Set<SdsYield>();
+        const references = this.nodeMapper.localVariableToReference(start).toArray();
 
-        while (worklist.length > 0) {
-            const current = worklist.pop()!;
-            if (visited.has(current)) continue;
-            // Only track data-typed variables (Image, Table, Dataset, etc.)
-            if (!this.analyzer.isData(current)) continue;
-
-            visited.add(current);
-            result.add(current);
-
-            // Find every place in the code where `current` is referenced.
-            for (const ref of this.nodeMapper.localVariableToReference(current).toArray()) {
-                // We only care about references that appear on the RHS of an assignment,
-                // because those are the only places where a variable's value flows somewhere.
-                const assignment = AstUtils.getContainerOfType(ref, isSdsAssignment);
-                if (!assignment) continue;
-
-                const lhs = getAssignees(assignment);
-                const rhs = assignment.expression;
-
-                // If any LHS slot is a yield, this variable has flowed out of the segment
-                // through that yield — record it so the caller can propagate past the call site.
-                // This is independent of what the RHS looks like.
-                for (const assignee of lhs) {
-                    if (isSdsYield(assignee)) reachedYields.add(assignee);
-                }
-
-                if (!rhs) continue;
-
-                const callable = isSdsCall(rhs) ? this.nodeMapper.callToCallable(rhs) : undefined;
-
-                if (!isSdsCall(rhs) || isSdsFunction(callable)) {
-                    // Either not a call (e.g. a plain reference `b = a`) or a built-in function
-                    // whose body we cannot inspect. In both cases, conservatively assume all
-                    // LHS placeholders depend on this variable.
-                    for (const assignee of lhs) {
-                        if (isSdsPlaceholder(assignee)) worklist.push(assignee);
-                    }
-                } else if (isSdsSegment(callable)) {
-                    // User-defined segment: recurse into it to get precise yield information,
-                    // then map only the yields that were actually reached to call-site assignees.
-                    this.propagateThroughSegment(current, rhs, callable, lhs, worklist, result, reachedYields);
-                }
-                // Other callables (classes, lambdas, …) are ignored — no propagation.
-            }
+        // 'references' grows as we discover downstream placeholders — processed in-order.
+        for (const ref of references) {
+            // Determine which placeholders the value flows into at this reference site.
+            const nextPlaceholders = this.handleReference(ref, start, result, reachedYields);
+            // Expand each new placeholder into its own references and append to the worklist.
+            this.addReferencesToLhs(nextPlaceholders, references, visited, result);
         }
 
         return reachedYields;
     }
 
     /**
-     * Enters a segment call on behalf of `current` and propagates the slice through it.
+     * Handles a single reference to 'current' and returns the downstream placeholders
+     * that the value flows into.
      *
-     * For each parameter that receives `current` as a direct argument, we recurse into the
-     * segment. The recursion returns which of the segment's yields were reached. We then
-     * look up which call-site assignees correspond to those yields and add only those to the
-     * worklist — avoiding false propagation through yields that `current` never flows into.
+     * The reference must appear on the RHS of an assignment. Depending on the RHS:
+     * - Non-call or built-in function: all LHS placeholders are returned.
+     * - User-defined segment: only placeholders for yields actually reached from
+     *   'current' are returned (see 'getSegmentOutPlaceholders').
+     * - Other callables (classes, lambdas): nothing returned.
      *
-     * If a call-site assignee is itself a yield (nested segment call), we bubble it up to
-     * the caller's `reachedYields` set rather than pushing it onto the worklist.
+     * Any yield on the LHS is always recorded in 'reachedYields' so the caller knows
+     * this variable flowed out of the segment through that yield.
      */
-    private propagateThroughSegment(
+    private handleReference(
+        ref: SdsReference,
+        current: SdsLocalVariable,
+        result: Set<SdsLocalVariable>,
+        reachedYields: Set<SdsYield>,
+    ): SdsLocalVariable[] {
+        // References only matter when they appear on the RHS of an assignment —
+        // that is where a variable's value flows into something new.
+        const assignment = AstUtils.getContainerOfType(ref, isSdsAssignment);
+        if (!assignment) return [];
+
+        const lhs = getAssignees(assignment);
+        const rhs = assignment.expression;
+
+        // If any LHS slot is a yield, the value flows out of the enclosing segment
+        // through that yield. Record it regardless of what the RHS looks like.
+        for (const assignee of lhs) {
+            if (isSdsYield(assignee)) reachedYields.add(assignee);
+        }
+
+        if (!rhs) return [];
+
+        if (!isSdsCall(rhs)) {
+            // Plain assignment (e.g. 'val b = a'): all LHS placeholders depend on 'current'.
+            return lhs.filter(isSdsPlaceholder);
+        }
+
+        const callable = this.nodeMapper.callToCallable(rhs);
+
+        if (isSdsFunction(callable)) {
+            // Built-in function: body is opaque, so conservatively all LHS placeholders
+            // are assumed to depend on 'current'.
+            return lhs.filter(isSdsPlaceholder);
+        }
+
+        if (isSdsSegment(callable)) {
+            // User-defined segment: recurse to find exactly which yields are reached,
+            // then return only the corresponding call-site placeholders.
+            return this.getSegmentOutPlaceholders(current, rhs, callable, lhs, result, reachedYields);
+        }
+
+        return [];
+    }
+
+    /**
+     * Expands each placeholder into its references and appends them to the worklist.
+     * Skips already-visited placeholders (prevents infinite loops) and non-data variables.
+     */
+    private addReferencesToLhs(
+        placeholders: SdsLocalVariable[],
+        references: SdsReference[],
+        visited: Set<SdsLocalVariable>,
+        result: Set<SdsLocalVariable>,
+    ): void {
+        for (const placeholder of placeholders) {
+            // Guard against revisiting (cycles / diamond-shaped data flows).
+            if (visited.has(placeholder) || !this.analyzer.isData(placeholder)) continue;
+            visited.add(placeholder);
+            result.add(placeholder);
+            // Append this placeholder's own references to the end of the worklist.
+            references.push(...this.nodeMapper.localVariableToReference(placeholder).toArray());
+        }
+    }
+
+    /**
+     * Recurses into a segment call for each parameter that receives 'current' as a direct
+     * argument. Returns only the call-site placeholders for yields actually reached from
+     * 'current' — not all LHS slots (precise propagation, fixes the pseudocode issue).
+     *
+     * If a call-site assignee is itself a yield (nested segment), it is recorded in
+     * 'reachedYields' and bubbled up to the caller instead.
+     */
+    private getSegmentOutPlaceholders(
         current: SdsLocalVariable,
         call: SdsCall,
         segment: SdsSegment,
         callSiteAssignees: SdsAssignee[],
-        worklist: SdsLocalVariable[],
         result: Set<SdsLocalVariable>,
         reachedYields: Set<SdsYield>,
-    ): void {
+    ): SdsLocalVariable[] {
         const paramArgMap = this.nodeMapper.callToParamArgMap(call);
+        const outPlaceholders: SdsLocalVariable[] = [];
 
         for (const [param, argExpr] of paramArgMap) {
-            // Only follow the argument that is a direct reference to `current`.
-            // Expressions like `f(data)` as an argument are not tracked.
+            // Only follow the argument if it is a direct reference to `current`.
+            // Wrapped expressions like `seg(transform(data))` are not tracked.
             if (!isSdsReference(argExpr) || argExpr.target.ref !== current) continue;
 
-            // Recurse into the segment body starting from this parameter.
-            // A fresh `visited` set is created inside, so the same segment traversed
-            // from a different call site starts clean.
+            // Recurse into the segment from this parameter. A fresh `visited` set is
+            // created inside, so the same segment entered from a different call site
+            // is not incorrectly skipped.
             const segYields = this.forwardSliceInScope(param, result);
 
-            // Map the reached yields to their corresponding call-site positions.
+            // Map only the yields that were actually reached back to call-site positions.
             for (const { yieldStmt, assignee } of this.nodeMapper.segmentYieldsWithAssignees(segment, callSiteAssignees)) {
-                if (!segYields.has(yieldStmt)) continue; // this yield was not reached from `current`
+                if (!segYields.has(yieldStmt)) continue; // yield not reached from `current`
                 if (isSdsPlaceholder(assignee)) {
-                    worklist.push(assignee); // continue the slice in the outer scope
+                    outPlaceholders.push(assignee); // continue slice in the outer scope
                 } else if (isSdsYield(assignee)) {
-                    reachedYields.add(assignee); // nested: result feeds an outer segment yield
+                    reachedYields.add(assignee); // nested segment — bubble up to caller
                 }
             }
         }
+
+        return outPlaceholders;
     }
 }
 
