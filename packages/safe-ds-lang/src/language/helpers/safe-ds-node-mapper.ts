@@ -341,6 +341,38 @@ export class SafeDsNodeMapper {
     }
 
     /**
+     * Returns a map from each parameter of the call's callable to the corresponding argument expression.
+     * Handles both positional and named arguments. Parameters with no matching argument are omitted.
+     */
+    callToParamArgMap(call: SdsCall): Map<SdsParameter, SdsExpression> {
+        const result = new Map<SdsParameter, SdsExpression>();
+        for (const arg of getArguments(call)) {
+            const param = this.argumentToParameter(arg);
+            if (param && arg.value) {
+                result.set(param, arg.value);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Returns (yield statement, call-site assignee) pairs for each yield in the segment.
+     * Yields whose result index has no corresponding call-site assignee are omitted.
+     */
+    segmentYieldsWithAssignees(
+        segment: SdsSegment,
+        callSiteAssignees: SdsAssignee[],
+    ): Array<{ yieldStmt: SdsYield; assignee: SdsAssignee }> {
+        return AstUtils.streamAllContents(segment)
+            .filter(isSdsYield)
+            .toArray()
+            .flatMap((yieldStmt) => {
+                const assignee = this.yieldToCallSiteAssignee(yieldStmt, callSiteAssignees);
+                return assignee ? [{ yieldStmt, assignee }] : [];
+            });
+    }
+
+    /**
      * Returns the type parameter that the type argument is assigned to. If there is no matching type parameter, returns
      * `undefined`.
      */
