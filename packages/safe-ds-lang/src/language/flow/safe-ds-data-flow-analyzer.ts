@@ -60,10 +60,9 @@ export class SafeDsDataFlowAnalyzer {
         return dataPlaceholders;
     }
 
+
     /**
-     * Checks if a placeholder is actual data (Image, ImageList, any Tabular data or a Dataset).
-     * @param localVariable 
-     * @returns True if the placeholder is data. False otherwise.
+     * Checks if a localVariable is actual data (Image, ImageList, any Tabular data or a Dataset).
      */
     isData = (localVariable: SdsLocalVariable): boolean => {
         const typeComputer = this.services.typing.TypeComputer;
@@ -90,6 +89,7 @@ export class SafeDsDataFlowAnalyzer {
             return false;
         }
     }
+
 
     /**
      * Checks whether a statement contains a specific call.
