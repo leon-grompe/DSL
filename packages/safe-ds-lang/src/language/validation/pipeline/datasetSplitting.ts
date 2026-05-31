@@ -15,7 +15,7 @@ export const pipelineShouldContainMultipleSplits = (services: SafeDsServices) =>
         for (const statement of node.body.statements) {
             if (!isSdsAssignment(statement)) continue;
             
-            for (const call of nodeMapper.statementToCalls(statement).map(({ call }) => call)) {
+            for (const call of analyzer.expandSegmentCallsInStatement(statement).map(({ call }) => call)) {
 
                 if (!isSdsCall(call)) continue;
                 const callable = nodeMapper.callToCallable(call);

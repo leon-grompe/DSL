@@ -10,6 +10,7 @@ export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
 export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
     const nodeMapper = services.helpers.NodeMapper;
     const builtinAnnotations = services.builtins.Annotations;
+    const analyzer = services.flow.DataFlowAnalyzer;
 
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
         // skip this validation if the pipeline is empty to avoid confusion with other validations
@@ -20,7 +21,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         const paramArgMaps = [] as Map<SdsParameter, SdsExpression>[];
 
         for (const statement of node.body.statements) {
-            const statementCalls = nodeMapper.statementToCalls(statement);
+            const statementCalls = analyzer.expandSegmentCallsInStatement(statement);
 
             for (const { call, paramArgMap } of statementCalls) {
                 const callable = nodeMapper.callToCallable(call);
