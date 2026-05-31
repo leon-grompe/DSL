@@ -1,9 +1,10 @@
 import { SafeDsServices } from '../safe-ds-module.js';
-import { AstUtils } from 'langium';
-import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsParameter,
+import { AstNode, AstUtils } from 'langium';
+import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsParameter, isSdsExpressionStatement, isSdsOutputStatement,
          SdsPlaceholder, SdsCall, SdsParameter, SdsExpression, SdsStatement, SdsAssignment, SdsLocalVariable, SdsSegment,
          } from '../generated/ast.js';
 import { ClassType } from '../typing/model.js';
+import { getArguments, getParameters } from '../helpers/nodeProperties.js';
 
 export class SafeDsDataFlowAnalyzer {
     constructor(
@@ -367,5 +368,62 @@ export class SafeDsDataFlowAnalyzer {
         } else {
             return isSdsFunction(callable) && callable.name === callableName;
         }
+    }
+
+    /**
+     * Returns all calls that are being made by the given statement, if any.
+     * If no call can be found, returns an empty array.
+     * For chained expressions, all calls in the chain are returned (from innermost to outermost).
+     *
+     * @param statement The statement to extract calls from.
+     * @returns An array of all calls in the statement, or an empty array if none found.
+     */
+    expandSegmentCallsInStatement(
+        statement: SdsStatement, 
+        paramArgMap: Map<SdsParameter, SdsExpression> = new Map()
+    ): { call: SdsCall, paramArgMap: Map<SdsParameter, SdsExpression> }[] {
+        if (isSdsExpressionStatement(statement) ||
+            isSdsAssignment(statement) ||
+            isSdsOutputStatement(statement)) {
+
+            const directCalls = AstUtils.streamAst(statement.expression as AstNode)
+                .filter(isSdsCall)
+                .toArray();
+            directCalls.reverse();
+
+            const result: { call: SdsCall, paramArgMap: Map<SdsParameter, SdsExpression> }[] = [];
+
+            for (const call of directCalls) {
+                const callable = this.services.helpers.NodeMapper.callToCallable(call);
+
+                if (isSdsSegment(callable)) {
+                    // Build param->arg map for this segment call
+                    const segmentParams = getParameters(callable);
+                    const segmentArgs = getArguments(call);
+                    const segmentParamArgMap = this.services.helpers.NodeMapper.parametersToArguments(segmentParams, segmentArgs);
+                    
+                    // Resolve each param's argument expression, substituting outer bindings if needed
+                    const resolvedMap = new Map<SdsParameter, SdsExpression>();
+                    for (const [param, arg] of segmentParamArgMap) {
+                        let expr = arg.value;
+                        // If the argument is a reference to a parameter in the outer map, resolve it
+                        if (isSdsReference(expr) && isSdsParameter(expr.target.ref)) {
+                            const outerExpr = paramArgMap.get(expr.target.ref);
+                            if (outerExpr) expr = outerExpr;
+                        }
+                        resolvedMap.set(param, expr);
+                    }
+
+                    for (const segmentStatement of callable.body.statements) {
+                        result.push(...this.expandSegmentCallsInStatement(segmentStatement, resolvedMap));
+                    }
+                } else {
+                    result.push({ call, paramArgMap });
+                }
+            }
+
+            return result;
+        }
+        return [];
     }
 }
