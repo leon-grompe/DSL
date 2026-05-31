@@ -346,6 +346,7 @@ export class SafeDsNodeMapper {
     /**
      * Returns (yield statement, call-site assignee) pairs for each yield in the segment.
      * Yields whose result index has no corresponding call-site assignee are omitted.
+     * CURRENTLY UNUSED
      */
     segmentToYieldAssigneeMap(
         segment: SdsSegment,
@@ -367,14 +368,8 @@ export class SafeDsNodeMapper {
      * Handles both positional and named arguments. Parameters with no matching argument are omitted.
      */
     callToParamArgMap(call: SdsCall): Map<SdsParameter, SdsArgument> {
-        const result = new Map<SdsParameter, SdsArgument>();
-        for (const arg of getArguments(call)) {
-            const param = this.argumentToParameter(arg);
-            if (param && arg.value) {
-                result.set(param, arg);
-            }
-        }
-        return result;
+        const callable = this.callToCallable(call);
+        return this.parametersToArguments(getParameters(callable), getArguments(call));
     }
 
     /**
