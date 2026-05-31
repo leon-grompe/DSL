@@ -4,7 +4,7 @@ import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunc
          SdsPlaceholder, SdsCall, SdsParameter, SdsExpression, SdsStatement, SdsAssignment, SdsLocalVariable, SdsSegment,
          } from '../generated/ast.js';
 import { ClassType } from '../typing/model.js';
-import { getArguments, getAssignees, getParameters } from '../helpers/nodeProperties.js';
+import { getArguments, getParameters } from '../helpers/nodeProperties.js';
 
 export class SafeDsDataFlowAnalyzer {
     constructor(
