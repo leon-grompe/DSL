@@ -1,6 +1,6 @@
 import { SafeDsServices } from '../safe-ds-module.js';
 import { AstNode, AstUtils } from 'langium';
-import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsParameter, isSdsExpressionStatement, isSdsOutputStatement, isSdsMemberAccess,
+import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsParameter, isSdsExpressionStatement, isSdsOutputStatement,
          SdsPlaceholder, SdsCall, SdsParameter, SdsExpression, SdsStatement, SdsAssignment, SdsLocalVariable, SdsSegment,
          } from '../generated/ast.js';
 import { ClassType } from '../typing/model.js';
