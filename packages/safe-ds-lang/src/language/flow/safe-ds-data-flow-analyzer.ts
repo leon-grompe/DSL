@@ -1,10 +1,10 @@
 import { SafeDsServices } from '../safe-ds-module.js';
 import { AstNode, AstUtils } from 'langium';
-import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsParameter, isSdsExpressionStatement, isSdsOutputStatement,
+import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunction, isSdsSegment, isSdsParameter, isSdsExpressionStatement, isSdsOutputStatement, isSdsMemberAccess,
          SdsPlaceholder, SdsCall, SdsParameter, SdsExpression, SdsStatement, SdsAssignment, SdsLocalVariable, SdsSegment,
          } from '../generated/ast.js';
 import { ClassType } from '../typing/model.js';
-import { getArguments, getParameters } from '../helpers/nodeProperties.js';
+import { getArguments, getAssignees, getParameters } from '../helpers/nodeProperties.js';
 
 export class SafeDsDataFlowAnalyzer {
     constructor(
@@ -61,74 +61,117 @@ export class SafeDsDataFlowAnalyzer {
     }
 
     /**
-     * Checks if any data placeholders in a call reference the training set (assigned by first splitRows at position 0)
-     * @param call 
-     * @returns True, if the call references the training set through data. False otherwise.
+     * Returns the placeholder that represents the training set:
+     * assignee[0] of the first split call in the pipeline.
      */
-    callReferencesTrainingSet(
-        call: SdsCall, 
-        paramArgMap: Map<SdsParameter, SdsExpression> = new Map()
-    ): boolean {
-        const candidates = this.extractOnlyDataPlaceholders(call, paramArgMap);
-        
-        for (const placeholder of candidates) {
-            if (this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
-                    placeholder, 'splitRows', 0)
-                && 
-                !this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
-                    placeholder, 'splitRows', 1)) {
-                return true;
-            }
+    private getTrainingSetPlaceholder(statements: SdsStatement[]): SdsPlaceholder | undefined {
+        const firstSplit = this.extractAssignmentsWithSpecificCall(statements, 'split')[0];
+        if (!firstSplit) {
+            return undefined;
+        } else {
+            return this.getSplitAssignees(firstSplit)[0];
         }
-        return false;
     }
 
     /**
-     * Checks if any data placeholders in a call reference the validation set (assigned by second splitRows at position 0)
-     * @param call 
-     * @returns True, if the call references the validation set through data. False otherwise.
+     * Returns the placeholder that represents the validation set:
+     * assignee[0] of the direct split call (after the first) whose member-access receiver
+     * is a direct reference to the rest set (assignee[1] of the first split).
      */
-    callReferencesValidationSet(
-        call: SdsCall, 
-        paramArgMap: Map<SdsParameter, SdsExpression> = new Map()
-    ): boolean{
-        const candidates = this.extractOnlyDataPlaceholders(call, paramArgMap);
-        
-        for (const placeholder of candidates) {
-            if (this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
-                    placeholder, 'splitRows', 0)
-                && 
-                this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
-                    placeholder, 'splitRows', 1)
-                ) {
-                return true;
-            }
+    private getValidationSetPlaceholder(statements: SdsStatement[]): SdsPlaceholder | undefined {
+        const validationSplit = this.getValidationSplitAssignment(statements);
+        if (!validationSplit) {
+            return undefined;
+        } else {
+            return this.getSplitAssignees(validationSplit)[0];
         }
-        return false;
     }
 
     /**
-     * Checks if any data placeholders in a call reference the test set (assigned by second splitRows at position 1)
-     * @param call 
-     * @returns True, if the call references the test set through data. False otherwise.
+     * Returns the placeholder that represents the test set.
+     * If a validation split exists: assignee[1] of that split.
+     * Otherwise: assignee[1] of the first split (the rest set).
      */
-    callReferencesTestSet(
-        call: SdsCall, 
-        paramArgMap: Map<SdsParameter, SdsExpression> = new Map()
-    ): boolean{
-        const candidates = this.extractOnlyDataPlaceholders(call, paramArgMap);
-        
-        for (const placeholder of candidates) {
-            if (!this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
-                    placeholder, 'splitRows', 0)
-                && 
-                this.checkIfPlaceholderIsAssigneeOfSpecificFunction(
-                    placeholder, 'splitRows', 1)
-                ) {
-                return true;
+    private getTestSetPlaceholder(statements: SdsStatement[]): SdsPlaceholder | undefined {
+        const validationSplit = this.getValidationSplitAssignment(statements);
+        if (validationSplit) {
+            return this.getSplitAssignees(validationSplit)[1];
+        } else {
+            return this.getRestSetPlaceholder(statements);
+        }
+    }
+
+    /**
+     * Returns true if any data-typed reference argument of 'call' is derived from the training set.
+     */
+    callReferencesTrainingSet(call: SdsCall, statements: SdsStatement[]): boolean {
+        const trainingSet = this.getTrainingSetPlaceholder(statements);
+        if (!trainingSet) return false;
+        return this.anyArgInForwardSliceOfTarget(call, trainingSet);
+    }
+
+    /**
+     * Returns true if any data-typed reference argument of 'call' is derived from the validation set.
+     */
+    callReferencesValidationSet(call: SdsCall, statements: SdsStatement[]): boolean {
+        const validationSet = this.getValidationSetPlaceholder(statements);
+        if (!validationSet) return false;
+        return this.anyArgInForwardSliceOfTarget(call, validationSet);
+    }
+
+    /**
+     * Returns true if any data-typed reference argument of 'call' is derived from the test set.
+     */
+    callReferencesTestSet(call: SdsCall, statements: SdsStatement[]): boolean {
+        const testSet = this.getTestSetPlaceholder(statements);
+        if (!testSet) return false;
+        return this.anyArgInForwardSliceOfTarget(call, testSet);
+    }
+
+    // Returns the first and second placeholder assignees of a split assignment.
+    private getSplitAssignees(assignment: SdsAssignment): [SdsPlaceholder | undefined, SdsPlaceholder | undefined] {
+        const assignees = getAssignees(assignment);
+        const first  = isSdsPlaceholder(assignees[0]) ? assignees[0] : undefined;
+        const second = isSdsPlaceholder(assignees[1]) ? assignees[1] : undefined;
+        return [first, second];
+    }
+
+    // assignee[1] of the first split, the "rest" that is split further into validation/test.
+    private getRestSetPlaceholder(statements: SdsStatement[]): SdsPlaceholder | undefined {
+        const firstSplit = this.extractAssignmentsWithSpecificCall(statements, 'split')[0];
+        if (!firstSplit) return undefined;
+        return this.getSplitAssignees(firstSplit)[1];
+    }
+
+    // Finds the direct split call (after the first) whose member-access receiver is a direct
+    // reference to the rest set. Returns undefined if no such split exists.
+    private getValidationSplitAssignment(statements: SdsStatement[]): SdsAssignment | undefined {
+        const restSet = this.getRestSetPlaceholder(statements);
+        if (!restSet) return undefined;
+
+        let isFirst = true;
+        for (const statement of statements) {
+            if (!isSdsAssignment(statement) || !this.isSpecificCall(statement, 'split')) continue;
+            // Skip the first split
+            if (isFirst) { isFirst = false; continue; }
+
+            const call = statement.expression as SdsCall;
+            if (isSdsMemberAccess(call.receiver)) {
+                const base = call.receiver.receiver;
+                if (isSdsReference(base) && base.target.ref === restSet) return statement;
             }
         }
-        return false;    
+        return undefined;
+    }
+
+    // Returns true if any data-typed reference argument of 'call' is in the forward slice of 'target'.
+    private anyArgInForwardSliceOfTarget(call: SdsCall, target: SdsPlaceholder): boolean {
+        const forwardSlice = this.services.flow.Slicer.computeForwardSliceFromVariable(target);
+        return call.argumentList.arguments.some(arg => {
+            if (!isSdsReference(arg.value)) return false;
+            const ref = arg.value.target.ref;
+            return isSdsPlaceholder(ref) && forwardSlice.some(v => v === ref);
+        });
     }
 
     /**
@@ -159,6 +202,24 @@ export class SafeDsDataFlowAnalyzer {
             return true;
         } else { 
             return false;
+        }
+    }
+
+    /**
+     * Checks whether a statement contains a specific call.
+     * When using the callable name 'split' or 'splitRows' it will check for both to work for tabular and image data.
+     */
+    isSpecificCall(statement: SdsStatement, callableName: string) : boolean {
+        if (!(isSdsAssignment(statement) && isSdsCall(statement.expression))) return false; 
+      
+        const callable = this.services.helpers.NodeMapper.callToCallable(statement.expression);
+        
+        if (callableName === 'split' || callableName === 'splitRows') {
+            return isSdsFunction(callable) && 
+                (callable.name === 'splitRows' ||
+                callable.name === 'split');
+        } else {
+            return isSdsFunction(callable) && callable.name === callableName;
         }
     }
 
@@ -220,23 +281,6 @@ export class SafeDsDataFlowAnalyzer {
         return false;
     }
 
-    /**
-     * Checks whether a statement contains a specific call.
-     * When using the callable name 'split' or 'splitRows' it will check for both to work for tabular and image data.
-     */
-    isSpecificCall(statement: SdsStatement, callableName: string) : boolean {
-        if (!(isSdsAssignment(statement) && isSdsCall(statement.expression))) return false; 
-      
-        const callable = this.services.helpers.NodeMapper.callToCallable(statement.expression);
-        
-        if (callableName === 'split' || callableName === 'splitRows') {
-            return isSdsFunction(callable) && 
-                (callable.name === 'splitRows' ||
-                callable.name === 'split');
-        } else {
-            return isSdsFunction(callable) && callable.name === callableName;
-        }
-    }
 
     /**
      * Returns all calls that are being made by the given statement, if any.
