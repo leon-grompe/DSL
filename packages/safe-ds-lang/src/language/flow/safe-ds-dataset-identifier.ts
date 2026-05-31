@@ -8,54 +8,25 @@ export class SafeDsDatasetIdentifier {
         private services: SafeDsServices
     ) {}
 
-        /**
-     * Returns the placeholder that represents the training set:
-     * assignee[0] of the first split call in the pipeline.
-     */
-    private getTrainingSetPlaceholder(statements: SdsStatement[]): SdsPlaceholder | undefined {
-        const firstSplit = this.services.flow.DataFlowAnalyzer.extractAssignmentsWithSpecificCall(statements, 'split')[0];
-        if (!firstSplit) {
-            return undefined;
-        } else {
-            return this.getSplitAssignees(firstSplit)[0];
-        }
-    }
-
-    /**
-     * Returns the placeholder that represents the validation set:
-     * assignee[0] of the direct split call (after the first) whose member-access receiver
-     * is a direct reference to the rest set (assignee[1] of the first split).
-     */
-    private getValidationSetPlaceholder(statements: SdsStatement[]): SdsPlaceholder | undefined {
-        const validationSplit = this.getValidationSplitAssignment(statements);
-        if (!validationSplit) {
-            return undefined;
-        } else {
-            return this.getSplitAssignees(validationSplit)[0];
-        }
-    }
-
-    /**
-     * Returns the placeholder that represents the test set.
-     * If a validation split exists: assignee[1] of that split.
-     * Otherwise: assignee[1] of the first split (the rest set).
-     */
-    private getTestSetPlaceholder(statements: SdsStatement[]): SdsPlaceholder | undefined {
-        const validationSplit = this.getValidationSplitAssignment(statements);
-        if (validationSplit) {
-            return this.getSplitAssignees(validationSplit)[1];
-        } else {
-            return this.getRestSetPlaceholder(statements);
-        }
-    }
-
     /**
      * Returns true if any data-typed reference argument of 'call' is derived from the training set.
      */
     callReferencesTrainingSet(call: SdsCall, statements: SdsStatement[]): boolean {
         const trainingSet = this.getTrainingSetPlaceholder(statements);
         if (!trainingSet) return false;
+            
         return this.anyArgInForwardSliceOfTarget(call, trainingSet);
+    }
+
+    /**
+     * Returns the placeholder that represents the training set:
+     * assignee[0] of the first split call in the pipeline.
+     */
+    getTrainingSetPlaceholder(statements: SdsStatement[]): SdsPlaceholder | undefined {
+        const firstSplit = this.services.flow.DataFlowAnalyzer.extractAssignmentsWithSpecificCall(statements, 'split')[0];
+        if (!firstSplit) return undefined;
+
+        return this.getSplitAssignees(firstSplit)[0];
     }
 
     /**
@@ -64,7 +35,20 @@ export class SafeDsDatasetIdentifier {
     callReferencesValidationSet(call: SdsCall, statements: SdsStatement[]): boolean {
         const validationSet = this.getValidationSetPlaceholder(statements);
         if (!validationSet) return false;
+        
         return this.anyArgInForwardSliceOfTarget(call, validationSet);
+    }
+
+    /**
+     * Returns the placeholder that represents the validation set:
+     * assignee[0] of the direct split call (after the first) whose member-access receiver
+     * is a direct reference to the rest set (assignee[1] of the first split).
+     */
+    getValidationSetPlaceholder(statements: SdsStatement[]): SdsPlaceholder | undefined {
+        const validationSplit = this.getValidationSplitAssignment(statements);
+        if (!validationSplit) return undefined;
+
+        return this.getSplitAssignees(validationSplit)[0];
     }
 
     /**
@@ -73,14 +57,29 @@ export class SafeDsDatasetIdentifier {
     callReferencesTestSet(call: SdsCall, statements: SdsStatement[]): boolean {
         const testSet = this.getTestSetPlaceholder(statements);
         if (!testSet) return false;
+        
         return this.anyArgInForwardSliceOfTarget(call, testSet);
     }
+
+    /**
+     * Returns the placeholder that represents the test set.
+     * If a validation split exists: assignee[1] of that split.
+     * Otherwise: assignee[1] of the first split (the rest set).
+     */
+    getTestSetPlaceholder(statements: SdsStatement[]): SdsPlaceholder | undefined {
+        const validationSplit = this.getValidationSplitAssignment(statements);
+        if (validationSplit) return this.getSplitAssignees(validationSplit)[1];
+
+        return this.getRestSetPlaceholder(statements);
+    }
+
 
     // Returns the first and second placeholder assignees of a split assignment.
     private getSplitAssignees(assignment: SdsAssignment): [SdsPlaceholder | undefined, SdsPlaceholder | undefined] {
         const assignees = getAssignees(assignment);
         const first  = isSdsPlaceholder(assignees[0]) ? assignees[0] : undefined;
         const second = isSdsPlaceholder(assignees[1]) ? assignees[1] : undefined;
+        
         return [first, second];
     }
 
@@ -88,6 +87,7 @@ export class SafeDsDatasetIdentifier {
     private getRestSetPlaceholder(statements: SdsStatement[]): SdsPlaceholder | undefined {
         const firstSplit = this.services.flow.DataFlowAnalyzer.extractAssignmentsWithSpecificCall(statements, 'split')[0];
         if (!firstSplit) return undefined;
+        
         return this.getSplitAssignees(firstSplit)[1];
     }
 
