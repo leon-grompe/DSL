@@ -346,7 +346,7 @@ export class SafeDsNodeMapper {
     /**
      * Returns (yield statement, call-site assignee) pairs for each yield in the segment.
      * Yields whose result index has no corresponding call-site assignee are omitted.
-     * CURRENTLY UNUSED
+     * CURRENTLY UNUSED AND UNTESTED
      */
     segmentToYieldAssigneeMap(
         segment: SdsSegment,
