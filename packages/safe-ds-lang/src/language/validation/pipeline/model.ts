@@ -1,7 +1,7 @@
 import { ValidationResult } from './validationDataStructures.js'
 import { SafeDsServices } from '../../safe-ds-module.js';
-import { SdsCall, SdsParameter, SdsExpression } from '../../generated/ast.js';
-import { SafeDsDataFlowAnalyzer } from '../../flow/safe-ds-data-flow-analyzer.js';
+import { SdsCall, SdsParameter, SdsExpression, SdsStatement } from '../../generated/ast.js';
+import { SafeDsDatasetIdentifier } from '../../flow/safe-ds-dataset-identifier.js';
 
 // DataSet for variable tracking
 export enum DataSet {
@@ -21,7 +21,8 @@ export class ValidationContext {
     constructor(
         public activitySequence: Activity[][],
         public calls: SdsCall[],
-        public paramArgMaps: Map<SdsParameter, SdsExpression>[]
+        public paramArgMaps: Map<SdsParameter, SdsExpression>[],
+        public statements: SdsStatement[],
     ){}
 }
 
@@ -62,8 +63,8 @@ export class ElementaryBlock extends ProtocolBlock{
     ){ super() }
 
     validate(context: ValidationContext, startIndex: number, services: SafeDsServices) : ValidationResult {
-        const analyzer = services.flow.DataFlowAnalyzer;
-        
+        const identifier = services.flow.DatasetIdentifier;
+
         if (startIndex > context.activitySequence.length) {
             return ValidationResult.failure(startIndex, {type: 'elem-block-oob'});
         }
@@ -81,10 +82,9 @@ export class ElementaryBlock extends ProtocolBlock{
                     return ValidationResult.success(startIndex + 1);
                 }
                 const datasetResult = this.handleDatasetMismatch(
-                    startIndex, currentCall, analyzer, 
+                    startIndex, currentCall, identifier,
                     currentActivities,
-                    context.paramArgMaps[startIndex],
-
+                    context.statements,
                 );
                 if (!datasetResult.isValid){
                     return datasetResult;
@@ -105,15 +105,15 @@ export class ElementaryBlock extends ProtocolBlock{
 
     // TODO: change fallback on original set, since it is wrong if the placeholder is unknown.
     private handleDatasetMismatch(
-        startIndex: number, 
-        currentCall: SdsCall, 
-        analyzer: SafeDsDataFlowAnalyzer, 
+        startIndex: number,
+        currentCall: SdsCall,
+        identifier: SafeDsDatasetIdentifier,
         activities: Activity[] | undefined,
-        paramArgMap: Map<SdsParameter, SdsExpression> | undefined
+        statements: SdsStatement[],
     ) : ValidationResult {
-        const isTraining = analyzer.callReferencesTrainingSet(currentCall, paramArgMap);
-        const isValidation = analyzer.callReferencesValidationSet(currentCall, paramArgMap);
-        const isTest = analyzer.callReferencesTestSet(currentCall, paramArgMap);
+        const isTraining = identifier.callReferencesTrainingSet(currentCall, statements);
+        const isValidation = identifier.callReferencesValidationSet(currentCall, statements);
+        const isTest = identifier.callReferencesTestSet(currentCall, statements);
 
         switch (this.target) {
             case DataSet.Training:
@@ -221,10 +221,10 @@ export class RepetitionBlock extends ProtocolBlock{
             // lookahead to check if the mistake is that the phase ended and the next phase started
             if (this.exitDataset && currentIndex < context.calls.length) {
                 const nextCall = context.calls[currentIndex];
-                const analyzer = services.flow.DataFlowAnalyzer;
-                if (!nextCall) break; 
-                
-                const isNextOnExitSet = this.callUsesDataset(nextCall, this.exitDataset, analyzer);
+                const identifier = services.flow.DatasetIdentifier;
+                if (!nextCall) break;
+
+                const isNextOnExitSet = this.callUsesDataset(nextCall, this.exitDataset, identifier, context.statements);
                 if (isNextOnExitSet) break;
             }
             
@@ -247,11 +247,11 @@ export class RepetitionBlock extends ProtocolBlock{
         return ValidationResult.success(currentIndex);
     }
 
-    private callUsesDataset = (call: SdsCall, target: DataSet, analyzer: SafeDsDataFlowAnalyzer): boolean => {
+    private callUsesDataset = (call: SdsCall, target: DataSet, identifier: SafeDsDatasetIdentifier, statements: SdsStatement[]): boolean => {
         switch(target) {
-            case DataSet.Training:   return analyzer.callReferencesTrainingSet(call);
-            case DataSet.Validation: return analyzer.callReferencesValidationSet(call);
-            case DataSet.Test:       return analyzer.callReferencesTestSet(call);
+            case DataSet.Training:   return identifier.callReferencesTrainingSet(call, statements);
+            case DataSet.Validation: return identifier.callReferencesValidationSet(call, statements);
+            case DataSet.Test:       return identifier.callReferencesTestSet(call, statements);
             default:                 return false;
         }
     }
