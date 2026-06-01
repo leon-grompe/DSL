@@ -21,7 +21,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         const paramArgMaps = [] as Map<SdsParameter, SdsExpression>[];
 
         for (const statement of node.body.statements) {
-            const statementCalls = analyzer.expandSegmentCallsInStatement(statement);
+            const statementCalls = analyzer.expandCallsInStatement(statement);
 
             for (const { call, paramArgMap } of statementCalls) {
                 const callable = nodeMapper.callToCallable(call);
@@ -42,7 +42,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
             }
         }
 
-        const context = new ValidationContext(sequence, calls, paramArgMaps);
+        const context = new ValidationContext(sequence, calls, paramArgMaps, node.body.statements);
 
         const result = behaviourProtocol.validate(context, 0, services);
         

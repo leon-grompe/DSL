@@ -179,7 +179,7 @@ export class SafeDsDataFlowAnalyzer {
      * The returned paramArgMap for each call lets callers resolve parameter references back to
      * the original pipeline-level expressions, regardless of how many segment layers were crossed.
      */
-    expandSegmentCallsInStatement(
+    expandCallsInStatement(
         statement: SdsStatement, 
         paramArgMap: Map<SdsParameter, SdsExpression> = new Map()
     ): { call: SdsCall, paramArgMap: Map<SdsParameter, SdsExpression> }[] {
@@ -216,7 +216,7 @@ export class SafeDsDataFlowAnalyzer {
 
                     // Recursively expand calls in the segment body with the resolved paramArgMap
                     for (const segmentStatement of callable.body.statements) {
-                        result.push(...this.expandSegmentCallsInStatement(segmentStatement, resolvedMap));
+                        result.push(...this.expandCallsInStatement(segmentStatement, resolvedMap));
                     }
                 } else {
                     // Function / class call: emit with the paramArgMap from the enclosing segment scope
