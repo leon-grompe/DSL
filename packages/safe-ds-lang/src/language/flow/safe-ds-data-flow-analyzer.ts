@@ -4,7 +4,6 @@ import { isSdsAssignment, isSdsPlaceholder, isSdsReference, isSdsCall, isSdsFunc
          SdsPlaceholder, SdsCall, SdsParameter, SdsExpression, SdsStatement, SdsAssignment, SdsLocalVariable, SdsSegment,
          } from '../generated/ast.js';
 import { ClassType } from '../typing/model.js';
-import { getArguments, getParameters } from '../helpers/nodeProperties.js';
 
 export class SafeDsDataFlowAnalyzer {
     constructor(
@@ -169,12 +168,16 @@ export class SafeDsDataFlowAnalyzer {
 
 
     /**
-     * Returns all calls that are being made by the given statement, if any.
-     * If no call can be found, returns an empty array.
-     * For chained expressions, all calls in the chain are returned (from innermost to outermost).
+     * Flattens a statement into a list of non-segment calls, recursively inlining segment calls.
      *
-     * @param statement The statement to extract calls from.
-     * @returns An array of all calls in the statement, or an empty array if none found.
+     * For each call in the statement (innermost first):
+     * - Segment call: replaced by recursively expanding its body, with a resolved paramArgMap
+     *   that maps each segment parameter to the argument expression passed at this call site
+     *   (substituting any parameter references from the outer paramArgMap).
+     * - Function / class call: emitted as-is, paired with the current paramArgMap.
+     *
+     * The returned paramArgMap for each call lets callers resolve parameter references back to
+     * the original pipeline-level expressions, regardless of how many segment layers were crossed.
      */
     expandSegmentCallsInStatement(
         statement: SdsStatement, 
@@ -183,11 +186,12 @@ export class SafeDsDataFlowAnalyzer {
         if (isSdsExpressionStatement(statement) ||
             isSdsAssignment(statement) ||
             isSdsOutputStatement(statement)) {
-
+            
+            // Get direct calls in this statement, starting from innermost (reverse order)
             const directCalls = AstUtils.streamAst(statement.expression as AstNode)
                 .filter(isSdsCall)
-                .toArray();
-            directCalls.reverse();
+                .toArray()
+                .reverse();
 
             const result: { call: SdsCall, paramArgMap: Map<SdsParameter, SdsExpression> }[] = [];
 
@@ -195,27 +199,28 @@ export class SafeDsDataFlowAnalyzer {
                 const callable = this.services.helpers.NodeMapper.callToCallable(call);
 
                 if (isSdsSegment(callable)) {
-                    // Build param->arg map for this segment call
-                    const segmentParams = getParameters(callable);
-                    const segmentArgs = getArguments(call);
-                    const segmentParamArgMap = this.services.helpers.NodeMapper.parametersToArguments(segmentParams, segmentArgs);
-                    
                     // Resolve each param's argument expression, substituting outer bindings if needed
+                    const segmentParamArgMap = this.services.helpers.NodeMapper.callToParamArgMap(call);
                     const resolvedMap = new Map<SdsParameter, SdsExpression>();
+                    
+                    // First resolve the direct arguments at this call site
                     for (const [param, arg] of segmentParamArgMap) {
                         let expr = arg.value;
-                        // If the argument is a reference to a parameter in the outer map, resolve it
+                        // Argument is reference to a parameter in the outer scope:
+                        // Substitute with the bound expression from the outer paramArgMap
                         if (isSdsReference(expr) && isSdsParameter(expr.target.ref)) {
-                            const outerExpr = paramArgMap.get(expr.target.ref);
-                            if (outerExpr) expr = outerExpr;
+                            expr = paramArgMap.get(expr.target.ref) ?? expr;
                         }
                         resolvedMap.set(param, expr);
                     }
 
+                    // Recursively expand calls in the segment body with the resolved paramArgMap
                     for (const segmentStatement of callable.body.statements) {
                         result.push(...this.expandSegmentCallsInStatement(segmentStatement, resolvedMap));
                     }
                 } else {
+                    // Function / class call: emit with the paramArgMap from the enclosing segment scope
+                    // so callers can resolve any parameter references back to pipeline-level expressions.
                     result.push({ call, paramArgMap });
                 }
             }
