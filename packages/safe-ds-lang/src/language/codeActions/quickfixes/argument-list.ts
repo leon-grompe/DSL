@@ -5,6 +5,7 @@ import { isSdsCall, isSdsAnnotationCall } from '../../generated/ast.js';
 import { CodeActionAcceptor } from '../safe-ds-code-action-provider.js';
 import { createQuickfixFromTextEditsToSingleDocument } from '../factories.js';
 
+
 export const removeUnnecessaryArgumentList = (services: SafeDsServices) => {
     const locator = services.workspace.AstNodeLocator;
 
