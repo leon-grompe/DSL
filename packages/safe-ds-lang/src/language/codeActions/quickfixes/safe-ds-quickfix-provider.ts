@@ -1,8 +1,12 @@
 import { Diagnostic } from 'vscode-languageserver';
 import { LangiumDocument } from 'langium';
 import { CODE_ARGUMENT_POSITIONAL } from '../../validation/other/expressions/arguments.js';
+import { CODE_STYLE_UNNECESSARY_BODY } from '../../validation/style.js';
+import { CODE_STYLE_UNNECESSARY_ARGUMENT_LIST } from '../../validation/style.js';
 import { SafeDsServices } from '../../safe-ds-module.js';
 import { makeArgumentsAssignedToOptionalParametersNamed } from './arguments.js';
+import { removeUnnecessaryBody } from './body.js';
+import { removeUnnecessaryArgumentList } from './argument-list.js';
 import { CodeActionAcceptor } from '../safe-ds-code-action-provider.js';
 
 export class SafeDsQuickfixProvider {
@@ -11,6 +15,8 @@ export class SafeDsQuickfixProvider {
     constructor(services: SafeDsServices) {
         this.registry = {
             [CODE_ARGUMENT_POSITIONAL]: [makeArgumentsAssignedToOptionalParametersNamed(services)],
+            [CODE_STYLE_UNNECESSARY_BODY]: [removeUnnecessaryBody(services)],
+            [CODE_STYLE_UNNECESSARY_ARGUMENT_LIST]: [removeUnnecessaryArgumentList(services)],
         };
     }
 

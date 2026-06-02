@@ -1,0 +1,21 @@
+// $TEST$ apply r"^Remove.*"
+
+package tests.codeActions.quickfixes.removeUnnecessaryBody
+
+class MyTestClass1() {
+    attr x: Int
+}
+
+enum MyTestEnum1 {
+    A
+    B
+    C
+}
+
+class MyTestClass() {
+
+}
+
+enum MyTestEnum {
+
+}
