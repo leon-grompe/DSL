@@ -1,4 +1,10 @@
-import { ValidationResult } from './validationDataStructures.js'
+import {
+    ValidationResult, SequenceBlockFailedError,
+    ElemBlockOobError, ElemBlockActivityMismatchError,
+    AlternativeBlockNoMatchError, OrBlockNoMatchError,
+    RepetitionBlockMinimumNotMetError,
+    DatasetMismatchError,
+} from './validationDataStructures.js'
 import { SafeDsServices } from '../../safe-ds-module.js';
 import { SdsCall, SdsParameter, SdsExpression, SdsStatement } from '../../generated/ast.js';
 import { SafeDsDatasetIdentifier } from '../../flow/safe-ds-dataset-identifier.js';
@@ -45,7 +51,7 @@ export abstract class ProtocolBlock {
     protected containsDatasetMismatch(result: ValidationResult): boolean {
         let current: ValidationResult | undefined = result;
         while (current) {
-            if (current.error?.type === 'dataset-mismatch') return true;
+            if (current.error instanceof DatasetMismatchError) return true;
             current = current.baseError;
         }
         return false;
@@ -66,7 +72,7 @@ export class ElementaryBlock extends ProtocolBlock{
         const identifier = services.flow.DatasetIdentifier;
 
         if (startIndex > context.activitySequence.length) {
-            return ValidationResult.failure(startIndex, {type: 'elem-block-oob'});
+            return ValidationResult.failure(startIndex, new ElemBlockOobError());
         }
         
         const currentActivities = context.activitySequence[startIndex];
@@ -95,11 +101,10 @@ export class ElementaryBlock extends ProtocolBlock{
             return ValidationResult.success(startIndex + 1);
         }
         else {
-            return ValidationResult.failure(startIndex, {
-                type: 'elem-block-activity-mismatch', 
-                expected: new Activity(this.activity.activityName), 
-                found: currentActivities ?? [new Activity('EndOfPipeline')]
-            });
+            return ValidationResult.failure(startIndex, new ElemBlockActivityMismatchError(
+                new Activity(this.activity.activityName),
+                currentActivities ?? [new Activity('EndOfPipeline')]
+            ));
         }
     }
 
@@ -144,12 +149,7 @@ export class ElementaryBlock extends ProtocolBlock{
         actual: DataSet, 
         activities: Activity[] | undefined
     ) : ValidationResult {
-        return ValidationResult.failure(startIndex, {
-            type: 'dataset-mismatch',
-            expected: expected,
-            found: actual,
-            activities: activities
-        })
+        return ValidationResult.failure(startIndex, new DatasetMismatchError(expected, actual, activities))
     }
 }
 
@@ -166,9 +166,7 @@ export class SequenceBlock extends ProtocolBlock{
         for (const block of this.blocks){
             const result = block.validate(context, updatedStartingPoint, services);
             if(!result.isValid){
-                return ValidationResult.failure(result.validatedIndex, {
-                    type: 'sequence-block-failed',
-                },  result);
+                return ValidationResult.failure(result.validatedIndex, new SequenceBlockFailedError(), result);
             }
             // Identify Phase length
             /*
@@ -206,12 +204,9 @@ export class RepetitionBlock extends ProtocolBlock{
         for (let counter = 0; counter < this.min; counter++) {
             const result = this.block.validate(context, currentIndex, services);
             if (!result.isValid) {
-                return ValidationResult.failure(result.validatedIndex, {
-                    type: 'repetition-block-minimum-not-met',
-                    min: this.min,
-                    actual: counter,
-                    phaseName: this.phaseName,
-                },  result );
+                return ValidationResult.failure(result.validatedIndex,
+                    new RepetitionBlockMinimumNotMetError(this.min, counter, this.phaseName),
+                    result);
             }
             currentIndex = result.validatedIndex;
         }
@@ -233,12 +228,9 @@ export class RepetitionBlock extends ProtocolBlock{
             if (!result.isValid) { 
                 // propagate daset mismatch error 
                 if (this.containsDatasetMismatch(result)) {
-                    return ValidationResult.failure(result.validatedIndex, {
-                        type: 'repetition-block-minimum-not-met',
-                        min: this.min,
-                        actual: counter,
-                        phaseName: this.phaseName,
-                    }, result);  
+                    return ValidationResult.failure(result.validatedIndex,
+                        new RepetitionBlockMinimumNotMetError(this.min, counter, this.phaseName),
+                        result);
                 }  
                 break;       
             }
@@ -278,51 +270,16 @@ export class AlternativeBlock extends ProtocolBlock{
                     const result = block.validate(context, startIndex, services);
                     if (result.isValid) return result;
                     if (this.containsDatasetMismatch(result)) {
-                        // Wrap statt direkter Return: or-block-no-match als äußerer Fehler
-                        return ValidationResult.failure(startIndex, {
-                            type: 'or-block-no-match',
-                            alternatives: alternatives
-                        }, result); // ← result als baseError
+                        return ValidationResult.failure(startIndex, new OrBlockNoMatchError(alternatives), result);
                     }
                 }
-                return ValidationResult.failure(startIndex, {
-                    type: 'or-block-no-match',
-                    alternatives: alternatives
-                });
+                return ValidationResult.failure(startIndex, new OrBlockNoMatchError(alternatives));
             }
-            // Unfinished Implementation, not needed for current protocol
-            /*
-            case 'xor': {
-                let validCount = 0;
-                let lastValidIndex = startIndex;
-                for (const block of this.blocks) {
-                    const result = block.validate(context, startIndex, services);
-                    // break early if dataset mismatch detected
-                    if (this.containsDatasetMismatch(result)) {
-                        return result;
-                    } 
-                    if (result.isValid) {
-                        validCount++;
-                        lastValidIndex = result.validatedIndex;
-                    }
-                }
-                if (validCount === 1){
-                    return ValidationResult.success(lastValidIndex);
-                }
-                if (validCount > 1){
-                    return ValidationResult.failure(startIndex, {
-                        type: 'xor-block-multiple-matches',
-                        alternatives: alternatives
-                    });
-                }
-                break;
-            }
-            */
+
+            // Unfinished, as it is currently not used in the protocol definition. Should be implemented if XOR relation is needed in the future.
+            case 'xor': {}
         }
-        return ValidationResult.failure(startIndex, {
-            type: 'alternative-block-no-match',
-            alternatives: alternatives
-        });       
+        return ValidationResult.failure(startIndex, new AlternativeBlockNoMatchError(alternatives));
     }
 }
 

@@ -1,45 +1,198 @@
 import { Activity, DataSet } from './model.js'
 
-export type ValidationError = 
-    | {type: 'sequence-block-failed'; name?: string }     
-    
-    | {type: 'elem-block-oob' }
-    | {type: 'elem-block-activity-mismatch'; expected: Activity; found: Activity[] }
-    
-    | {type: 'alternative-block-no-match'; alternatives: Activity[] }
-    | {type: 'or-block-no-match'; alternatives: Activity[]}
-    | {type: 'xor-block-multiple-matches'; alternatives: Activity[]}
-    
-    | {type: 'repetition-block-minimum-not-met'; min: number; actual: number; phaseName?: string }
+export interface ValidationMessage {
+    message: string;
+    severity: 'error' | 'warning' | 'info';
+}
 
-    | {type: 'dataset-mismatch'; expected: DataSet; found: DataSet, activities?: Activity[]} 
+// ---------------------------------------------------------------------------
+// Error classes
+// ---------------------------------------------------------------------------
 
+/**
+ * Abstract base class for validation errors. Each error type should extend this 
+ * class and implement the formatMessage method to provide a user-friendly error 
+ * message. The severity property indicates the kind of validation , and the 
+ * isPriority flag can be used to short-circuit further error processing when a 
+ * critical issue is detected (e.g., dataset mismatch).
+ */
+export abstract class ValidationError {
+    /** The severity of the error. Corresponds to langiums severity. */
+    abstract readonly severity: 'error' | 'warning' | 'info';
+    /** Priority errors short-circuit message generation (no further errors are processed). */
+    readonly isPriority: boolean = false;
+    
+    /** Returns a message fragment, or null if this error contributes nothing useful. */
+    abstract formatMessage(phase: string): string | null;
+}
+
+/**
+ * This error occurs when a SequenceBlock fails to validate.
+ * Usually does not contain useful information by itself.
+ */
+export class SequenceBlockFailedError extends ValidationError {
+    readonly severity = 'warning' as const;
+    formatMessage(_phase: string): null { return null; }
+}
+
+/**
+ * This error occurs when an ElementaryBlock tries to validate an activity that 
+ * is out of bounds (i.e., the activity sequence has already ended).
+ */
+export class ElemBlockOobError extends ValidationError {
+    readonly severity = 'warning' as const;
+    formatMessage(_phase: string): string { return 'Pipeline ended unexpectedly.'; }
+}
+
+/**
+ * This error occurs when an ElementaryBlock tries to validate an activity that 
+ * does not match the expected one. The error message lists the expected activity
+ * and the found activities.
+ */
+export class ElemBlockActivityMismatchError extends ValidationError {
+    constructor(public expected: Activity, public found: Activity[]) { super(); }
+    readonly severity = 'warning' as const;
+    formatMessage(_phase: string): string {
+        const foundNames = [...new Set(this.found
+            .map(a => `'${a.activityName.replace('Q', ' - ')}'`))]
+            .join(', ');
+        return `Expected '${this.expected.activityName.replace('Q', ' - ')}' but found ${foundNames}.`;
+    }
+}
+
+/**
+ * This error is a fallback error for AlternativeBlocks when none of the 
+ * alternatives match the current activity.
+ */
+export class AlternativeBlockNoMatchError extends ValidationError {
+    constructor(public alternatives: Activity[]) { super(); }
+    readonly severity = 'warning' as const;
+    formatMessage(_phase: string): null { return null; }
+}
+
+/**
+ * This error occurs when an OrBlock fails to find any matching activity in any
+ * of its alternatives. The error message lists the expected activities across 
+ * all alternatives for the current phase.
+ */
+export class OrBlockNoMatchError extends ValidationError {
+    constructor(public alternatives: Activity[]) { super(); }
+    readonly severity = 'warning' as const;
+    formatMessage(phase: string): string {
+        const context = phase !== '' ? `phase ${phase}` : 'current phase';
+        const names = this.alternatives.map(a => `'${sliceActivityName(a.activityName)}'`).join(', ');
+        return `Expected one of the following activities during ${context}: ${names}.`;
+    }
+}
+
+/**
+ * This error occurs when a RepetitionBlock does not meet its minimum occurrence 
+ * requirement. If 'min' is greater than 1, the error message specifies how many 
+ * occurrences were expected and found.
+ */
+export class RepetitionBlockMinimumNotMetError extends ValidationError {
+    constructor(public min: number, public actual: number, public phaseName?: string) { super(); }
+    readonly severity = 'warning' as const;
+    formatMessage(phase: string): string {
+        if (this.min > 1 && this.actual > 1) {
+            return `Phase ${phase} requires at least ${this.min} occurrences but found ${this.actual}.`;
+        }
+        return `Detected activity is not allowed during phase ${phase}.`;
+    }
+}
+
+/**
+ * This error occurs when an activity is performed on a dataset that does not match 
+ * the expected dataset for the current phase. The error message specifies the expected
+ * and found datasets, and if available, the activities that caused the mismatch.
+ */
+export class DatasetMismatchError extends ValidationError {
+    constructor(public expected: DataSet, public found: DataSet, public activities?: Activity[]) { super(); }
+    readonly severity = 'error' as const;
+    override readonly isPriority = true;
+    formatMessage(phase: string): string {
+        const formattedActivities = getActivityOnPhaseMatch(this.activities ?? [], phase).join(', ');
+        return `Dataset mismatch: During phase ${phase} the activity '${formattedActivities}' may only be ` +
+               `performed on the '${this.expected}' dataset, not the '${this.found}' dataset.`;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// ValidationResult
+// ---------------------------------------------------------------------------
 
 export class ValidationResult {
     public readonly isValid: boolean;
     public readonly validatedIndex: number;
     public readonly error?: ValidationError;
     public readonly baseError?: ValidationResult;
-    
-    private constructor (isValid: boolean, validatedIndex: number, error?: ValidationError, baseError?: ValidationResult){
+
+    private constructor(isValid: boolean, validatedIndex: number, error?: ValidationError, baseError?: ValidationResult) {
         this.isValid = isValid;
         this.validatedIndex = validatedIndex;
-        this.baseError = baseError;
         this.error = error;
+        this.baseError = baseError;
     }
 
-    static success(
-        validatedIndex: number, 
-        baseError?: ValidationResult
-    ): ValidationResult {
+    static success(validatedIndex: number, baseError?: ValidationResult): ValidationResult {
         return new ValidationResult(true, validatedIndex, undefined, baseError);
     }
-    
-    static failure(
-        validatedIndex: number, 
-        error?: ValidationError, 
-        baseError?: ValidationResult, 
-    ): ValidationResult {
+
+    static failure(validatedIndex: number, error?: ValidationError, baseError?: ValidationResult): ValidationResult {
         return new ValidationResult(false, validatedIndex, error, baseError);
     }
+
+    generateValidationMessage(): ValidationMessage {
+        const nestedErrors = this.extractNestedErrors();
+
+        // resolve phase name from the first repetition-block error that carries one
+        let phase = '';
+        for (const error of nestedErrors) {
+            if (error instanceof RepetitionBlockMinimumNotMetError && error.phaseName) {
+                phase = `'${error.phaseName}'`;
+                break;
+            }
+        }
+
+        // priority errors (e.g. dataset mismatch) short-circuit the rest
+        const priorityError = nestedErrors.find(e => e.isPriority);
+        if (priorityError) {
+            return { message: priorityError.formatMessage(phase) ?? '', severity: priorityError.severity };
+        }
+
+        const messages = nestedErrors
+            .map(e => e.formatMessage(phase))
+            .filter((m): m is string => m !== null);
+
+        return { message: messages.join('\n'), severity: 'warning' };
+    }
+
+    private extractNestedErrors(): ValidationError[] {
+        const errors: ValidationError[] = [];
+        let current: ValidationResult | undefined = this;
+        while (current) {
+            if (current.error) errors.push(current.error);
+            current = current.baseError;
+        }
+        return errors;
+    }
 }
+
+// ---------------------------------------------------------------------------
+// String helpers (internal — used by error classes above)
+// ---------------------------------------------------------------------------
+
+const sliceActivityName = (activityName: string | undefined): string => {
+    if (!activityName) return '';
+    const qIndex = activityName.indexOf('Q');
+    return qIndex !== -1 ? activityName.slice(qIndex + 1) : activityName;
+};
+
+const getActivityOnPhaseMatch = (activities: Activity[], phaseName: string): string[] => {
+    const cleanPhaseName = phaseName.replaceAll("'", '').trim();
+    return activities
+        .map(a => a.activityName)
+        .filter(name => name.split('Q')[0] === cleanPhaseName)
+        .map(item => item.split('Q')[1])
+        .filter((item): item is string => item !== undefined);
+};
