@@ -3,6 +3,7 @@ import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline, Sd
 import { SafeDsServices } from '../../index.js';
 import { Activity, ValidationContext } from './model.js';
 import { behaviourProtocol } from './behaviourProtocol.js';
+import { ConsistentTransformationObserver } from './protocolObserver.js';
 
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
 
@@ -41,7 +42,13 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
             }
         }
 
-        const context = new ValidationContext(sequence, calls, paramArgMaps, node.body.statements);
+        const observers = [
+            new ConsistentTransformationObserver(
+                ['DataProcessing', 'FeatureEngineering'],
+                ['DataProcessingQExploration'],
+            ),
+        ];
+        const context = new ValidationContext(sequence, calls, paramArgMaps, node.body.statements, observers);
 
         const result = behaviourProtocol.validate(context, 0, services);
 
@@ -59,6 +66,14 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
                     },
                 );
             }
-        };
+            return;
+        }
+
+        for (const observer of observers) {
+            for (const { error, call } of observer.finalize()) {
+                const msg = error.formatMessage('');
+                if (msg) accept(error.severity, msg, { node: call, code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL });
+            }
+        }
     };
 };

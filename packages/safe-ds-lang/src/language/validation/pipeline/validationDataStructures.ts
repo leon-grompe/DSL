@@ -117,6 +117,22 @@ export class DatasetMismatchError extends ValidationError {
     }
 }
 
+export class InconsistentTransformationError extends ValidationError {
+    constructor(
+        public readonly callableName: string,
+        public readonly presentOn: DataSet[],
+        public readonly missingFrom: DataSet[],
+    ) { super(); }
+
+    readonly severity = 'warning' as const;
+
+    formatMessage(_phase: string): string {
+        const presentStr = this.presentOn.map(d => `'${d}'`).join(' and ');
+        const missingStr = this.missingFrom.map(d => `'${d}'`).join(' and ');
+        return `'${this.callableName}' is applied to the ${presentStr} dataset but not to ${missingStr}.`;
+    }
+}
+
 // ---------------------------------------------------------------------------
 // ValidationResult
 // ---------------------------------------------------------------------------

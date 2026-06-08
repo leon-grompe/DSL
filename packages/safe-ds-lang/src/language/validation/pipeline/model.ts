@@ -5,6 +5,7 @@ import {
     RepetitionBlockMinimumNotMetError,
     DatasetMismatchError,
 } from './validationDataStructures.js'
+import { ProtocolObserver } from './protocolObserver.js';
 import { SafeDsServices } from '../../safe-ds-module.js';
 import { SdsCall, SdsParameter, SdsExpression, SdsStatement } from '../../generated/ast.js';
 import { SafeDsDatasetIdentifier } from '../../flow/safe-ds-dataset-identifier.js';
@@ -24,11 +25,14 @@ export class Activity {
 }
 
 export class ValidationContext {
+    public currentPhaseName: string | undefined = undefined;
+
     constructor(
         public activitySequence: Activity[][],
         public calls: SdsCall[],
         public paramArgMaps: Map<SdsParameter, SdsExpression>[],
         public statements: SdsStatement[],
+        public observers: ProtocolObserver[] = [],
     ){}
 }
 
@@ -98,6 +102,7 @@ export class ElementaryBlock extends ProtocolBlock{
             }
         }
         if (activityMatch || anyMatch) {
+            this.notifyObservers(context, startIndex, services);
             return ValidationResult.success(startIndex + 1);
         }
         else {
@@ -106,6 +111,32 @@ export class ElementaryBlock extends ProtocolBlock{
                 currentActivities ?? [new Activity('EndOfPipeline')]
             ));
         }
+    }
+
+    private notifyObservers(context: ValidationContext, startIndex: number, services: SafeDsServices): void {
+        if (context.observers.length === 0) return;
+        const currentCall = context.calls[startIndex];
+        if (!currentCall) return;
+
+        const callable = services.helpers.NodeMapper.callToCallable(currentCall);
+        const detectedDataset = this.detectDataset(currentCall, services.flow.DatasetIdentifier, context.statements);
+
+        for (const observer of context.observers) {
+            observer.onElementaryMatch({
+                phaseName: context.currentPhaseName,
+                activity: this.activity,
+                call: currentCall,
+                callable,
+                detectedDataset,
+            });
+        }
+    }
+
+    private detectDataset(call: SdsCall, identifier: SafeDsDatasetIdentifier, statements: SdsStatement[]): DataSet | undefined {
+        if (identifier.callReferencesTrainingSet(call, statements)) return DataSet.Training;
+        if (identifier.callReferencesValidationSet(call, statements)) return DataSet.Validation;
+        if (identifier.callReferencesTestSet(call, statements)) return DataSet.Test;
+        return undefined;
     }
 
     // TODO: change fallback on original set, since it is wrong if the placeholder is unknown.
@@ -124,32 +155,23 @@ export class ElementaryBlock extends ProtocolBlock{
             case DataSet.Training:
                 if (!isTraining) {
                     const actual = isValidation ? DataSet.Validation : isTest ? DataSet.Test : DataSet.Original;
-                    return this.returnDatasetMismatch(startIndex, this.target, actual, activities);
+                    return ValidationResult.failure(startIndex, new DatasetMismatchError(this.target, actual, activities));
                 }
                 break;
             case DataSet.Validation:
                 if (!isValidation) {
                     const actual = isTraining ? DataSet.Training : isTest ? DataSet.Test : DataSet.Original;
-                    return this.returnDatasetMismatch(startIndex, this.target, actual, activities);
+                    return ValidationResult.failure(startIndex, new DatasetMismatchError(this.target, actual, activities));
                 }
                 break;
             case DataSet.Test:
                 if (!isTest) {
                     const actual = isTraining ? DataSet.Training : isValidation ? DataSet.Validation : DataSet.Original;
-                    return this.returnDatasetMismatch(startIndex, this.target, actual, activities);
+                    return ValidationResult.failure(startIndex, new DatasetMismatchError(this.target, actual, activities));
                 }
                 break;
         }
         return ValidationResult.success(startIndex + 1);
-    }
-
-    private returnDatasetMismatch(
-        startIndex: number, 
-        expected: DataSet, 
-        actual: DataSet, 
-        activities: Activity[] | undefined
-    ) : ValidationResult {
-        return ValidationResult.failure(startIndex, new DatasetMismatchError(expected, actual, activities))
     }
 }
 
@@ -198,45 +220,50 @@ export class RepetitionBlock extends ProtocolBlock{
     ){ super() }
 
     validate(context: ValidationContext, startIndex: number, services: SafeDsServices) : ValidationResult {
-        let currentIndex = startIndex;
-        
-        // enforce the minimum required matches
-        for (let counter = 0; counter < this.min; counter++) {
-            const result = this.block.validate(context, currentIndex, services);
-            if (!result.isValid) {
-                return ValidationResult.failure(result.validatedIndex,
-                    new RepetitionBlockMinimumNotMetError(this.min, counter, this.phaseName),
-                    result);
-            }
-            currentIndex = result.validatedIndex;
-        }
-        
-        // optionally match more times up to max
-        for (let counter = this.min; counter < this.max; counter++) {
-            // lookahead to check if the mistake is that the phase ended and the next phase started
-            if (this.exitDataset && currentIndex < context.calls.length) {
-                const nextCall = context.calls[currentIndex];
-                const identifier = services.flow.DatasetIdentifier;
-                if (!nextCall) break;
+        const previousPhaseName = context.currentPhaseName;
+        context.currentPhaseName = this.phaseName;
 
-                const isNextOnExitSet = this.callUsesDataset(nextCall, this.exitDataset, identifier, context.statements);
-                if (isNextOnExitSet) break;
-            }
-            
-            // propagate validation?
-            const result = this.block.validate(context, currentIndex, services);
-            if (!result.isValid) { 
-                // propagate daset mismatch error 
-                if (this.containsDatasetMismatch(result)) {
+        try {
+            let currentIndex = startIndex;
+
+            // enforce the minimum required matches
+            for (let counter = 0; counter < this.min; counter++) {
+                const result = this.block.validate(context, currentIndex, services);
+                if (!result.isValid) {
                     return ValidationResult.failure(result.validatedIndex,
                         new RepetitionBlockMinimumNotMetError(this.min, counter, this.phaseName),
                         result);
-                }  
-                break;       
+                }
+                currentIndex = result.validatedIndex;
             }
-            currentIndex = result.validatedIndex;
+
+            // optionally match more times up to max
+            for (let counter = this.min; counter < this.max; counter++) {
+                // lookahead to check if the phase ended and the next phase started
+                if (this.exitDataset && currentIndex < context.calls.length) {
+                    const nextCall = context.calls[currentIndex];
+                    const identifier = services.flow.DatasetIdentifier;
+                    if (!nextCall) break;
+
+                    const isNextOnExitSet = this.callUsesDataset(nextCall, this.exitDataset, identifier, context.statements);
+                    if (isNextOnExitSet) break;
+                }
+
+                const result = this.block.validate(context, currentIndex, services);
+                if (!result.isValid) {
+                    if (this.containsDatasetMismatch(result)) {
+                        return ValidationResult.failure(result.validatedIndex,
+                            new RepetitionBlockMinimumNotMetError(this.min, counter, this.phaseName),
+                            result);
+                    }
+                    break;
+                }
+                currentIndex = result.validatedIndex;
+            }
+            return ValidationResult.success(currentIndex);
+        } finally {
+            context.currentPhaseName = previousPhaseName;
         }
-        return ValidationResult.success(currentIndex);
     }
 
     private callUsesDataset = (call: SdsCall, target: DataSet, identifier: SafeDsDatasetIdentifier, statements: SdsStatement[]): boolean => {
