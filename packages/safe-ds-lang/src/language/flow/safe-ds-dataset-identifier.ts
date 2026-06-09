@@ -85,7 +85,9 @@ export class SafeDsDatasetIdentifier {
     }
 
 
-    // Returns the first and second placeholder assignees of a split assignment.
+    /**
+     * Returns the first and second placeholder assignees of a split assignment.
+     */
     private getSplitAssignees(assignment: SdsAssignment): [SdsPlaceholder | undefined, SdsPlaceholder | undefined] {
         const assignees = getAssignees(assignment);
         const first  = isSdsPlaceholder(assignees[0]) ? assignees[0] : undefined;
@@ -94,7 +96,10 @@ export class SafeDsDatasetIdentifier {
         return [first, second];
     }
 
-    // assignee[1] of the first split, the "rest" that is split further into validation/test.
+    /**
+     * Returns the placeholder that represents the rest set.
+     * This is the "rest" that is split further into validation/test.
+     */
     private getRestSetPlaceholder(statements: SdsStatement[]): SdsPlaceholder | undefined {
         const firstSplit = this.services.flow.DataFlowAnalyzer.extractAssignmentsWithSpecificCall(statements, 'split')[0];
         if (!firstSplit) return undefined;
@@ -102,10 +107,12 @@ export class SafeDsDatasetIdentifier {
         return this.getSplitAssignees(firstSplit)[1];
     }
 
-    // Finds the split assignment (after the first) that consumes the rest set.
-    // Handles two cases:
-    //   - Direct call:   rest.split()          -> check member-access receiver
-    //   - Segment call:  splitData(rest, ...)  -> check if restSet appears in arguments
+    /**
+     * Finds the split assignment (after the first) that consumes the rest set.
+     * Handles two cases:
+     *   - Direct call:   rest.split()          -> check member-access receiver
+     *   - Segment call:  splitData(rest, ...)  -> check if restSet appears in arguments
+     */
     private getValidationSplitAssignment(statements: SdsStatement[]): SdsAssignment | undefined {
         const restSet = this.getRestSetPlaceholder(statements);
         if (!restSet) return undefined;
@@ -138,9 +145,22 @@ export class SafeDsDatasetIdentifier {
         return undefined;
     }
 
-    // Returns true if any data-typed reference argument of 'call' is in the forward slice of 'target'.
+    /**
+     * Returns true if any data-typed reference argument of 'call' is in the forward slice of 'target',
+     * or if the member-access receiver of the call is in the forward slice.
+     */
     private anyArgInForwardSliceOfTarget(call: SdsCall, target: SdsPlaceholder): boolean {
         const forwardSlice = this.services.flow.Slicer.computeForwardSliceFromVariable(target);
+
+        // Check member-access receiver (e.g. training.toTabularDataset(...))
+        if (isSdsMemberAccess(call.receiver)) {
+            const base = call.receiver.receiver;
+            if (isSdsReference(base)) {
+                const ref = base.target.ref;
+                if (isSdsPlaceholder(ref) && forwardSlice.some(v => v === ref)) return true;
+            }
+        }
+
         return call.argumentList.arguments.some(arg => {
             if (!isSdsReference(arg.value)) return false;
             const ref = arg.value.target.ref;
@@ -148,10 +168,12 @@ export class SafeDsDatasetIdentifier {
         });
     }
 
-    // Checks if the first split assignment is a "split-all" segment: a single segment call that
-    // internally performs both the training/rest and validation/test splits. If so, returns the
-    // pipeline-level placeholders for training, validation, and test mapped via yield statements.
-    // Returns undefined for the direct-split case (Scenario A).
+    /**
+     * Checks if the first split assignment is a "split-all" segment: a single segment call that
+     * internally performs both the training/rest and validation/test splits. If so, returns the
+     * pipeline-level placeholders for training, validation, and test mapped via yield statements.
+     * Returns undefined for the direct-split case (Scenario A).
+     */
     private tryGetSplitAllDatasets(
         statements: SdsStatement[],
     ): { training: SdsPlaceholder | undefined; validation: SdsPlaceholder | undefined; test: SdsPlaceholder | undefined } | undefined {
@@ -183,8 +205,10 @@ export class SafeDsDatasetIdentifier {
         };
     }
 
-    // Finds the yield in 'segment' whose parent assignment's expression is a direct reference to
-    // 'internalPlaceholder', then maps it to the corresponding pipeline-level assignee at the call site.
+    /**
+     * Finds the yield in 'segment' whose parent assignment's expression is a direct reference to
+     * 'internalPlaceholder', then maps it to the corresponding pipeline-level assignee at the call site.
+     */
     private mapInternalToCallSiteAssignee(
         internalPlaceholder: SdsPlaceholder,
         segment: SdsSegment,
