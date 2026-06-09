@@ -2,7 +2,8 @@ import {
     isSdsAssignment, isSdsClass, isSdsFunction, isSdsPlaceholder, isSdsReference,
     SdsCall, SdsCallable, SdsStatement,
 } from '../../generated/ast.js';
-import { Activity, DataSet } from './model.js';
+import { DataSet } from '../../flow/safe-ds-dataset-identifier.js';
+import { Activity } from './model.js';
 import {
     InconsistentTransformationPresenceError,
     InconsistentTransformationOrderError,

@@ -8,15 +8,8 @@ import {
 import { ProtocolObserver } from './protocolObserver.js';
 import { SafeDsServices } from '../../safe-ds-module.js';
 import { SdsCall, SdsParameter, SdsExpression, SdsStatement } from '../../generated/ast.js';
-import { SafeDsDatasetIdentifier } from '../../flow/safe-ds-dataset-identifier.js';
+import { DataSet, SafeDsDatasetIdentifier } from '../../flow/safe-ds-dataset-identifier.js';
 
-// DataSet for variable tracking
-export enum DataSet {
-    Original = 'Original',
-    Training = 'Training',
-    Test = 'Test',
-    Validation = 'Validation',
-}
 
 export class Activity {
     constructor(
@@ -119,7 +112,7 @@ export class ElementaryBlock extends ProtocolBlock{
         if (!currentCall) return;
 
         const callable = services.helpers.NodeMapper.callToCallable(currentCall);
-        const detectedDataset = this.detectDataset(currentCall, services.flow.DatasetIdentifier, context.statements);
+        const detectedDataset = services.flow.DatasetIdentifier.identifyDataset(currentCall, context.statements);
 
         for (const observer of context.observers) {
             observer.onElementaryMatch({
@@ -133,14 +126,6 @@ export class ElementaryBlock extends ProtocolBlock{
         }
     }
 
-    private detectDataset(call: SdsCall, identifier: SafeDsDatasetIdentifier, statements: SdsStatement[]): DataSet | undefined {
-        if (identifier.callReferencesTrainingSet(call, statements)) return DataSet.Training;
-        if (identifier.callReferencesValidationSet(call, statements)) return DataSet.Validation;
-        if (identifier.callReferencesTestSet(call, statements)) return DataSet.Test;
-        return undefined;
-    }
-
-    // TODO: change fallback on original set, since it is wrong if the placeholder is unknown.
     private handleDatasetMismatch(
         startIndex: number,
         currentCall: SdsCall,
@@ -148,29 +133,9 @@ export class ElementaryBlock extends ProtocolBlock{
         activities: Activity[] | undefined,
         statements: SdsStatement[],
     ) : ValidationResult {
-        const isTraining = identifier.callReferencesTrainingSet(currentCall, statements);
-        const isValidation = identifier.callReferencesValidationSet(currentCall, statements);
-        const isTest = identifier.callReferencesTestSet(currentCall, statements);
-
-        switch (this.target) {
-            case DataSet.Training:
-                if (!isTraining) {
-                    const actual = isValidation ? DataSet.Validation : isTest ? DataSet.Test : DataSet.Original;
-                    return ValidationResult.failure(startIndex, new DatasetMismatchError(this.target, actual, activities));
-                }
-                break;
-            case DataSet.Validation:
-                if (!isValidation) {
-                    const actual = isTraining ? DataSet.Training : isTest ? DataSet.Test : DataSet.Original;
-                    return ValidationResult.failure(startIndex, new DatasetMismatchError(this.target, actual, activities));
-                }
-                break;
-            case DataSet.Test:
-                if (!isTest) {
-                    const actual = isTraining ? DataSet.Training : isValidation ? DataSet.Validation : DataSet.Original;
-                    return ValidationResult.failure(startIndex, new DatasetMismatchError(this.target, actual, activities));
-                }
-                break;
+        const actual = identifier.identifyDataset(currentCall, statements) ?? DataSet.Original;
+        if (actual !== this.target) {
+            return ValidationResult.failure(startIndex, new DatasetMismatchError(this.target!, actual, activities));
         }
         return ValidationResult.success(startIndex + 1);
     }
@@ -246,8 +211,7 @@ export class RepetitionBlock extends ProtocolBlock{
                     const identifier = services.flow.DatasetIdentifier;
                     if (!nextCall) break;
 
-                    const isNextOnExitSet = this.callUsesDataset(nextCall, this.exitDataset, identifier, context.statements);
-                    if (isNextOnExitSet) break;
+                    if (identifier.identifyDataset(nextCall, context.statements) === this.exitDataset) break;
                 }
 
                 const result = this.block.validate(context, currentIndex, services);
@@ -267,14 +231,6 @@ export class RepetitionBlock extends ProtocolBlock{
         }
     }
 
-    private callUsesDataset = (call: SdsCall, target: DataSet, identifier: SafeDsDatasetIdentifier, statements: SdsStatement[]): boolean => {
-        switch(target) {
-            case DataSet.Training:   return identifier.callReferencesTrainingSet(call, statements);
-            case DataSet.Validation: return identifier.callReferencesValidationSet(call, statements);
-            case DataSet.Test:       return identifier.callReferencesTestSet(call, statements);
-            default:                 return false;
-        }
-    }
 }
 
 /**

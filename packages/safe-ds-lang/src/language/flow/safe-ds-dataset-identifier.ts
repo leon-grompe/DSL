@@ -4,6 +4,13 @@ import { isSdsAssignment, isSdsCall, isSdsPlaceholder, isSdsReference, isSdsMemb
          SdsPlaceholder, SdsCall, SdsStatement, SdsAssignment, SdsSegment } from '../generated/ast.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
 
+export enum DataSet {
+    Original   = 'Original',
+    Training   = 'Training',
+    Test       = 'Test',
+    Validation = 'Validation',
+}
+
 export class SafeDsDatasetIdentifier {
     constructor(
         private services: SafeDsServices
@@ -65,8 +72,18 @@ export class SafeDsDatasetIdentifier {
     callReferencesTestSet(call: SdsCall, statements: SdsStatement[]): boolean {
         const testSet = this.getTestSetPlaceholder(statements);
         if (!testSet) return false;
-        
+
         return this.anyArgInForwardSliceOfTarget(call, testSet);
+    }
+
+    /**
+     * Returns which dataset partition 'call' operates on, or undefined if it cannot be determined.
+     */
+    identifyDataset(call: SdsCall, statements: SdsStatement[]): DataSet | undefined {
+        if (this.callReferencesTrainingSet(call, statements))   return DataSet.Training;
+        if (this.callReferencesValidationSet(call, statements)) return DataSet.Validation;
+        if (this.callReferencesTestSet(call, statements))       return DataSet.Test;
+        return undefined;
     }
 
     /**

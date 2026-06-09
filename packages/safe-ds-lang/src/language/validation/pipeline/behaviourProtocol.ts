@@ -1,4 +1,5 @@
-import { ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock, Activity, DataSet } from './model.js';
+import { DataSet } from '../../flow/safe-ds-dataset-identifier.js';
+import { ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock, Activity } from './model.js';
 
 /** 
  * Full behaviour protocol based on best practices and common data science pitfalls.

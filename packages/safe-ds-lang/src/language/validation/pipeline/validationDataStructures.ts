@@ -1,4 +1,5 @@
-import { Activity, DataSet } from './model.js'
+import { DataSet } from '../../flow/safe-ds-dataset-identifier.js';
+import { Activity } from './model.js';
 
 export interface ValidationMessage {
     message: string;
