@@ -179,30 +179,27 @@ export class InconsistentTransformationDataflowError extends ValidationError {
 export class ValidationResult {
     public readonly isValid: boolean;
     public readonly validatedIndex: number;
-    public readonly error?: ValidationError;
-    public readonly baseError?: ValidationResult;
+    public readonly errors: ValidationError[];
 
-    private constructor(isValid: boolean, validatedIndex: number, error?: ValidationError, baseError?: ValidationResult) {
+    private constructor(isValid: boolean, validatedIndex: number, errors: ValidationError[]) {
         this.isValid = isValid;
         this.validatedIndex = validatedIndex;
-        this.error = error;
-        this.baseError = baseError;
+        this.errors = errors;
     }
 
-    static success(validatedIndex: number, baseError?: ValidationResult): ValidationResult {
-        return new ValidationResult(true, validatedIndex, undefined, baseError);
+    static success(validatedIndex: number): ValidationResult {
+        return new ValidationResult(true, validatedIndex, []);
     }
 
-    static failure(validatedIndex: number, error?: ValidationError, baseError?: ValidationResult): ValidationResult {
-        return new ValidationResult(false, validatedIndex, error, baseError);
+    static failure(validatedIndex: number, error?: ValidationError, base?: ValidationResult): ValidationResult {
+        const errors = [...(error ? [error] : []), ...(base?.errors ?? [])];
+        return new ValidationResult(false, validatedIndex, errors);
     }
 
     generateValidationMessage(): ValidationMessage {
-        const nestedErrors = this.extractNestedErrors();
-
         // resolve phase name from the first repetition-block error that carries one
         let phase = '';
-        for (const error of nestedErrors) {
+        for (const error of this.errors) {
             if (error instanceof RepetitionBlockMinimumNotMetError && error.phaseName) {
                 phase = `'${error.phaseName}'`;
                 break;
@@ -210,26 +207,16 @@ export class ValidationResult {
         }
 
         // priority errors (e.g. dataset mismatch) short-circuit the rest
-        const priorityError = nestedErrors.find(e => e.isPriority);
+        const priorityError = this.errors.find(e => e.isPriority);
         if (priorityError) {
             return { message: priorityError.formatMessage(phase) ?? '', severity: priorityError.severity };
         }
 
-        const messages = nestedErrors
+        const messages = this.errors
             .map(e => e.formatMessage(phase))
             .filter((m): m is string => m !== null);
 
         return { message: messages.join('\n'), severity: 'warning' };
-    }
-
-    private extractNestedErrors(): ValidationError[] {
-        const errors: ValidationError[] = [];
-        let current: ValidationResult | undefined = this;
-        while (current) {
-            if (current.error) errors.push(current.error);
-            current = current.baseError;
-        }
-        return errors;
     }
 }
 

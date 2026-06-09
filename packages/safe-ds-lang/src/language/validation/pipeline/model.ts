@@ -46,12 +46,7 @@ export abstract class ProtocolBlock {
     abstract validate(context: ValidationContext, startIndex: number, services: SafeDsServices) : ValidationResult;
     
     protected containsDatasetMismatch(result: ValidationResult): boolean {
-        let current: ValidationResult | undefined = result;
-        while (current) {
-            if (current.error instanceof DatasetMismatchError) return true;
-            current = current.baseError;
-        }
-        return false;
+        return result.errors.some(e => e instanceof DatasetMismatchError);
     }
 }
 
