@@ -62,15 +62,6 @@ export class ElemBlockActivityMismatchError extends ValidationError {
     }
 }
 
-/**
- * This error is a fallback error for AlternativeBlocks when none of the 
- * alternatives match the current activity.
- */
-export class AlternativeBlockNoMatchError extends ValidationError {
-    constructor(public alternatives: Activity[]) { super(); }
-    readonly severity = 'warning' as const;
-    formatMessage(_phase: string): null { return null; }
-}
 
 /**
  * This error occurs when an OrBlock fails to find any matching activity in any

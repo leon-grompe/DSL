@@ -1,5 +1,5 @@
 import { ValidationAcceptor } from 'langium';
-import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsParameter, SdsExpression } from '../../generated/ast.js';
+import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
 import { Activity, ValidationContext } from './model.js';
 import { DSPipelineActivity } from './dsPipelineActivity.js';
@@ -47,14 +47,13 @@ function extractValidationContext(
 
     const pipelineCalls: SdsCall[] = [];
     const activitySequence: Activity[][] = [];
-    const paramArgMaps: Map<SdsParameter, SdsExpression>[] = [];
     const pipelineStatements = node.body.statements;
-    
+
     for (const statement of pipelineStatements) {
         // expand calls in statement to get nested calls and their parameter-argument mappings
         const statementCallsWithParamArgMap = analyzer.expandCallsInStatement(statement);
 
-        for (const { call, paramArgMap } of statementCallsWithParamArgMap) {
+        for (const { call } of statementCallsWithParamArgMap) {
             const callable = nodeMapper.callToCallable(call);
             if (!callable || !(isSdsFunction(callable) || isSdsClass(callable))) continue;
 
@@ -71,12 +70,11 @@ function extractValidationContext(
 
             pipelineCalls.push(call);
             activitySequence.push(activities);
-            paramArgMaps.push(paramArgMap);
         }
     }
 
     return {
-        context: new ValidationContext(activitySequence, pipelineCalls, paramArgMaps, pipelineStatements, observers),
+        context: new ValidationContext(activitySequence, pipelineCalls, pipelineStatements, observers),
         calls: pipelineCalls,
     };
 }

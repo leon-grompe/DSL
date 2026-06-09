@@ -1,13 +1,13 @@
 import {
     ValidationResult, SequenceBlockFailedError,
     ElemBlockOobError, ElemBlockActivityMismatchError,
-    AlternativeBlockNoMatchError, OrBlockNoMatchError,
+    OrBlockNoMatchError,
     RepetitionBlockMinimumNotMetError,
     DatasetMismatchError,
 } from './validationDataStructures.js'
 import { ProtocolObserver } from './protocolObserver.js';
 import { SafeDsServices } from '../../safe-ds-module.js';
-import { SdsCall, SdsParameter, SdsExpression, SdsStatement } from '../../generated/ast.js';
+import { SdsCall, SdsStatement } from '../../generated/ast.js';
 import { DataSet, SafeDsDatasetIdentifier } from '../../flow/safe-ds-dataset-identifier.js';
 import { DSPipelineActivity } from './dsPipelineActivity.js';
 
@@ -20,7 +20,6 @@ export class ValidationContext {
     constructor(
         public activitySequence: Activity[][],
         public calls: SdsCall[],
-        public paramArgMaps: Map<SdsParameter, SdsExpression>[],
         public statements: SdsStatement[],
         public observers: ProtocolObserver[] = [],
     ){}
@@ -148,15 +147,6 @@ export class SequenceBlock extends ProtocolBlock{
             if(!result.isValid){
                 return ValidationResult.failure(result.validatedIndex, new SequenceBlockFailedError(), result);
             }
-            // Identify Phase length
-            /*
-            else {
-                const phaseEnd = context.calls[result.validatedIndex]
-                if (block instanceof RepetitionBlock){
-                    console.log("Phase: " + block.phaseName + "| until line:  " + phaseEnd?.$cstNode?.range.end.line)
-                }
-            }
-            */
             if (result.validatedIndex > updatedStartingPoint) {
                 updatedStartingPoint = result.validatedIndex;
             }
@@ -226,36 +216,26 @@ export class RepetitionBlock extends ProtocolBlock{
 }
 
 /**
- * Represents an alternative between multiple protocol blocks, with the relation being either 'or' or 'xor'.
+ * Represents an OR-alternative between multiple protocol blocks.
  */
 export class AlternativeBlock extends ProtocolBlock{
     constructor(
         public blocks: ProtocolBlock[],
-        public relation: 'or' | 'xor',
     ){ super() }
 
     validate(context: ValidationContext, startIndex: number, services: SafeDsServices) : ValidationResult {
         const alternatives = this.blocks
             .filter(b => b instanceof ElementaryBlock)
             .map(b => (b as ElementaryBlock).activity);
-        
-        
-        switch(this.relation){
-            case 'or': {
-                for (const block of this.blocks) {
-                    const result = block.validate(context, startIndex, services);
-                    if (result.isValid) return result;
-                    if (this.containsDatasetMismatch(result)) {
-                        return ValidationResult.failure(startIndex, new OrBlockNoMatchError(alternatives), result);
-                    }
-                }
-                return ValidationResult.failure(startIndex, new OrBlockNoMatchError(alternatives));
-            }
 
-            // Unfinished, as it is currently not used in the protocol definition. Should be implemented if XOR relation is needed in the future.
-            case 'xor': {}
+        for (const block of this.blocks) {
+            const result = block.validate(context, startIndex, services);
+            if (result.isValid) return result;
+            if (this.containsDatasetMismatch(result)) {
+                return ValidationResult.failure(startIndex, new OrBlockNoMatchError(alternatives), result);
+            }
         }
-        return ValidationResult.failure(startIndex, new AlternativeBlockNoMatchError(alternatives));
+        return ValidationResult.failure(startIndex, new OrBlockNoMatchError(alternatives));
     }
 }
 
