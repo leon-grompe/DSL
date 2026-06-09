@@ -128,6 +128,7 @@ export class ElementaryBlock extends ProtocolBlock{
                 call: currentCall,
                 callable,
                 detectedDataset,
+                statements: context.statements,
             });
         }
     }

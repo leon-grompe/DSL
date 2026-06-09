@@ -117,7 +117,7 @@ export class DatasetMismatchError extends ValidationError {
     }
 }
 
-export class InconsistentTransformationError extends ValidationError {
+export class InconsistentTransformationPresenceError extends ValidationError {
     constructor(
         public readonly callableName: string,
         public readonly presentOn: DataSet[],
@@ -130,6 +130,44 @@ export class InconsistentTransformationError extends ValidationError {
         const presentStr = this.presentOn.map(d => `'${d}'`).join(' and ');
         const missingStr = this.missingFrom.map(d => `'${d}'`).join(' and ');
         return `'${this.callableName}' is applied to the ${presentStr} dataset but not to ${missingStr}.`;
+    }
+}
+
+export class InconsistentTransformationOrderError extends ValidationError {
+    constructor(
+        public readonly referenceDataset: DataSet,
+        public readonly referenceSequence: string[],
+        public readonly deviatingDataset: DataSet,
+        public readonly deviatingSequence: string[],
+    ) { super(); }
+
+    readonly severity = 'warning' as const;
+
+    formatMessage(_phase: string): string {
+        const ref = this.referenceSequence.map(n => `'${n}'`).join(', ');
+        const dev = this.deviatingSequence.map(n => `'${n}'`).join(', ');
+        return `Transformation order differs: ${this.referenceDataset} applies [${ref}] but ` +
+               `${this.deviatingDataset} applies [${dev}]. Consider using the same order for readability.`;
+    }
+}
+
+export class InconsistentTransformationDataflowError extends ValidationError {
+    constructor(
+        public readonly callableName: string,
+        public readonly referenceDataset: DataSet,
+        public readonly referencePredecessor: string | undefined,
+        public readonly deviatingDataset: DataSet,
+        public readonly deviatingPredecessor: string | undefined,
+    ) { super(); }
+
+    readonly severity = 'warning' as const;
+
+    formatMessage(_phase: string): string {
+        const refInput = this.referencePredecessor ? `the output of '${this.referencePredecessor}'` : 'raw data';
+        const devInput = this.deviatingPredecessor ? `the output of '${this.deviatingPredecessor}'` : 'raw data';
+        return `Dataflow mismatch for '${this.callableName}': receives ${devInput} on the ` +
+               `${this.deviatingDataset} dataset but ${refInput} on the ${this.referenceDataset} dataset. ` +
+               `Ensure data flows consistently across all partitions.`;
     }
 }
 

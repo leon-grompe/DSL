@@ -95,17 +95,15 @@ function generateProtocolValidation(
     // get the validation message (aggregated from the entire protocol execution)
     const valMessage = result.generateValidationMessage();
 
-    // pipeline violates protocol at specific call
     if (call) {
+        // pipeline violates protocol at specific call
         accept(valMessage.severity,
             valMessage.message, {
             node: call,
             code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL
         });
-    }
-
-    // pipeline violates protocol at end of the sequence by being incomplete
-    else {
+    } else {
+        // pipeline violates protocol at end of the sequence by being incomplete
         accept(valMessage.severity,
             'Pipeline is missing at least one phase after this statement.\n' + valMessage.message, {
             node: calls.at(calls.length - 1) ?? node,
