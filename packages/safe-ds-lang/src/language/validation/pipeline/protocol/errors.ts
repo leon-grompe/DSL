@@ -1,4 +1,4 @@
-import { DataSet } from '../../flow/safe-ds-dataset-identifier.js';
+import { DataSet } from '../../../flow/safe-ds-dataset-identifier.js';
 import { Activity } from './model.js';
 import { activityTypeOf, phaseOf } from './dsPipelineActivity.js';
 

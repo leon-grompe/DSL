@@ -191,7 +191,7 @@ import { argumentMustBeNamedIfParameterIsOptional } from './other/expressions/ar
 import { typeMustBeUsedInCorrectContext } from './other/types/types.js';
 import { pipelineMustFollowBehaviourProtocol } from './pipeline/pipelineProtocol.js';
 import { suggestPipelineStructure } from './pipeline/pipelineStructure.js'
-import { pipelineShouldContainMultipleSplits } from './pipeline/datasetSplitting.js';
+import { pipelineShouldContainMultipleSplits } from './data-flow-analysis/datasetSplitting.js';
 import { testDataUsedForTraining } from './data-flow-analysis/datasetUsage.js';
 
 /**

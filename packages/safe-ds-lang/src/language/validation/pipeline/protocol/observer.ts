@@ -1,8 +1,8 @@
 import {
     isSdsAssignment, isSdsClass, isSdsFunction, isSdsPlaceholder, isSdsReference,
     SdsCall, SdsCallable, SdsStatement,
-} from '../../generated/ast.js';
-import { DataSet } from '../../flow/safe-ds-dataset-identifier.js';
+} from '../../../generated/ast.js';
+import { DataSet } from '../../../flow/safe-ds-dataset-identifier.js';
 import { Activity } from './model.js';
 import { DSPipelineActivity } from './dsPipelineActivity.js';
 import {
@@ -10,7 +10,7 @@ import {
     InconsistentTransformationOrderError,
     InconsistentTransformationDataflowError,
     ValidationError,
-} from './validationDataStructures.js';
+} from './errors.js';
 
 export interface MatchInfo {
     phaseName: string | undefined;

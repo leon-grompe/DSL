@@ -1,11 +1,11 @@
 import { ValidationAcceptor } from 'langium';
 import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
-import { Activity, ValidationContext } from './model.js';
-import { DSPipelineActivity } from './dsPipelineActivity.js';
+import { Activity, ValidationContext } from './protocol/model.js';
+import { DSPipelineActivity } from './protocol/dsPipelineActivity.js';
 import { behaviourProtocol } from './behaviourProtocol.js';
-import { ConsistentTransformationObserver, ProtocolObserver } from './protocolObserver.js';
-import { ValidationResult } from './validationDataStructures.js';
+import { ConsistentTransformationObserver, ProtocolObserver } from './protocol/observer.js';
+import { ValidationResult } from './protocol/errors.js';
 
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
 

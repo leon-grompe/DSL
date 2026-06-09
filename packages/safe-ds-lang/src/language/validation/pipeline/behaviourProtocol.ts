@@ -1,6 +1,6 @@
 import { DataSet } from '../../flow/safe-ds-dataset-identifier.js';
-import { DSPipelineActivity } from './dsPipelineActivity.js';
-import { ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock } from './model.js';
+import { DSPipelineActivity } from './protocol/dsPipelineActivity.js';
+import { ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock } from './protocol/model.js';
 
 /**
  * Full behaviour protocol based on best practices and common data science pitfalls.

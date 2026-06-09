@@ -4,11 +4,11 @@ import {
     OrBlockNoMatchError,
     RepetitionBlockMinimumNotMetError,
     DatasetMismatchError,
-} from './validationDataStructures.js'
-import { ProtocolObserver } from './protocolObserver.js';
-import { SafeDsServices } from '../../safe-ds-module.js';
-import { SdsCall, SdsStatement } from '../../generated/ast.js';
-import { DataSet, SafeDsDatasetIdentifier } from '../../flow/safe-ds-dataset-identifier.js';
+} from './errors.js'
+import { ProtocolObserver } from './observer.js';
+import { SafeDsServices } from '../../../safe-ds-module.js';
+import { SdsCall, SdsStatement } from '../../../generated/ast.js';
+import { DataSet, SafeDsDatasetIdentifier } from '../../../flow/safe-ds-dataset-identifier.js';
 import { DSPipelineActivity } from './dsPipelineActivity.js';
 
 
