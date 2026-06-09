@@ -27,67 +27,16 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
 
         // validate protocol
         const result = behaviourProtocol.validate(context, 0, services);
-
-        // the pipeline does not follow the protocol
+ 
         if (!result.isValid){
+            // the pipeline does not follow the protocol
             return generateProtocolValidation(node, calls, result, accept);
+        } else {
+            // the pipeline follows the protocol, but there might be issues reported to the observers
+            return generateObserverValidation(observers, accept);
         }
-
-        // the pipeline follows the protocol, but there might be issues reported to the observers
-        generateObserverValidation(observers, accept);
-        return;
     };
 };
-
-function generateObserverValidation(
-    observers: ProtocolObserver[],
-    accept: ValidationAcceptor
-) : void {
-    for (const observer of observers) {
-        for (const { error, call } of observer.finalize()) {
-            const msg = error.formatMessage('');
-            if (msg) {
-                accept(error.severity,
-                    msg, {
-                        node: call,
-                        code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL
-                    }
-                );
-            }
-        }
-    }
-}
-
-function generateProtocolValidation(
-    node: SdsPipeline,
-    calls: SdsCall[],
-    result: ValidationResult,
-    accept: ValidationAcceptor
-) : void {
-    // get the problematic call
-    const call = calls[result.validatedIndex];
-
-    // get the validation message (aggregated from the entire protocol execution)
-    const valMessage = result.generateValidationMessage();
-
-    // pipeline violates protocol at specific call
-    if (call) {
-        accept(valMessage.severity,
-            valMessage.message, {
-            node: call,
-            code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL
-        });
-    }
-
-    // pipeline violates protocol at end of the sequence by being incomplete
-    else {
-        accept(valMessage.severity,
-            'Pipeline is missing at least one phase after this statement.\n' + valMessage.message, {
-            node: calls.at(calls.length - 1) ?? node,
-            code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
-        });
-    }
-}
 
 function extractValidationContext(
     node: SdsPipeline,
@@ -132,4 +81,57 @@ function extractValidationContext(
         context: new ValidationContext(activitySequence, pipelineCalls, paramArgMaps, pipelineStatements, observers),
         calls: pipelineCalls,
     };
+}
+
+function generateProtocolValidation(
+    node: SdsPipeline,
+    calls: SdsCall[],
+    result: ValidationResult,
+    accept: ValidationAcceptor
+) : void {
+    // get the problematic call
+    const call = calls[result.validatedIndex];
+
+    // get the validation message (aggregated from the entire protocol execution)
+    const valMessage = result.generateValidationMessage();
+
+    // pipeline violates protocol at specific call
+    if (call) {
+        accept(valMessage.severity,
+            valMessage.message, {
+            node: call,
+            code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL
+        });
+    }
+
+    // pipeline violates protocol at end of the sequence by being incomplete
+    else {
+        accept(valMessage.severity,
+            'Pipeline is missing at least one phase after this statement.\n' + valMessage.message, {
+            node: calls.at(calls.length - 1) ?? node,
+            code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
+        });
+    }
+}
+
+function generateObserverValidation(
+    observers: ProtocolObserver[],
+    accept: ValidationAcceptor
+) : void {
+    for (const observer of observers) {
+        const observerErrors = observer.finalize();
+        
+        for (const { error, call } of observerErrors) {
+            const msg = error.formatMessage('');
+            
+            if (msg) {
+                accept(error.severity,
+                    msg, {
+                        node: call,
+                        code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL
+                    }
+                );
+            }
+        }
+    }
 }
