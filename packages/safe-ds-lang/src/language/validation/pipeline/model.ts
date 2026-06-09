@@ -9,13 +9,10 @@ import { ProtocolObserver } from './protocolObserver.js';
 import { SafeDsServices } from '../../safe-ds-module.js';
 import { SdsCall, SdsParameter, SdsExpression, SdsStatement } from '../../generated/ast.js';
 import { DataSet, SafeDsDatasetIdentifier } from '../../flow/safe-ds-dataset-identifier.js';
+import { DSPipelineActivity } from './dsPipelineActivity.js';
 
 
-export class Activity {
-    constructor(
-        public activityName: string,
-    ){}
-}
+export type Activity = DSPipelineActivity;
 
 export class ValidationContext {
     public currentPhaseName: string | undefined = undefined;
@@ -69,8 +66,8 @@ export class ElementaryBlock extends ProtocolBlock{
         
         const currentActivities = context.activitySequence[startIndex];
 
-        const activityMatch = currentActivities?.some(activity => activity.activityName === this.activity.activityName);
-        const anyMatch = currentActivities?.some(activity => activity.activityName === 'Any');
+        const activityMatch = currentActivities?.some(activity => activity === this.activity);
+        const anyMatch = currentActivities?.some(activity => activity === DSPipelineActivity.Any);
         
         if (activityMatch) {
             // check if only target dataset is used
@@ -95,8 +92,8 @@ export class ElementaryBlock extends ProtocolBlock{
         }
         else {
             return ValidationResult.failure(startIndex, new ElemBlockActivityMismatchError(
-                new Activity(this.activity.activityName),
-                currentActivities ?? [new Activity('EndOfPipeline')]
+                this.activity,
+                currentActivities ?? ['EndOfPipeline' as Activity]
             ));
         }
     }

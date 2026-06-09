@@ -2,6 +2,7 @@ import { ValidationAcceptor } from 'langium';
 import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsParameter, SdsExpression } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
 import { Activity, ValidationContext } from './model.js';
+import { DSPipelineActivity } from './dsPipelineActivity.js';
 import { behaviourProtocol } from './behaviourProtocol.js';
 import { ConsistentTransformationObserver, ProtocolObserver } from './protocolObserver.js';
 import { ValidationResult } from './validationDataStructures.js';
@@ -18,7 +19,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         const observers: ProtocolObserver[] = [
             new ConsistentTransformationObserver(
                 ['DataProcessing', 'FeatureEngineering'],
-                ['DataProcessingQExploration'],
+                [DSPipelineActivity.DataProcessingQExploration],
             ),
         ];
 
@@ -65,8 +66,8 @@ function extractValidationContext(
 
             // if there are no annotations, consider it as an 'Any' activity that can fit anywhere in the protocol
             const activities = annotations.length > 0
-                ? annotations.map(name => new Activity(name))
-                : [new Activity('Any')];
+                ? annotations.map(name => name as Activity)
+                : [DSPipelineActivity.Any];
 
             pipelineCalls.push(call);
             activitySequence.push(activities);

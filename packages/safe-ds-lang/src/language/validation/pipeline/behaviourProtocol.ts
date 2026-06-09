@@ -1,7 +1,8 @@
 import { DataSet } from '../../flow/safe-ds-dataset-identifier.js';
-import { ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock, Activity } from './model.js';
+import { DSPipelineActivity } from './dsPipelineActivity.js';
+import { ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock } from './model.js';
 
-/** 
+/**
  * Full behaviour protocol based on best practices and common data science pitfalls.
  * A pipeline should follow this protocol to prevent domain specific mistakes like data leakage.
 */
@@ -9,14 +10,14 @@ export const behaviourProtocol = new SequenceBlock([
 // Pre-Processing Layer
     // Data Acquisition
     new RepetitionBlock(
-        new ElementaryBlock( new Activity('DataAcquisitionQGeneral') ),
+        new ElementaryBlock( DSPipelineActivity.DataAcquisitionQGeneral ),
         'DataAcquisition', 1
     ),
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock( new Activity('DataAcquisitionQGeneral') ),
-            new ElementaryBlock( new Activity('DataAcquisitionQPreprocessing') ),
-            new ElementaryBlock( new Activity('DataAcquisitionQConstruction') )],
+            new ElementaryBlock( DSPipelineActivity.DataAcquisitionQGeneral ),
+            new ElementaryBlock( DSPipelineActivity.DataAcquisitionQPreprocessing ),
+            new ElementaryBlock( DSPipelineActivity.DataAcquisitionQConstruction )],
             'or'
         ),  'DataAcquisition'
     ),
@@ -24,78 +25,78 @@ export const behaviourProtocol = new SequenceBlock([
     // Data Preparation
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock( new Activity('DataPreparationQGeneral') ),
-            new ElementaryBlock( new Activity('DataPreparationQExploration') ),
-            new ElementaryBlock( new Activity('DataPreparationQPreprocessing') ),
-            new ElementaryBlock( new Activity('DataPreparationQTransformation') ),
-            new ElementaryBlock( new Activity('DataPreparationQModification') )],
+            new ElementaryBlock( DSPipelineActivity.DataPreparationQGeneral ),
+            new ElementaryBlock( DSPipelineActivity.DataPreparationQExploration ),
+            new ElementaryBlock( DSPipelineActivity.DataPreparationQPreprocessing ),
+            new ElementaryBlock( DSPipelineActivity.DataPreparationQTransformation ),
+            new ElementaryBlock( DSPipelineActivity.DataPreparationQModification )],
             'or'
         ),  'DataPreparation'
     ),
 
     // Data Partioning
     new RepetitionBlock(
-        new ElementaryBlock( new Activity('DataPartitioningQGeneral') ),
+        new ElementaryBlock( DSPipelineActivity.DataPartitioningQGeneral ),
         'DataPartitioning', 1
     ),
 
     // Data Processing
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock( new Activity('DataProcessingQGeneral') ),
-            new ElementaryBlock( new Activity('DataProcessingQExploration'), 
+            new ElementaryBlock( DSPipelineActivity.DataProcessingQGeneral ),
+            new ElementaryBlock( DSPipelineActivity.DataProcessingQExploration,
                                  DataSet.Training),
-            new ElementaryBlock( new Activity('DataProcessingQDataTransformer') ),
-            new ElementaryBlock( new Activity('DataProcessingQPreprocessing') ),
-            new ElementaryBlock( new Activity('DataProcessingQTransformation') ),
-            new ElementaryBlock( new Activity('DataProcessingQModification') )], 
+            new ElementaryBlock( DSPipelineActivity.DataProcessingQDataTransformer ),
+            new ElementaryBlock( DSPipelineActivity.DataProcessingQPreprocessing ),
+            new ElementaryBlock( DSPipelineActivity.DataProcessingQTransformation ),
+            new ElementaryBlock( DSPipelineActivity.DataProcessingQModification )],
             'or'
         ), 'DataProcessing'
     ),
-    
+
 // Model Building Layer
     // Feature Engineering
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock( new Activity('FeatureEngineeringQGeneral') ),
-            new ElementaryBlock( new Activity('FeatureEngineeringQFeatureTransformer') ),
-            new ElementaryBlock( new Activity('FeatureEngineeringQModification') ),
-            new ElementaryBlock( new Activity('FeatureEngineeringQConstruction') )], 
+            new ElementaryBlock( DSPipelineActivity.FeatureEngineeringQGeneral ),
+            new ElementaryBlock( DSPipelineActivity.FeatureEngineeringQFeatureTransformer ),
+            new ElementaryBlock( DSPipelineActivity.FeatureEngineeringQModification ),
+            new ElementaryBlock( DSPipelineActivity.FeatureEngineeringQConstruction )],
             'or'
         ), 'FeatureEngineering'
     ),
 
     // Feature Selection
     new RepetitionBlock(
-        new ElementaryBlock( new Activity('FeatureSelectionQGeneral'),
+        new ElementaryBlock( DSPipelineActivity.FeatureSelectionQGeneral,
                              DataSet.Training ),
         'FeatureSelection'
     ),
 
     // Modeling
     new RepetitionBlock(
-        new ElementaryBlock( new Activity('ModelingQGeneral')),
+        new ElementaryBlock( DSPipelineActivity.ModelingQGeneral),
         'Modeling', 1
     ),
 
     // Training
     new RepetitionBlock(
-        new ElementaryBlock( new Activity('TrainingQGeneral')),
+        new ElementaryBlock( DSPipelineActivity.TrainingQGeneral),
         'Training', 1
     ),
 
     // Prediction
     new RepetitionBlock(
-        new ElementaryBlock( new Activity('PredictionQGeneral') ),
+        new ElementaryBlock( DSPipelineActivity.PredictionQGeneral ),
         'Prediction'
     ),
 
     // Evaluation
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock( new Activity('EvaluationQMetric'),
-                                 DataSet.Validation), 
-            new ElementaryBlock( new Activity('EvaluationQVisualization'),
+            new ElementaryBlock( DSPipelineActivity.EvaluationQMetric,
+                                 DataSet.Validation),
+            new ElementaryBlock( DSPipelineActivity.EvaluationQVisualization,
                                  DataSet.Validation )],
             'or'
         ),  'Evaluation', 1, Infinity, DataSet.Test
@@ -104,9 +105,9 @@ export const behaviourProtocol = new SequenceBlock([
     // Testing
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock( new Activity('TestingQMetric'), 
-                                 DataSet.Test), 
-            new ElementaryBlock( new Activity('TestingQVisualization'), 
+            new ElementaryBlock( DSPipelineActivity.TestingQMetric,
+                                 DataSet.Test),
+            new ElementaryBlock( DSPipelineActivity.TestingQVisualization,
                                  DataSet.Test)],
             'or'
         ),  'Testing'

@@ -1,5 +1,6 @@
 import { DataSet } from '../../flow/safe-ds-dataset-identifier.js';
 import { Activity } from './model.js';
+import { activityTypeOf, phaseOf } from './dsPipelineActivity.js';
 
 export interface ValidationMessage {
     message: string;
@@ -55,9 +56,9 @@ export class ElemBlockActivityMismatchError extends ValidationError {
     readonly severity = 'warning' as const;
     formatMessage(_phase: string): string {
         const foundNames = [...new Set(this.found
-            .map(a => `'${a.activityName.replace('Q', ' - ')}'`))]
+            .map(a => `'${(a as string).replace('Q', ' - ')}'`))]
             .join(', ');
-        return `Expected '${this.expected.activityName.replace('Q', ' - ')}' but found ${foundNames}.`;
+        return `Expected '${(this.expected as string).replace('Q', ' - ')}' but found ${foundNames}.`;
     }
 }
 
@@ -81,7 +82,7 @@ export class OrBlockNoMatchError extends ValidationError {
     readonly severity = 'warning' as const;
     formatMessage(phase: string): string {
         const context = phase !== '' ? `phase ${phase}` : 'current phase';
-        const names = this.alternatives.map(a => `'${sliceActivityName(a.activityName)}'`).join(', ');
+        const names = this.alternatives.map(a => `'${activityTypeOf(a)}'`).join(', ');
         return `Expected one of the following activities during ${context}: ${names}.`;
     }
 }
@@ -224,17 +225,9 @@ export class ValidationResult {
 // String helpers (internal — used by error classes above)
 // ---------------------------------------------------------------------------
 
-const sliceActivityName = (activityName: string | undefined): string => {
-    if (!activityName) return '';
-    const qIndex = activityName.indexOf('Q');
-    return qIndex !== -1 ? activityName.slice(qIndex + 1) : activityName;
-};
-
 const getActivityOnPhaseMatch = (activities: Activity[], phaseName: string): string[] => {
     const cleanPhaseName = phaseName.replaceAll("'", '').trim();
     return activities
-        .map(a => a.activityName)
-        .filter(name => name.split('Q')[0] === cleanPhaseName)
-        .map(item => item.split('Q')[1])
-        .filter((item): item is string => item !== undefined);
+        .filter(a => phaseOf(a) === cleanPhaseName)
+        .map(a => activityTypeOf(a));
 };

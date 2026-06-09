@@ -4,6 +4,7 @@ import {
 } from '../../generated/ast.js';
 import { DataSet } from '../../flow/safe-ds-dataset-identifier.js';
 import { Activity } from './model.js';
+import { DSPipelineActivity } from './dsPipelineActivity.js';
 import {
     InconsistentTransformationPresenceError,
     InconsistentTransformationOrderError,
@@ -52,15 +53,15 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
 
     constructor(
         private readonly trackedPhases: string[],
-        private readonly excludedActivities: string[] = [],
+        private readonly excludedActivities: Activity[] = [],
     ) {}
 
     onElementaryMatch(info: MatchInfo): void {
         if (!info.phaseName || !this.trackedPhases.includes(info.phaseName)) return;
-        if (this.excludedActivities.includes(info.activity.activityName)) return;
+        if (this.excludedActivities.includes(info.activity)) return;
         if (!info.callable || !info.detectedDataset) return;
         if (info.detectedDataset === DataSet.Original) return;
-        if (info.activity.activityName === 'Any') return;
+        if (info.activity === DSPipelineActivity.Any) return;
 
         // Store statements reference (same across all calls in a pipeline)
         if (this.statements.length === 0) this.statements = info.statements;
