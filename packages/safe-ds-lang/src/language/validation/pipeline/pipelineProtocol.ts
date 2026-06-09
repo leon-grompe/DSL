@@ -29,12 +29,9 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         const result = behaviourProtocol.validate(context, 0, services);
  
         if (!result.isValid){
-            // the pipeline does not follow the protocol
-            return generateProtocolValidation(node, calls, result, accept);
-        } else {
-            // the pipeline follows the protocol, but there might be issues reported to the observers
-            return generateObserverValidation(observers, accept);
+            generateProtocolValidation(node, calls, result, accept);
         }
+        generateObserverValidation(observers, accept);
     };
 };
 
