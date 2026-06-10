@@ -65,4 +65,13 @@ class KNearestNeighborsImputer(
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: KNearestNeighborsImputer, transformedTable: Table)
+
+    @Pure
+    @Category(DataScienceCategory.DataProcessingQTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
+    fun transform(
+        table: Table
+    ) -> transformedTable: Table
 }

@@ -52,4 +52,12 @@ class RobustScaler(
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: RobustScaler, transformedTable: Table)
+
+    @Pure
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
+    fun transform(
+        table: Table
+    ) -> transformedTable: Table
 }

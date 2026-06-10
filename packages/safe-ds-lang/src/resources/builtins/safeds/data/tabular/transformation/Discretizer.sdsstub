@@ -66,4 +66,12 @@ class Discretizer(
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: Discretizer, transformedTable: Table)
+
+    @Pure
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+    ])
+    fun transform(
+        table: Table
+    ) -> transformedTable: Table
 }

@@ -109,4 +109,12 @@ class SimpleImputer(
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: SimpleImputer, transformedTable: Table)
+
+    @Pure
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
+    fun transform(
+        table: Table
+    ) -> transformedTable: Table
 }

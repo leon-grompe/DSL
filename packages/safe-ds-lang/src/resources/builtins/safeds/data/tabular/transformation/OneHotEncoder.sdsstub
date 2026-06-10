@@ -91,4 +91,13 @@ class OneHotEncoder(
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: OneHotEncoder, transformedTable: Table)
+
+    @Pure
+    @Category(DataScienceCategory.DataProcessingQTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+    ])
+    fun transform(
+        table: Table
+    ) -> transformedTable: Table
 }

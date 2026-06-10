@@ -72,4 +72,12 @@ class RangeScaler(
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: RangeScaler, transformedTable: Table)
+
+    @Pure
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
+    fun transform(
+        table: Table
+    ) -> transformedTable: Table
 }

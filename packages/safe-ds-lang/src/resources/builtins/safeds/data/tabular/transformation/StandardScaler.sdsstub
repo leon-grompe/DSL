@@ -59,4 +59,12 @@ class StandardScaler(
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: StandardScaler, transformedTable: Table)
+
+    @Pure
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformer
+    ])
+    fun transform(
+        table: Table
+    ) -> transformedTable: Table
 }
