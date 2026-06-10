@@ -5,15 +5,20 @@ import { Activity, ValidationContext } from './protocol/model.js';
 import { DSPipelineActivity } from './protocol/dsPipelineActivity.js';
 import { behaviourProtocol } from './behaviourProtocol.js';
 import { ConsistentTransformationObserver, ProtocolObserver } from './protocol/observer.js';
-import { ValidationResult } from './protocol/errors.js';
+import { ValidationResult, InconsistentTransformationError } from './protocol/errors.js';
 
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
+export const CODE_PIPELINE_DATASET_MISMATCH = 'pipeline/dataset-mismatch';
+export const CODE_PIPELINE_INCOMPLETE = 'pipeline/incomplete-sequence';
+export const CODE_INCONSISTENT_TRANSFORMATION = 'pipeline/inconsistent-transformation';
 
 export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
 
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
         // skip this validation if the pipeline is empty to avoid confusion with other validations
         if (node.body.statements.length < 1){ return; }
+        
+        const pipelineCalls: SdsCall[] = [];
 
         // pre-define observers to be used in the protocol
         const observers: ProtocolObserver[] = [
@@ -24,13 +29,14 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         ];
 
         // create validation context
-        const { context, calls } = extractValidationContext(node, services, observers);
+        const context = extractValidationContext(node, services, observers, pipelineCalls);
 
         // validate protocol
         const result = behaviourProtocol.validate(context, 0, services);
- 
+        
+        // generate validation messages for protocol violations
         if (!result.isValid){
-            generateProtocolValidation(node, calls, result, accept);
+            generateProtocolValidation(node, pipelineCalls, result, accept);
         }
         generateObserverValidation(observers, accept);
     };
@@ -40,12 +46,12 @@ function extractValidationContext(
     node: SdsPipeline,
     services: SafeDsServices,
     observers: ProtocolObserver[],
-): { context: ValidationContext; calls: SdsCall[] } {
+    pipelineCalls: SdsCall[] = []
+): ValidationContext {
     const analyzer = services.flow.DataFlowAnalyzer;
     const nodeMapper = services.helpers.NodeMapper;
     const builtinAnnotations = services.builtins.Annotations;
 
-    const pipelineCalls: SdsCall[] = [];
     const activitySequence: Activity[][] = [];
     const pipelineStatements = node.body.statements;
 
@@ -73,10 +79,7 @@ function extractValidationContext(
         }
     }
 
-    return {
-        context: new ValidationContext(activitySequence, pipelineCalls, pipelineStatements, observers),
-        calls: pipelineCalls,
-    };
+    return new ValidationContext(activitySequence, pipelineCalls, pipelineStatements, observers)
 }
 
 function generateProtocolValidation(
@@ -103,7 +106,7 @@ function generateProtocolValidation(
         accept(valMessage.severity,
             'Pipeline is missing at least one phase after this statement.\n' + valMessage.message, {
             node: calls.at(calls.length - 1) ?? node,
-            code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL,
+            code: CODE_PIPELINE_INCOMPLETE,
         });
     }
 }
@@ -114,18 +117,25 @@ function generateObserverValidation(
 ) : void {
     for (const observer of observers) {
         const observerErrors = observer.finalize();
+        let validationCode = CODE_PIPELINE_BEHAVIOUR_PROTOCOL;
+        
+        if (observer instanceof ConsistentTransformationObserver && observerErrors.length > 0) {
+            validationCode = CODE_INCONSISTENT_TRANSFORMATION;
+        }
         
         for (const { error, call } of observerErrors) {
-            const msg = error.formatMessage('');
             
-            if (msg) {
-                accept(error.severity,
-                    msg, {
-                        node: call,
-                        code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL
-                    }
-                );
-            }
+            if (error instanceof InconsistentTransformationError) {}
+
+            const msg = error.formatMessage('');
+            if (!msg) continue;
+            
+            accept(error.severity,
+                msg, {
+                    node: call,
+                    code: validationCode
+                }
+            );
         }
     }
 }
