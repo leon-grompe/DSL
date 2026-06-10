@@ -142,6 +142,27 @@ describe('computeForwardSliceFromVariable', async () => {
             // 'y' is out2's call-site assignee, which depends on 'b' not 'a' — excluded
             expectedNames: ['a', 'train', 'x'],
         },
+        {
+            testName: 'through two chained segment calls',
+            code: `
+                package test
+                fun getTable() -> result: Table
+                segment step1(in1: Table) -> r1: Table {
+                    yield r1 = in1;
+                }
+                segment step2(in2: Table) -> r2: Table {
+                    yield r2 = in2;
+                }
+                pipeline myPipeline {
+                    val a = getTable();
+                    val b = step1(a);
+                    val c = step2(b);
+                }
+            `,
+            startName: 'a',
+            // in1 is the step1 param, b is its output, in2 is the step2 param, c is its output
+            expectedNames: ['a', 'in1', 'b', 'in2', 'c'],
+        },
     ];
 
     it.each(testCases)('$testName', async ({ code, startName, expectedNames }) => {

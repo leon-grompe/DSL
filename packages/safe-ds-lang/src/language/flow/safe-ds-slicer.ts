@@ -199,7 +199,7 @@ class ForwardSliceScope {
         if (isSdsSegment(callable)) {
             // Segment: recurse to find exactly which yields are reached,
             // then return only the corresponding call-site placeholders.
-            return this.getSegmentOutPlaceholders(containingAssignment);
+            return this.getSegmentOutPlaceholders(containingAssignment, reference);
         }
 
         return [];
@@ -230,7 +230,7 @@ class ForwardSliceScope {
      * If a call-site assignee is itself a yield (nested segment), it is recorded in 'reachedYields'
      * and bubbled up to the caller instead.
      */
-    private getSegmentOutPlaceholders(callSiteAssignment: SdsAssignment): SdsLocalVariable[] {
+    private getSegmentOutPlaceholders(callSiteAssignment: SdsAssignment, trackedReference: SdsReference): SdsLocalVariable[] {
         // Extract information from call site assignment
         const callSiteAssignees = getAssignees(callSiteAssignment);
         const segmentCall = callSiteAssignment.expression;
@@ -239,13 +239,18 @@ class ForwardSliceScope {
         const segment = this.nodeMapper.callToCallable(segmentCall);
         if (!isSdsSegment(segment)) return [];
 
+        // The variable whose value we are currently tracking through this segment call.
+        // This is the variable that the incoming reference points to — not necessarily 'start',
+        // since the slice may have propagated through intermediate derived variables.
+        const trackedVariable = trackedReference.target.ref;
+
         // Map all parameters to their corresponding argument
         const paramArgMap = this.nodeMapper.callToParamArgMap(segmentCall);
         const outPlaceholders: SdsLocalVariable[] = [];
 
         for (const [param, arg] of paramArgMap) {
-            // Skip the argument if it is not a direct reference to 'start'
-            if (!isSdsReference(arg.value) || arg.value.target.ref !== this.start) continue;
+            // Skip the argument if it is not a direct reference to the variable we are tracking
+            if (!isSdsReference(arg.value) || arg.value.target.ref !== trackedVariable) continue;
 
             // Recurse into the segment from this parameter. A fresh ForwardSliceScope is created,
             // so the same segment entered from a different call site is not incorrectly skipped.
