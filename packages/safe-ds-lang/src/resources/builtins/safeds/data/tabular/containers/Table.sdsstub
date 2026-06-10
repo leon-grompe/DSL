@@ -982,7 +982,7 @@ class Table(
     @PythonName("inverse_transform_table")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DatProcessingQGeneral
+        DSPipelineActivity.DataProcessingQDataTransformer
     ])
     fun inverseTransformTable(
         @PythonName("fitted_transformer") fittedTransformer: InvertibleTableTransformer
@@ -1062,9 +1062,8 @@ class Table(
     @PythonName("transform_table")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQGeneral,
-        DSPipelineActivity.DataProcessingQGeneral,
-        DSPipelineActivity.FeatureEngineeringQGeneral
+        DSPipelineActivity.DataProcessingQDataTransformer,
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
     ])
     fun transformTable(
         @PythonName("fitted_transformer") fittedTransformer: TableTransformer
