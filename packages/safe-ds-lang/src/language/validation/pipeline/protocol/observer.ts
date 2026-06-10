@@ -202,6 +202,13 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
         if (usedDatasets.length < 2) return errors;
 
         // TODO: IMPLEMENTATION
+        // val train, val test = raw.splitRows(0.8);
+        // val trainA = f(train);
+        // val trainB = g(trainA);
+
+        // val testA = f(test); // ok, same predecessor as trainA
+        // val testB = g(test); // error, different predecessor than trainB
+
 
         return errors;
     }
