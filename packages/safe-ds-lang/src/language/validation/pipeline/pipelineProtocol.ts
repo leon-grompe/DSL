@@ -53,13 +53,14 @@ function extractValidationContext(
     const builtinAnnotations = services.builtins.Annotations;
 
     const activitySequence: Activity[][] = [];
+    const segmentCallSites: (SdsCall | undefined)[] = [];
     const pipelineStatements = node.body.statements;
 
     for (const statement of pipelineStatements) {
         // expand calls in statement to get nested calls and their parameter-argument mappings
         const statementCallsWithParamArgMap = analyzer.expandCallsInStatement(statement);
 
-        for (const { call } of statementCallsWithParamArgMap) {
+        for (const { call, segmentCallSite } of statementCallsWithParamArgMap) {
             const callable = nodeMapper.callToCallable(call);
             if (!callable || !(isSdsFunction(callable) || isSdsClass(callable))) continue;
 
@@ -75,11 +76,13 @@ function extractValidationContext(
                 : [DSPipelineActivity.Any];
 
             pipelineCalls.push(call);
+            segmentCallSites.push(segmentCallSite);
             activitySequence.push(activities);
         }
+
     }
 
-    return new ValidationContext(activitySequence, pipelineCalls, pipelineStatements, observers)
+    return new ValidationContext(activitySequence, pipelineCalls, segmentCallSites, pipelineStatements, observers);
 }
 
 function generateProtocolValidation(
