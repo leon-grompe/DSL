@@ -45,7 +45,7 @@ type ObservedEntry = { callable: SdsCallable; call: SdsCall };
  * Observes ElementaryBlock matches during protocol validation and checks three levels
  * of consistency for callables applied to different dataset partitions within the
  * tracked phases:
- *  1. Presence  — the same callables are applied to all datasets
+ *  1. Presence  — the same callables are applied to all datasets (except 'fit' which must only be applied to the training set)
  *  2. Order     — the callables are applied in the same order on all datasets
  *  3. Dataflow  — each callable receives input from the same predecessor (or raw data) on all datasets
  */
@@ -66,9 +66,10 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
         if (info.detectedDataset === DataSet.Original) return;
         if (info.activity === DSPipelineActivity.Any) return;
 
-        // normalize the callable to skip 'fit' and treat 'transform' and 'fitAndTransform' the same
+        // normalize by eliminating 'fit' calls and mapping 'transform' and 'fitAndTransform' 
+        // to their underlying class, so they are treated as the same callable across datasets
         const normalizedCallable = this.normalizeCallable(info.callable);
-        if (!normalizedCallable) return;
+        if (!normalizedCallable) return; // it was a 'fit' call
 
         // store pipeline statements for future dataflow check in finalize()
         if (this.statements.length === 0) this.statements = info.statements;
@@ -90,9 +91,13 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
     }
 
     /**
-     * Normalizes callables for consistency checks by ignoring certain call types or replacing them with their underlying class.
+     * Normalize callables by skipping 'fit' calls: they will only appear on the training set (as validated in 'data-flow-analysis/datasetUsage.ts')
+     * Map 'transform' and 'fitAndTransform' calls to their underlying class (which is a callable too), so they are treated as the same callable 
+     * across datasets even if different methods are used since 'fitAndTransform' may only be used on the training set to perform fitting and 
+     * transformation in one step, while on other datasets only 'transform' may be used.
      */
     private normalizeCallable(callable: SdsCallable): SdsCallable | null {
+        // keep segments as they are
         if (!isSdsFunction(callable)) return callable;
         // ignore 'fit'
         if (callable.name === 'fit') return null;
@@ -158,7 +163,7 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
         const usedDatasets = [...this.ops.keys()];
         if (usedDatasets.length < 2) return errors;
 
-        // choose reference dataset for order comparison
+        // choose training as reference dataset for order comparison if possible
         const referenceDataset = usedDatasets.includes(DataSet.Training)
             ? DataSet.Training : usedDatasets[0]!;
         const referenceEntries = this.ops.get(referenceDataset)!;
@@ -167,22 +172,23 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
             if (dataset === referenceDataset) continue;
             const datasetEntries = this.ops.get(dataset)!;
 
-            // length mismatch is caught by presence check
+            // length mismatch was already caught by presence check
             if (datasetEntries.length !== referenceEntries.length) continue;
-            // if all callables match at each index, sequences are consistent
-            if (referenceEntries.every((e, i) => e.callable === datasetEntries[i]!.callable)) continue;
-
-            // build readable callable names for error message
-            const refNames = referenceEntries.map(e => this.callableName(e.callable));
-            const devNames = datasetEntries.map(e => this.callableName(e.callable));
             
             // find the first deviating callable to report the error on
             const firstDiff = datasetEntries.find((e, i) => e.callable !== referenceEntries[i]?.callable)!;
-
-            errors.push({
-                error: new InconsistentTransformationOrderError(referenceDataset, refNames, dataset, devNames),
-                call: firstDiff.call,
-            });
+            
+            // at least one difference in callable order was found, report error
+            if (firstDiff) {
+                // build readable callable names for error message
+                const refNames = referenceEntries.map(e => this.callableName(e.callable));
+                const devNames = datasetEntries.map(e => this.callableName(e.callable));
+                
+                errors.push({
+                    error: new InconsistentTransformationOrderError(referenceDataset, refNames, dataset, devNames),
+                    call: firstDiff.call,
+                });
+            }            
         }
         return errors;
     }
