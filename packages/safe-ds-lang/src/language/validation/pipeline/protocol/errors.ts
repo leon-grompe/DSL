@@ -52,7 +52,10 @@ export class ElemBlockOobError extends ValidationError {
  * and the found activities.
  */
 export class ElemBlockActivityMismatchError extends ValidationError {
-    constructor(public expected: Activity, public found: Activity[]) { super(); }
+    constructor(
+        public expected: Activity, 
+        public found: Activity[]
+    ) { super(); }
     readonly severity = 'warning' as const;
     formatMessage(_phase: string): string {
         const foundNames = [...new Set(this.found
@@ -69,7 +72,9 @@ export class ElemBlockActivityMismatchError extends ValidationError {
  * all alternatives for the current phase.
  */
 export class OrBlockNoMatchError extends ValidationError {
-    constructor(public alternatives: Activity[]) { super(); }
+    constructor(
+        public alternatives: Activity[]
+    ) { super(); }
     readonly severity = 'warning' as const;
     formatMessage(phase: string): string {
         const context = phase !== '' ? `phase ${phase}` : 'current phase';
@@ -84,7 +89,11 @@ export class OrBlockNoMatchError extends ValidationError {
  * occurrences were expected and found.
  */
 export class RepetitionBlockMinimumNotMetError extends ValidationError {
-    constructor(public min: number, public actual: number, public phaseName?: string) { super(); }
+    constructor(
+        public min: number, 
+        public actual: number, 
+        public phaseName?: string
+    ) { super(); }
     readonly severity = 'warning' as const;
     formatMessage(phase: string): string {
         if (this.min > 1 && this.actual > 1) {
@@ -100,7 +109,11 @@ export class RepetitionBlockMinimumNotMetError extends ValidationError {
  * and found datasets, and if available, the activities that caused the mismatch.
  */
 export class DatasetMismatchError extends ValidationError {
-    constructor(public expected: DataSet, public found: DataSet, public activities?: Activity[]) { super(); }
+    constructor(
+        public expected: DataSet, 
+        public found: DataSet, 
+        public activities?: Activity[]
+    ) { super(); }
     readonly severity = 'error' as const;
     override readonly isPriority = true;
     formatMessage(phase: string): string {
@@ -110,14 +123,18 @@ export class DatasetMismatchError extends ValidationError {
     }
 }
 
-export class InconsistentTransformationPresenceError extends ValidationError {
+export abstract class InconsistentTransformationError extends ValidationError {
+    constructor(
+    ) { super(); }
+    readonly severity = 'warning' as const;
+}
+
+export class InconsistentTransformationPresenceError extends InconsistentTransformationError {
     constructor(
         public readonly callableName: string,
         public readonly presentOn: DataSet[],
         public readonly missingFrom: DataSet[],
     ) { super(); }
-
-    readonly severity = 'warning' as const;
 
     formatMessage(_phase: string): string {
         const presentStr = this.presentOn.map(d => `'${d}'`).join(' and ');
@@ -126,15 +143,13 @@ export class InconsistentTransformationPresenceError extends ValidationError {
     }
 }
 
-export class InconsistentTransformationOrderError extends ValidationError {
+export class InconsistentTransformationOrderError extends InconsistentTransformationError {
     constructor(
         public readonly referenceDataset: DataSet,
         public readonly referenceSequence: string[],
         public readonly deviatingDataset: DataSet,
         public readonly deviatingSequence: string[],
     ) { super(); }
-
-    readonly severity = 'warning' as const;
 
     formatMessage(_phase: string): string {
         const ref = this.referenceSequence.map(n => `'${n}'`).join(', ');
@@ -144,7 +159,7 @@ export class InconsistentTransformationOrderError extends ValidationError {
     }
 }
 
-export class InconsistentTransformationDataflowError extends ValidationError {
+export class InconsistentTransformationDataflowError extends InconsistentTransformationError {
     constructor(
         public readonly callableName: string,
         public readonly referenceDataset: DataSet,
@@ -152,8 +167,6 @@ export class InconsistentTransformationDataflowError extends ValidationError {
         public readonly deviatingDataset: DataSet,
         public readonly deviatingPredecessor: string | undefined,
     ) { super(); }
-
-    readonly severity = 'warning' as const;
 
     formatMessage(_phase: string): string {
         const refInput = this.referencePredecessor ? `the output of '${this.referencePredecessor}'` : 'raw data';
