@@ -57,9 +57,9 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
     ) {}
 
     onElementaryMatch(info: MatchInfo): void {
-        if (!info.phaseName || !this.trackedPhases.includes(info.phaseName)) return;
-        if (this.excludedActivities.includes(info.activity)) return;
-        if (!info.callable || !info.detectedDataset) return;
+        if (!info.phaseName || !info.callable || !info.detectedDataset) return;
+        if (!this.trackedPhases.includes(info.phaseName)) return;
+        if (this.excludedActivities.includes(info.activity)) return;        
         if (info.detectedDataset === DataSet.Original) return;
         if (info.activity === DSPipelineActivity.Any) return;
 
