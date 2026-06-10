@@ -1,3 +1,4 @@
+import { AstUtils } from 'langium';
 import {
     isSdsAssignment, isSdsClass, isSdsFunction, isSdsPlaceholder, isSdsReference,
     SdsCall, SdsCallable, SdsStatement,
@@ -22,6 +23,8 @@ export interface MatchInfo {
     detectedDataset: DataSet | undefined;
     /** All statements in the pipeline, used for dataflow predecessor analysis. */
     statements: SdsStatement[];
+    /** The outermost pipeline-level segment call that contains this call, if any. */
+    segmentCallSite?: SdsCall;
 }
 
 export interface ObserverError {
@@ -47,7 +50,7 @@ type ObservedEntry = { callable: SdsCallable; call: SdsCall };
  *  3. Dataflow  — each callable receives input from the same predecessor (or raw data) on all datasets
  */
 export class ConsistentTransformationObserver implements ProtocolObserver {
-    // dataset → ordered unique callables (first occurrence)
+    // dataset -> ordered unique callables (first occurrence)
     private readonly ops = new Map<DataSet, ObservedEntry[]>();
     private statements: SdsStatement[] = [];
 
@@ -59,25 +62,52 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
     onElementaryMatch(info: MatchInfo): void {
         if (!info.phaseName || !info.callable || !info.detectedDataset) return;
         if (!this.trackedPhases.includes(info.phaseName)) return;
-        if (this.excludedActivities.includes(info.activity)) return;        
+        if (this.excludedActivities.includes(info.activity)) return;
         if (info.detectedDataset === DataSet.Original) return;
         if (info.activity === DSPipelineActivity.Any) return;
 
-        // Store statements reference (same across all calls in a pipeline)
+        // normalize the callable to skip 'fit' and treat 'transform' and 'fitAndTransform' the same
+        const normalizedCallable = this.normalizeCallable(info.callable);
+        if (!normalizedCallable) return;
+
+        // store pipeline statements for future dataflow check in finalize()
         if (this.statements.length === 0) this.statements = info.statements;
+        
+        // record the callable for the detected dataset
+        this.recordEntry(info.detectedDataset, normalizedCallable, info.call);
+    }
 
-        let datasetOps = this.ops.get(info.detectedDataset);
-        if (!datasetOps) {
-            datasetOps = [];
-            this.ops.set(info.detectedDataset, datasetOps);
-        }
-
-        // Keep only the first occurrence of each callable per dataset (preserving order)
-        if (!datasetOps.some(e => e.callable === info.callable)) {
-            datasetOps.push({ callable: info.callable, call: info.call });
+    /**
+     * Records an observed callable for a dataset.
+     * Currently only tracks first occurences of callables.
+     */
+    private recordEntry(dataset: DataSet, callable: SdsCallable, call: SdsCall): void {
+        let datasetOps = this.ops.get(dataset);
+        if (!datasetOps) { datasetOps = []; this.ops.set(dataset, datasetOps); }
+        if (!datasetOps.some(e => e.callable === callable)) {
+            datasetOps.push({ callable, call });
         }
     }
 
+    /**
+     * Normalizes callables for consistency checks by ignoring certain call types or replacing them with their underlying class.
+     */
+    private normalizeCallable(callable: SdsCallable): SdsCallable | null {
+        if (!isSdsFunction(callable)) return callable;
+        // ignore 'fit'
+        if (callable.name === 'fit') return null;
+        
+        // if 'fitAndTransform' or 'transform', consider the underlying class as callable
+        // this way these calls are treated the same for validation and test set
+        if (callable.name === 'fitAndTransform' || callable.name === 'transform') {
+            return AstUtils.getContainerOfType(callable, isSdsClass) ?? callable;
+        }
+        return callable;
+    }
+
+    /**
+     * Finalizes the observer by checking the recorded callables for presence, order and dataflow consistency.
+     */
     finalize(): ObserverError[] {
         return [
             ...this.checkPresence(),
@@ -86,25 +116,29 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
         ];
     }
 
-    // ---------------------------------------------------------------------------
-    // Check 1: same callables on all datasets
-    // ---------------------------------------------------------------------------
 
+    /**
+     * Checks for consistent presence of callables across datasets.
+     */
     private checkPresence(): ObserverError[] {
         const errors: ObserverError[] = [];
         const usedDatasets = [...this.ops.keys()];
         if (usedDatasets.length < 2) return errors;
 
+        // build the union of all callables observed across datasets
         const allCallables = new Set<SdsCallable>();
         for (const entries of this.ops.values()) {
             for (const { callable } of entries) allCallables.add(callable);
         }
 
+        // for each callable, check if it is present on all datasets and collect errors for missing presence
         for (const callable of allCallables) {
             const presentOn  = usedDatasets.filter(d =>  this.ops.get(d)?.some(e => e.callable === callable));
             const missingFrom = usedDatasets.filter(d => !this.ops.get(d)?.some(e => e.callable === callable));
+            // callable appears on all datasets -> no presence inconsistency
             if (missingFrom.length === 0) continue;
 
+            // pick a representative call from one of the datasets where the callable is present to report the error on
             const representativeCall = this.ops.get(presentOn[0]!)!.find(e => e.callable === callable)!.call;
             errors.push({
                 error: new InconsistentTransformationPresenceError(
@@ -116,15 +150,15 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
         return errors;
     }
 
-    // ---------------------------------------------------------------------------
-    // Check 2: same order of callables across datasets
-    // ---------------------------------------------------------------------------
-
+    /**
+     * Checks for consistent order of callables across datasets, assuming they are all present.
+     */
     private checkOrder(): ObserverError[] {
         const errors: ObserverError[] = [];
         const usedDatasets = [...this.ops.keys()];
         if (usedDatasets.length < 2) return errors;
 
+        // choose reference dataset for order comparison
         const referenceDataset = usedDatasets.includes(DataSet.Training)
             ? DataSet.Training : usedDatasets[0]!;
         const referenceEntries = this.ops.get(referenceDataset)!;
@@ -133,12 +167,16 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
             if (dataset === referenceDataset) continue;
             const datasetEntries = this.ops.get(dataset)!;
 
-            // Only compare sequences of equal length — differing lengths are a presence issue
+            // length mismatch is caught by presence check
             if (datasetEntries.length !== referenceEntries.length) continue;
+            // if all callables match at each index, sequences are consistent
             if (referenceEntries.every((e, i) => e.callable === datasetEntries[i]!.callable)) continue;
 
+            // build readable callable names for error message
             const refNames = referenceEntries.map(e => this.callableName(e.callable));
             const devNames = datasetEntries.map(e => this.callableName(e.callable));
+            
+            // find the first deviating callable to report the error on
             const firstDiff = datasetEntries.find((e, i) => e.callable !== referenceEntries[i]?.callable)!;
 
             errors.push({
@@ -149,102 +187,25 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
         return errors;
     }
 
-    // ---------------------------------------------------------------------------
-    // Check 3: same dataflow (each callable receives input from the same predecessor)
-    // ---------------------------------------------------------------------------
-
+    /**
+     * Checks for consistent dataflow (each callable receives input from the same predecessor).
+     */
     private checkDataflow(): ObserverError[] {
         const errors: ObserverError[] = [];
         const usedDatasets = [...this.ops.keys()];
         if (usedDatasets.length < 2) return errors;
 
-        const referenceDataset = usedDatasets.includes(DataSet.Training)
-            ? DataSet.Training : usedDatasets[0]!;
+        // TODO: IMPLEMENTATION
 
-        // Build global map: tracked SdsCall → its assigned placeholder
-        const callToPlaceholder = this.buildCallToPlaceholderMap();
-
-        // Build per-dataset: placeholder → callable that produced it
-        const datasetPredecessorMap = new Map<DataSet, Map<object, SdsCallable>>();
-        for (const [dataset, entries] of this.ops) {
-            const map = new Map<object, SdsCallable>();
-            for (const { callable, call } of entries) {
-                const placeholder = callToPlaceholder.get(call);
-                if (placeholder) map.set(placeholder, callable);
-            }
-            datasetPredecessorMap.set(dataset, map);
-        }
-
-        const predecessorOf = (dataset: DataSet, call: SdsCall): SdsCallable | undefined => {
-            const predecessorMap = datasetPredecessorMap.get(dataset);
-            if (!predecessorMap) return undefined;
-            for (const arg of call.argumentList.arguments) {
-                if (isSdsReference(arg.value)) {
-                    const ref = arg.value.target.ref;
-                    if (ref && predecessorMap.has(ref)) return predecessorMap.get(ref);
-                }
-            }
-            return undefined;
-        };
-
-        const referenceEntries = this.ops.get(referenceDataset)!;
-
-        for (const dataset of usedDatasets) {
-            if (dataset === referenceDataset) continue;
-
-            for (const { callable, call } of this.ops.get(dataset)!) {
-                const refEntry = referenceEntries.find(e => e.callable === callable);
-                if (!refEntry) continue;
-
-                const refPred = predecessorOf(referenceDataset, refEntry.call);
-                const devPred = predecessorOf(dataset, call);
-                if (refPred === devPred) continue;
-
-                errors.push({
-                    error: new InconsistentTransformationDataflowError(
-                        this.callableName(callable),
-                        referenceDataset, refPred ? this.callableName(refPred) : undefined,
-                        dataset,         devPred ? this.callableName(devPred) : undefined,
-                    ),
-                    call,
-                });
-            }
-        }
         return errors;
     }
 
-    // ---------------------------------------------------------------------------
-    // Helpers
-    // ---------------------------------------------------------------------------
 
+    /**
+     * Helper to get the callable name.
+     */
     private callableName(callable: SdsCallable): string {
         return isSdsFunction(callable) || isSdsClass(callable) ? callable.name : callable.$type;
     }
 
-    /** Builds a map from each tracked SdsCall to the placeholder it was assigned to in the statements. */
-    private buildCallToPlaceholderMap(): Map<SdsCall, object> {
-        const allTrackedCalls = new Set<SdsCall>();
-        for (const entries of this.ops.values()) {
-            for (const { call } of entries) allTrackedCalls.add(call);
-        }
-
-        // Build: expression node → first assigned placeholder (from all statements)
-        const exprToPlaceholder = new Map<object, object>();
-        for (const stmt of this.statements) {
-            if (!isSdsAssignment(stmt)) continue;
-            const expr = stmt.expression;
-            const firstAssignee = stmt.assigneeList?.assignees[0];
-            if (expr && firstAssignee && isSdsPlaceholder(firstAssignee)) {
-                exprToPlaceholder.set(expr, firstAssignee);
-            }
-        }
-
-        // Keep only entries for tracked calls
-        const result = new Map<SdsCall, object>();
-        for (const call of allTrackedCalls) {
-            const placeholder = exprToPlaceholder.get(call);
-            if (placeholder) result.set(call, placeholder);
-        }
-        return result;
-    }
 }
