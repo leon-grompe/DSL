@@ -32,7 +32,7 @@ export interface ObserverError {
 export interface ProtocolObserver {
     /** Called on every successful ElementaryBlock match during protocol validation. */
     onElementaryMatch(info: MatchInfo): void;
-    /** Called once after the full protocol validates successfully. Returns any additional errors found. */
+    /** Called once after the full protocol is validated. Returns any additional errors found. */
     finalize(): ObserverError[];
 }
 
