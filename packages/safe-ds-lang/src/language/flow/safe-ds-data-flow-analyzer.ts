@@ -180,20 +180,28 @@ export class SafeDsDataFlowAnalyzer {
      * the original pipeline-level expressions, regardless of how many segment layers were crossed.
      */
     expandCallsInStatement(
-        statement: SdsStatement, 
-        paramArgMap: Map<SdsParameter, SdsExpression> = new Map()
-    ): { call: SdsCall, paramArgMap: Map<SdsParameter, SdsExpression> }[] {
+        statement: SdsStatement,
+        paramArgMap: Map<SdsParameter, SdsExpression> = new Map(),
+    ): { call: SdsCall, paramArgMap: Map<SdsParameter, SdsExpression>, segmentCallSite?: SdsCall }[] {
+        return this._expandCallsInStatement(statement, paramArgMap, undefined);
+    }
+
+    private _expandCallsInStatement(
+        statement: SdsStatement,
+        paramArgMap: Map<SdsParameter, SdsExpression>,
+        segmentCallSite: SdsCall | undefined,
+    ): { call: SdsCall, paramArgMap: Map<SdsParameter, SdsExpression>, segmentCallSite?: SdsCall }[] {
         if (isSdsExpressionStatement(statement) ||
             isSdsAssignment(statement) ||
             isSdsOutputStatement(statement)) {
-            
+
             // Get direct calls in this statement, starting from innermost (reverse order)
             const directCalls = AstUtils.streamAst(statement.expression as AstNode)
                 .filter(isSdsCall)
                 .toArray()
                 .reverse();
 
-            const result: { call: SdsCall, paramArgMap: Map<SdsParameter, SdsExpression> }[] = [];
+            const result: { call: SdsCall, paramArgMap: Map<SdsParameter, SdsExpression>, segmentCallSite?: SdsCall }[] = [];
 
             for (const call of directCalls) {
                 const callable = this.services.helpers.NodeMapper.callToCallable(call);
@@ -202,7 +210,7 @@ export class SafeDsDataFlowAnalyzer {
                     // Resolve each param's argument expression, substituting outer bindings if needed
                     const segmentParamArgMap = this.services.helpers.NodeMapper.callToParamArgMap(call);
                     const resolvedMap = new Map<SdsParameter, SdsExpression>();
-                    
+
                     // First resolve the direct arguments at this call site
                     for (const [param, arg] of segmentParamArgMap) {
                         let expr = arg.value;
@@ -214,14 +222,18 @@ export class SafeDsDataFlowAnalyzer {
                         resolvedMap.set(param, expr);
                     }
 
-                    // Recursively expand calls in the segment body with the resolved paramArgMap
+                    // Recursively expand into the segment body. Preserve the outermost segment call
+                    // site so that all inner calls are tagged with the pipeline-level segment call.
                     for (const segmentStatement of callable.body.statements) {
-                        result.push(...this.expandCallsInStatement(segmentStatement, resolvedMap));
+                        result.push(...this._expandCallsInStatement(
+                            segmentStatement, resolvedMap,
+                            segmentCallSite ?? call,
+                        ));
                     }
                 } else {
                     // Function / class call: emit with the paramArgMap from the enclosing segment scope
                     // so callers can resolve any parameter references back to pipeline-level expressions.
-                    result.push({ call, paramArgMap });
+                    result.push({ call, paramArgMap, segmentCallSite });
                 }
             }
 

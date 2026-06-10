@@ -20,6 +20,7 @@ export class ValidationContext {
     constructor(
         public activitySequence: Activity[][],
         public calls: SdsCall[],
+        public segmentCallSites: (SdsCall | undefined)[],
         public statements: SdsStatement[],
         public observers: ProtocolObserver[] = [],
     ){}
@@ -102,6 +103,7 @@ export class ElementaryBlock extends ProtocolBlock{
         const currentCall = context.calls[startIndex];
         if (!currentCall) return;
 
+        const segmentCallSite = context.segmentCallSites[startIndex];
         const callable = services.helpers.NodeMapper.callToCallable(currentCall);
         const detectedDataset = services.flow.DatasetIdentifier.identifyDataset(currentCall, context.statements);
 
@@ -113,6 +115,7 @@ export class ElementaryBlock extends ProtocolBlock{
                 callable,
                 detectedDataset,
                 statements: context.statements,
+                segmentCallSite,
             });
         }
     }
