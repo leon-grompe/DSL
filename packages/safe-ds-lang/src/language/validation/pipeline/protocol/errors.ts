@@ -163,17 +163,22 @@ export class InconsistentTransformationDataflowError extends InconsistentTransfo
     constructor(
         public readonly callableName: string,
         public readonly referenceDataset: DataSet,
-        public readonly referencePredecessor: string | undefined,
         public readonly deviatingDataset: DataSet,
-        public readonly deviatingPredecessor: string | undefined,
+        public readonly referenceSuccessors: string[],
+        public readonly deviatingSuccessors: string[],
     ) { super(); }
 
     formatMessage(_phase: string): string {
-        const refInput = this.referencePredecessor ? `the output of '${this.referencePredecessor}'` : 'raw data';
-        const devInput = this.deviatingPredecessor ? `the output of '${this.deviatingPredecessor}'` : 'raw data';
-        return `Dataflow mismatch for '${this.callableName}': receives ${devInput} on the ` +
-               `${this.deviatingDataset} dataset but ${refInput} on the ${this.referenceDataset} dataset. ` +
+        const refOutput = this.formatSuccessors(this.referenceSuccessors);
+        const devOutput = this.formatSuccessors(this.deviatingSuccessors);
+        return `Dataflow mismatch after '${this.callableName}': its output flows into ${devOutput} on the ` +
+               `${this.deviatingDataset} dataset but into ${refOutput} on the ${this.referenceDataset} dataset. ` +
                `Ensure data flows consistently across all partitions.`;
+    }
+
+    private formatSuccessors(successors: string[]): string {
+        if (successors.length === 0) return 'nothing';
+        return successors.map(n => `'${n}'`).join(' and ');
     }
 }
 
