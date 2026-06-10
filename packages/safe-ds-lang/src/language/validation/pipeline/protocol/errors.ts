@@ -132,14 +132,21 @@ export abstract class InconsistentTransformationError extends ValidationError {
 export class InconsistentTransformationPresenceError extends InconsistentTransformationError {
     constructor(
         public readonly callableName: string,
-        public readonly presentOn: DataSet[],
-        public readonly missingFrom: DataSet[],
+        public readonly referenceDataset: DataSet,
+        public readonly referenceCount: number,
+        public readonly deviatingDataset: DataSet,
+        public readonly deviatingCount: number,
     ) { super(); }
 
     formatMessage(_phase: string): string {
-        const presentStr = this.presentOn.map(d => `'${d}'`).join(' and ');
-        const missingStr = this.missingFrom.map(d => `'${d}'`).join(' and ');
-        return `'${this.callableName}' is applied to the ${presentStr} dataset but not to ${missingStr}.`;
+        return `'${this.callableName}' is ${this.describeCount(this.deviatingCount)} on the ${this.deviatingDataset} ` +
+               `dataset but ${this.describeCount(this.referenceCount)} on the ${this.referenceDataset} dataset.`;
+    }
+
+    private describeCount(count: number): string {
+        if (count === 0) return 'not applied';
+        if (count === 1) return 'applied once';
+        return `applied ${count} times`;
     }
 }
 

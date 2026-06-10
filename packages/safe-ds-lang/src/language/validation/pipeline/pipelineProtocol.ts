@@ -5,12 +5,18 @@ import { Activity, ValidationContext } from './protocol/model.js';
 import { DSPipelineActivity } from './protocol/dsPipelineActivity.js';
 import { behaviourProtocol } from './behaviourProtocol.js';
 import { ConsistentTransformationObserver, ProtocolObserver } from './protocol/observer.js';
-import { ValidationResult, InconsistentTransformationError } from './protocol/errors.js';
+import { ValidationResult, InconsistentTransformationPresenceError, InconsistentTransformationOrderError, InconsistentTransformationDataflowError } from './protocol/errors.js';
 
+// protocol error codes
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
 export const CODE_PIPELINE_DATASET_MISMATCH = 'pipeline/dataset-mismatch';
 export const CODE_PIPELINE_INCOMPLETE = 'pipeline/incomplete-sequence';
-export const CODE_INCONSISTENT_TRANSFORMATION = 'pipeline/inconsistent-transformation';
+
+// observer error codes
+export const CODE_PIPELINE_OBSERVER = 'pipeline/observer-error';
+export const CODE_INCONSISTENT_TRANSFORMATION_PRESENCE = 'pipeline/inconsistent-transformation-presence';
+export const CODE_INCONSISTENT_TRANSFORMATION_ORDER = 'pipeline/inconsistent-transformation-order';
+export const CODE_INCONSISTENT_TRANSFORMATION_DATAFLOW = 'pipeline/inconsistent-transformation-dataflow';
 
 export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
 
@@ -121,16 +127,19 @@ function generateObserverValidation(
 ) : void {
     for (const observer of observers) {
         const observerErrors = observer.finalize();
-        let validationCode = CODE_PIPELINE_BEHAVIOUR_PROTOCOL;
-        
-        if (observer instanceof ConsistentTransformationObserver && observerErrors.length > 0) {
-            validationCode = CODE_INCONSISTENT_TRANSFORMATION;
-        }
+        // set general validation code
+        let validationCode = CODE_PIPELINE_OBSERVER;
         
         for (const { error, call } of observerErrors) {
+            // specify validation code depending on concrete instance of the error
+            if (error instanceof InconsistentTransformationPresenceError) {
+                validationCode = CODE_INCONSISTENT_TRANSFORMATION_PRESENCE;
+            } else if (error instanceof InconsistentTransformationOrderError) {
+                validationCode = CODE_INCONSISTENT_TRANSFORMATION_ORDER;
+            } else if (error instanceof InconsistentTransformationDataflowError) {
+                validationCode = CODE_INCONSISTENT_TRANSFORMATION_DATAFLOW;
+            }
             
-            if (error instanceof InconsistentTransformationError) {}
-
             const msg = error.formatMessage('');
             if (!msg) continue;
             

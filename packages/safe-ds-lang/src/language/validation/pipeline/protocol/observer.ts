@@ -47,12 +47,12 @@ type ObservedEntry = { callable: SdsCallable; call: SdsCall };
  * Observes ElementaryBlock matches during protocol validation and checks three levels
  * of consistency for callables applied to different dataset partitions within the
  * tracked phases:
- *  1. Presence  — the same callables are applied to all datasets (except 'fit' which must only be applied to the training set)
+ *  1. Presence  — the same callables are applied the same number of times to all datasets (except 'fit' which must only be applied to the training set)
  *  2. Order     — the callables are applied in the same order on all datasets
  *  3. Dataflow  — each callable's output flows into the same successor callables on all datasets
  */
 export class ConsistentTransformationObserver implements ProtocolObserver {
-    // dataset -> (callable, call)[] observed for this dataset, in order of appearance
+    // dataset -> (callable, call)[] for every observed call, in order of appearance (occurrences are not deduplicated)
     private readonly datasetCallableMap = new Map<DataSet, ObservedEntry[]>();
     // input placeholder -> the normalized callables that consume it (recorded for every call)
     private readonly consumers = new Map<SdsPlaceholder, SdsCallable[]>();
@@ -84,10 +84,11 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
     }
 
     /**
-     * Records an observed callable for a dataset.
-     * Every data input of the call is indexed in 'consumers' (used by the dataflow check), while
-     * the per-dataset list only keeps the first occurrence of each callable (used by the presence
-     * and order checks, which align the lists index-by-index).
+     * Records an observed callable for a dataset. Every occurrence is appended in order, so the
+     * per-dataset list reflects how many times (and in which order) each callable is applied — the
+     * presence check compares occurrence counts and the order/dataflow checks align the lists
+     * index-by-index (which is sound because count-aware presence guarantees equal lengths first).
+     * Every data input of the call is additionally indexed in 'consumers' (used by the dataflow check).
      */
     private recordEntry(dataset: DataSet, callable: SdsCallable, call: SdsCall): void {
         // index this callable as a consumer of each of the call's data inputs, so the dataflow
@@ -100,9 +101,7 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
 
         let datasetOps = this.datasetCallableMap.get(dataset);
         if (!datasetOps) { datasetOps = []; this.datasetCallableMap.set(dataset, datasetOps); }
-        if (!datasetOps.some(e => e.callable === callable)) {
-            datasetOps.push({ callable, call });
-        }
+        datasetOps.push({ callable, call });
     }
 
     /**
@@ -130,6 +129,10 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
      * consistency in this order and returning only the first error found.
      */
     finalize(): ObserverError[] {
+        // make sure every existing dataset partition participates, even one that received no
+        // tracked calls, so the presence check can flag partitions missing transformations entirely
+        this.seedExistingPartitions();
+
         const presenceCheck = this.checkPresence();
         if (presenceCheck.length > 0) {
             // presence inconsistencies are a prerequisite for order and dataflow inconsistencies
@@ -148,14 +151,43 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
         return [];
     }
 
+    /**
+     * Ensures each dataset partition that exists in the pipeline (training/validation/test) appears
+     * in 'datasetCallableMap', seeding an empty list for any partition that received no tracked calls.
+     * Without this, a partition that is never transformed would be invisible to the presence check.
+     */
+    private seedExistingPartitions(): void {
+        if (this.statements.length === 0) return; // nothing was observed, nothing to compare
+
+        const identifier = this.services.flow.DatasetIdentifier;
+        const partitionExists: [DataSet, boolean][] = [
+            [DataSet.Training,   Boolean(identifier.getTrainingSetPlaceholder(this.statements))],
+            [DataSet.Validation, Boolean(identifier.getValidationSetPlaceholder(this.statements))],
+            [DataSet.Test,       Boolean(identifier.getTestSetPlaceholder(this.statements))],
+        ];
+
+        for (const [partition, exists] of partitionExists) {
+            if (exists && !this.datasetCallableMap.has(partition)) {
+                this.datasetCallableMap.set(partition, []);
+            }
+        }
+    }
+
 
     /**
-     * Checks for consistent presence of callables across datasets.
+     * Checks for consistent presence of callables across datasets: each callable must be applied
+     * the same number of times on every dataset. Comparing counts (not mere membership) means a
+     * callable applied a different number of times is reported here, which also guarantees the
+     * per-dataset lists are equal length for the order and dataflow checks that run afterwards.
      */
     private checkPresence(): ObserverError[] {
         const errors: ObserverError[] = [];
         const usedDatasets = [...this.datasetCallableMap.keys()];
         if (usedDatasets.length < 2) return errors;
+
+        // choose training as reference dataset for comparison if possible
+        const referenceDataset = usedDatasets.includes(DataSet.Training)
+            ? DataSet.Training : usedDatasets[0]!;
 
         // build the union of all callables observed across datasets
         const allCallables = new Set<SdsCallable>();
@@ -163,23 +195,35 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
             for (const { callable } of entries) allCallables.add(callable);
         }
 
-        // for each callable, check if it is present on all datasets and collect errors for missing presence
-        for (const callable of allCallables) {
-            const presentOn  = usedDatasets.filter(d =>  this.datasetCallableMap.get(d)?.some(e => e.callable === callable));
-            const missingFrom = usedDatasets.filter(d => !this.datasetCallableMap.get(d)?.some(e => e.callable === callable));
-            // callable appears on all datasets -> no presence inconsistency
-            if (missingFrom.length === 0) continue;
+        // for each other dataset, report every callable whose occurrence count differs from the reference
+        for (const dataset of usedDatasets) {
+            if (dataset === referenceDataset) continue;
 
-            // pick a representative call from one of the datasets where the callable is present to report the error on
-            const representativeCall = this.datasetCallableMap.get(presentOn[0]!)!.find(e => e.callable === callable)!.call;
-            errors.push({
-                error: new InconsistentTransformationPresenceError(
-                    this.callableName(callable), presentOn, missingFrom,
-                ),
-                call: representativeCall,
-            });
+            for (const callable of allCallables) {
+                const referenceCount = this.countOf(referenceDataset, callable);
+                const datasetCount = this.countOf(dataset, callable);
+                if (referenceCount === datasetCount) continue;
+
+                // report on a call from whichever dataset actually applies the callable
+                const representativeCall =
+                    this.datasetCallableMap.get(dataset)!.find(e => e.callable === callable)?.call
+                    ?? this.datasetCallableMap.get(referenceDataset)!.find(e => e.callable === callable)!.call;
+                errors.push({
+                    error: new InconsistentTransformationPresenceError(
+                        this.callableName(callable), referenceDataset, referenceCount, dataset, datasetCount,
+                    ),
+                    call: representativeCall,
+                });
+            }
         }
         return errors;
+    }
+
+    /**
+     * Counts how many times a callable is applied on a dataset.
+     */
+    private countOf(dataset: DataSet, callable: SdsCallable): number {
+        return this.datasetCallableMap.get(dataset)?.filter(e => e.callable === callable).length ?? 0;
     }
 
     /**
