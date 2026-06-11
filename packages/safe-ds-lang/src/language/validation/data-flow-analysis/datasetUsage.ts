@@ -1,14 +1,16 @@
-import { ValidationAcceptor } from 'langium';
+import { AstUtils, ValidationAcceptor } from 'langium';
 import { SafeDsServices } from '../../safe-ds-module.js';
 import { SdsCall, SdsPipeline, isSdsReference, isSdsPlaceholder, isSdsAssignment, SdsLocalVariable, isSdsSegment } from '../../generated/ast.js';
 
 export const CODE_TEST_DATA_USED_FOR_TRAINING = 'data-flow-analysis/test-data-used-for-training';
+export const CODE_REST_DATA_USED_FOR_NON_SPLITTING = 'data-flow-analysis/rest-data-used-for-non-splitting';
 
 export const testDataUsedForTraining = (services: SafeDsServices) => {
     const analyzer = services.flow.DataFlowAnalyzer;
     const locator = services.workspace.AstNodeLocator;
     const nodeMapper = services.helpers.NodeMapper;
-
+    
+    // fit -> transformer.fitAndTransform(table) | table.transformTable(transformer)
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
         const pipelineStatements = node.body.statements;
         const assignments = pipelineStatements.filter(isSdsAssignment);
@@ -58,5 +60,34 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
                 }
             }
         }
+    }
+}
+
+export const restDataUsedForNonSplitting = (services: SafeDsServices) => {
+    const analyzer = services.flow.DataFlowAnalyzer;
+    const locator = services.workspace.AstNodeLocator;
+    const nodeMapper = services.helpers.NodeMapper;
+
+    // recognize when the rest set is used for anything other than splitting
+    return (node: SdsPipeline, accept: ValidationAcceptor) => {
+        const assignments = node.body.statements.filter(isSdsAssignment);
+        const splitAssignments = analyzer.extractAssignmentsWithSpecificCall(assignments, 'split');
+
+        // the rest set is the second assignee of the first split
+        const restSet = splitAssignments[0]?.assigneeList?.assignees[1];
+        if (!isSdsPlaceholder(restSet)) return;
+
+        // every usage of the rest set should feed a second split; anything else is flagged
+        nodeMapper.placeholderToReferences(restSet).forEach((reference) => {
+            const containingStatement = AstUtils.getContainerOfType(reference, isSdsAssignment);
+            if (containingStatement && analyzer.isSpecificCall(containingStatement, 'split')) return;
+
+            accept('warning',
+                `The rest set ('${restSet.name}') should only be used for a secon split, not for anything else.`, {
+                node: reference,
+                code: CODE_REST_DATA_USED_FOR_NON_SPLITTING,
+                data: { path: locator.getAstNodePath(reference) },
+            });
+        });
     }
 }

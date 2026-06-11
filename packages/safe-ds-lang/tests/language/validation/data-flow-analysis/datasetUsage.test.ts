@@ -3,7 +3,7 @@ import { isSdsPipeline } from '../../../../src/language/generated/ast.js';
 import { createSafeDsServices } from '../../../../src/language/index.js';
 import { NodeFileSystem } from 'langium/node';
 import { getNodeOfType } from '../../../helpers/nodeFinder.js';
-import { testDataUsedForTraining } from '../../../../src/language/validation/data-flow-analysis/datasetUsage.js';
+import { restDataUsedForNonSplitting, testDataUsedForTraining } from '../../../../src/language/validation/data-flow-analysis/datasetUsage.js';
 
 const services = (await createSafeDsServices(NodeFileSystem)).SafeDs;
 
@@ -121,6 +121,67 @@ describe('testDataUsedForTraining', () => {
             }
         `;
         const diagnostics = await getDiagnosticsFor(code);
+        expect(diagnostics).toHaveLength(0);
+    });
+});
+
+// Helper: collect all messages emitted by the rest-set validator for a pipeline
+async function getRestDiagnosticsFor(code: string): Promise<{ message: string; nodeText?: string }[]> {
+    const pipeline = await getNodeOfType(services, code, isSdsPipeline);
+    const diagnostics: { message: string; nodeText?: string }[] = [];
+    const validator = restDataUsedForNonSplitting(services);
+
+    const accept = (_severity: string, message: string, opts?: { node?: object }) => {
+        const nodeText = (opts?.node as any)?.$cstNode?.text;
+        diagnostics.push({ message, nodeText });
+    };
+
+    validator(pipeline, accept as any);
+    return diagnostics;
+}
+
+describe('restDataUsedForNonSplitting', () => {
+    it('does not warn when the rest set is only split again', async () => {
+        const code = `
+            package test
+            fun getTable() -> result: Table
+            pipeline myPipeline {
+                val data = getTable();
+                val trainingSet, val restSet = data.splitRows(percentageInFirst = 0.6);
+                val validationSet, val testSet = restSet.splitRows(percentageInFirst = 0.5);
+            }
+        `;
+        const diagnostics = await getRestDiagnosticsFor(code);
+        expect(diagnostics).toHaveLength(0);
+    });
+
+    it('warns when the rest set is used for something other than splitting', async () => {
+        const code = `
+            package test
+            fun getTable() -> result: Table
+            fun fit(t: Table) -> result: Int
+            pipeline myPipeline {
+                val data = getTable();
+                val trainingSet, val restSet = data.splitRows(percentageInFirst = 0.6);
+                val fitted = fit(restSet);
+            }
+        `;
+        const diagnostics = await getRestDiagnosticsFor(code);
+        expect(diagnostics.length).toBeGreaterThan(0);
+        expect(diagnostics[0]!.nodeText).toBe('restSet');
+    });
+
+    it('does not warn when there is no split', async () => {
+        const code = `
+            package test
+            fun getTable() -> result: Table
+            fun fit(t: Table) -> result: Int
+            pipeline myPipeline {
+                val data = getTable();
+                val fitted = fit(data);
+            }
+        `;
+        const diagnostics = await getRestDiagnosticsFor(code);
         expect(diagnostics).toHaveLength(0);
     });
 });

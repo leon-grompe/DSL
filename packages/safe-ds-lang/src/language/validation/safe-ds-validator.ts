@@ -192,7 +192,7 @@ import { typeMustBeUsedInCorrectContext } from './other/types/types.js';
 import { pipelineMustFollowBehaviourProtocol } from './pipeline/pipelineProtocol.js';
 import { suggestPipelineStructure } from './pipeline/pipelineStructure.js'
 import { pipelineShouldContainMultipleSplits } from './data-flow-analysis/datasetSplitting.js';
-import { testDataUsedForTraining } from './data-flow-analysis/datasetUsage.js';
+import { restDataUsedForNonSplitting, testDataUsedForTraining } from './data-flow-analysis/datasetUsage.js';
 
 /**
  * Register custom validation checks.
@@ -363,6 +363,7 @@ export const registerValidationChecks = function (services: SafeDsServices) {
             pipelineShouldContainMultipleSplits(services),
             suggestPipelineStructure(services),
             testDataUsedForTraining(services),
+            restDataUsedForNonSplitting(services),
         ],
         SdsPlaceholder: [
             placeholdersMustNotBeAnAlias, 
