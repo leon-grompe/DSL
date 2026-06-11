@@ -1,0 +1,9 @@
+// $TEST$ apply "Add a second split to partition the data into train, validation, and test sets."
+
+package tests.codeActions.quickfixes.addThreeWaySplit
+
+pipeline testPipeline {
+    val rawData = Table.fromCsvFile("titanic.csv");
+    val train, val rest = rawData.splitRows(percentageInFirst = 0.7);
+    val rawValidation, val rawTest = rest.splitRows(0.5);
+}

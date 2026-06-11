@@ -1,0 +1,9 @@
+// $TEST$ apply "Split the rest set instead, so the training set stays intact."
+
+package tests.codeActions.quickfixes.correctThreeWaySplit
+
+pipeline testPipeline {
+    val rawData = Table.fromCsvFile("titanic.csv");
+    val train, val rest = rawData.splitRows(0.6);
+    val validation, val test = train.splitRows(0.5);
+}
