@@ -24,6 +24,17 @@ export const addThreeWaySplit = (services: SafeDsServices) => {
         const restSet = getAssignees(node)[1];
         if (!isSdsPlaceholder(restSet)) return;
 
+        // the inserted split introduces 'rawValidation' and 'rawTest'. if the rest set already uses
+        // one of those names, rename its declaration to 'rawRest' to avoid a redeclaration clash.
+        // (any existing usages of the old name are expected to be broken by design — the rest set
+        // should not be consumed directly, it should be split first.)
+        const edits: TextEdit[] = [];
+        let restName = restSet.name;
+        if ((restName === 'rawValidation' || restName === 'rawTest') && restSet.$cstNode) {
+            restName = 'rawRest';
+            edits.push({ range: restSet.$cstNode.range, newText: `val ${restName}` });
+        }
+
         // reuse the same splitting function as the original split ('splitRows' or 'split')
         if (!analyzer.isSpecificCall(node, 'split') || !isSdsCall(node.expression)) return;
         const callable = nodeMapper.callToCallable(node.expression);
@@ -32,17 +43,17 @@ export const addThreeWaySplit = (services: SafeDsServices) => {
 
         // insert the new split directly after the existing one, matching its indentation
         const indent = ' '.repeat(node.$cstNode.range.start.character);
-        const edit: TextEdit = {
+        edits.push({
             range: { start: node.$cstNode.range.end, end: node.$cstNode.range.end },
-            newText: `\n${indent}val rawValidation, val rawTest = ${restSet.name}.${funcName}(0.5);`,
-        };
+            newText: `\n${indent}val rawValidation, val rawTest = ${restName}.${funcName}(0.5);`,
+        });
 
         acceptor(
             createQuickfixFromTextEditsToSingleDocument(
                 'Add a second split to partition the data into train, validation, and test sets.',
                 diagnostic,
                 document,
-                [edit],
+                edits,
                 true,
             ),
         );
