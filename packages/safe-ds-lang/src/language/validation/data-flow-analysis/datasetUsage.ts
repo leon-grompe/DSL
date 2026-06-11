@@ -4,25 +4,6 @@ import { SdsCall, SdsPipeline, isSdsReference, isSdsPlaceholder, isSdsAssignment
 
 export const CODE_TEST_DATA_USED_FOR_TRAINING = 'data-flow-analysis/test-data-used-for-training';
 
-// TODO:
-// TESTS SCHREIBEN (nodeMapper + forwardSlice) -> MERGEN MIT refactor_analyzer  X
-// isSpecificDataset() REWORK + DELETE OLD IMPLEMENTATIONS                      X
-// TESTS FÜR ANALYZER                                                           X
-// TESTS FÜR IDENTIFIER                                                         X
-// -> MERGEN mit vorherigem Branch                                              X
-// TESTS FÜR VALIDATION (datasetUsage)
-
-// PROTOCOL VALIDATION
-// -> ZUSÄTZLICHES RETURN MIT "ADDITIONAL ERRORS"                               X (observer)
-// -> ERROR TYPES ALS SUBTYPEN UND printMessage()                               X
-// -> MAYBE BESSERE CODIERUNG DER PHASEN
-// -> PFLICHT ELEMENTARY BLOCK?
-// -> EVALUATION/TESTING VALIDATION
-
-// CLEANUP
-// -> Seperate dateien errors, observer, protocol
-// -> besser ordnerstruktur
-
 export const testDataUsedForTraining = (services: SafeDsServices) => {
     const analyzer = services.flow.DataFlowAnalyzer;
     const locator = services.workspace.AstNodeLocator;
