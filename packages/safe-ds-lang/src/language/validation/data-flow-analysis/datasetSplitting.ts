@@ -1,79 +1,63 @@
 import { AstUtils, ValidationAcceptor } from 'langium';
 import { isSdsCall, isSdsFunction, isSdsPlaceholder, SdsAssignment, SdsPipeline, isSdsAssignment, isSdsReference } from '../../generated/ast.js';
+import { getAssignees } from '../../helpers/nodeProperties.js';
 import { SafeDsServices } from '../../index.js';
 
-export const CODE_DATASET_SPLITTING = 'pipeline/dataset-splitting';
+export const CODE_MISSING_DATASET_SPLITTING = 'pipeline/missing-dataset-split';
+export const CODE_ILLEGAL_DATASET_SPLITTING = 'pipeline/illegal-dataset-split';
 
 export const pipelineShouldContainMultipleSplits = (services: SafeDsServices) => {
     const nodeMapper = services.helpers.NodeMapper;
-    const builtinAnnotations = services.builtins.Annotations;
     const analyzer = services.flow.DataFlowAnalyzer;
-    
+    const locator = services.workspace.AstNodeLocator;
+
+    const isSplit = (statement: SdsAssignment): boolean =>
+        analyzer.expandCallsInStatement(statement).some(({ call }) => {
+            if (!isSdsCall(call)) return false;
+            const callable = nodeMapper.callToCallable(call);
+            // if its a table 'splitRows'; if its an imageList 'split'
+            return isSdsFunction(callable) && (callable.name === 'splitRows' || callable.name === 'split');
+        });
+
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
-        const splitStatements: SdsAssignment[] = [];
-        
-        for (const statement of node.body.statements) {
-            if (!isSdsAssignment(statement)) continue;
-            
-            for (const call of analyzer.expandCallsInStatement(statement).map(({ call }) => call)) {
+        const splits = node.body.statements.filter(isSdsAssignment).filter(isSplit);
+        if (splits.length === 0) return;
 
-                if (!isSdsCall(call)) continue;
-                const callable = nodeMapper.callToCallable(call);
-                
-                if (callable && isSdsFunction(callable) && callable.name === 'splitRows') {
-                    splitStatements.push(statement);
-                }
-            }
-        }
-
-        // only one split -> recommend another
-        if (splitStatements.length === 1) {
-            accept( 'info',
-                'Splitting the original data into 3 parts (training, validation, test) is recommended.', {
-                    node: splitStatements[0]?.expression ?? node,
-                    code: CODE_DATASET_SPLITTING
-                }
-            )
-            return;
-        }
-
-        // flag to check if there are splits that reference each other
+        // a split is "chained" when it references a placeholder produced by another split.
         let hasChainedSplit = false;
-        
-        // multiple splits
-        for (const assignment of splitStatements) {
-            const assignees = assignment.assigneeList?.assignees ?? [];
+        for (const split of splits) {
+            // get placeholders in the ast of the split
+            AstUtils.streamAllContents(split).forEach((astNode) => {
+                if (!isSdsReference(astNode) || !isSdsPlaceholder(astNode.target.ref)) return;
 
-            for (const otherAssignment of splitStatements) {
-                if (assignment === otherAssignment) continue;
+                const target = astNode.target.ref;
+                
+                // check if target is assigned by another split
+                const source = splits.find((other) => other !== split && getAssignees(other).includes(target));
+                if (!source) return;
 
-                AstUtils.streamAllContents(otherAssignment).forEach(astNode => {
-                    if (isSdsReference(astNode) && isSdsPlaceholder(astNode.target.ref)) {
-                        // otherAssignment references another split at position 1 (correct)
-                        if (assignees[1] === astNode.target.ref){
-                            hasChainedSplit = true;
+                hasChainedSplit = true;
+
+                // chaining off any assignee other than the second one (the rest set) is incorrect.
+                if (getAssignees(source)[1] !== target) {
+                    accept('info',
+                        'Only the second assignee should be split a second time, since it is consideres the first assignee to be the training set.', {
+                            node: split.expression ?? node,
+                            code: CODE_ILLEGAL_DATASET_SPLITTING,
+                            data: { path: locator.getAstNodePath(split) },
                         }
-                        // otherAssignment references another split at another position (incorrect)
-                        else if (assignees.includes(astNode.target.ref)){
-                            hasChainedSplit = true;
-                            accept( 'info',
-                                'Only the second assignee (which combines test and validation data) should be split a second time.', {
-                                    node: otherAssignment.expression ?? node,
-                                    code: CODE_DATASET_SPLITTING
-                                }
-                            )
-                        }
-                    }
-                })
-            }
+                    );
+                }
+            });
         }
 
-        // mutiple splits, but no split references another
-        if (!hasChainedSplit) {
+        // a single split, or multiple splits none of which chain off another -> recommend a 3-way split.
+        if (splits.length === 1 || !hasChainedSplit) {
             accept('info',
-                'Splitting the original data into 3 parts (training, validation, test) is recommended.', {
-                    node: splitStatements[0] ?? node,
-                    code: CODE_DATASET_SPLITTING
+                'It is recommended to split the dataset into three parts (training, validation, testing).', {
+                    node: splits[0]!.expression ?? splits[0]!,
+                    code: CODE_MISSING_DATASET_SPLITTING,
+                    data: { path: locator.getAstNodePath(splits[0]!) },
                 }
             );
         }
