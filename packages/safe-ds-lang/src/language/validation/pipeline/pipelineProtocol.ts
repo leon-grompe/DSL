@@ -30,6 +30,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         const observers: ProtocolObserver[] = [
             new ConsistentTransformationObserver(
                 services,
+                node.body.statements,
                 ['DataProcessing', 'FeatureEngineering'],
                 [DSPipelineActivity.DataProcessingQExploration],
             ),

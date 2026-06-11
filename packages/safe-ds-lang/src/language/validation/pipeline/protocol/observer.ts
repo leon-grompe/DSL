@@ -16,20 +16,25 @@ import {
     ValidationError,
 } from './errors.js';
 
+/**
+ * Provides information to the observer that it uses for checks. 
+ */
 export interface MatchInfo {
+    /** Name of the phase that was detected at the point of the match. */
     phaseName: string | undefined;
+    /** Activity that was detected at the point of the match. */
     activity: Activity;
+    /** Call the match was found on. */
     call: SdsCall;
     /** The resolved callable definition. Two calls to the same function share the same reference. */
     callable: SdsCallable | undefined;
     /** Dataset the call was resolved to operate on, or undefined if unknown. */
     detectedDataset: DataSet | undefined;
-    /** All statements in the pipeline, used for dataflow predecessor analysis. */
-    statements: SdsStatement[];
-    /** The outermost pipeline-level segment call that contains this call, if any. */
-    segmentCallSite?: SdsCall;
 }
 
+/**
+ * Describes errors reported by observers. Includes call to trigger validation message on.
+ */
 export interface ObserverError {
     error: ValidationError;
     call: SdsCall;
@@ -57,10 +62,11 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
     private readonly datasetCallableMap = new Map<DataSet, ObservedEntry[]>();
     // input placeholder -> the normalized callables that consume it (recorded for every call)
     private readonly consumers = new Map<SdsPlaceholder, SdsCallable[]>();
-    private statements: SdsStatement[] = [];
 
     constructor(
         private readonly services: SafeDsServices,
+        // pipeline-level statements, used to discover which dataset partitions exist (see seedExistingPartitions)
+        private readonly statements: SdsStatement[],
         private readonly trackedPhases: string[],
         private readonly excludedActivities: Activity[] = [],
     ) {}
@@ -78,9 +84,6 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
         // differentiate different transform calls.
         const normalizedCallable = this.normalizeCallable(info.callable, info.call);
         if (!normalizedCallable) return; // it was a 'fit' call
-
-        // store pipeline statements for future dataflow check in finalize()
-        if (this.statements.length === 0) this.statements = info.statements;
         
         // record the callable for the detected dataset
         this.recordEntry(info.detectedDataset, normalizedCallable, info.call);
@@ -183,7 +186,7 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
      * Without this, a partition that is never transformed would be invisible to the presence check.
      */
     private seedExistingPartitions(): void {
-        if (this.statements.length === 0) return; // nothing was observed, nothing to compare
+        if (this.statements.length === 0) return; // empty pipeline, nothing to compare
 
         const identifier = this.services.flow.DatasetIdentifier;
         const partitionExists: [DataSet, boolean][] = [

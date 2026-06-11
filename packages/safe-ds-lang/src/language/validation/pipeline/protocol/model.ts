@@ -113,9 +113,7 @@ export class ElementaryBlock extends ProtocolBlock{
                 activity: this.activity,
                 call: currentCall,
                 callable,
-                detectedDataset,
-                statements: context.statements,
-                segmentCallSite,
+                detectedDataset
             });
         }
     }
