@@ -43,18 +43,18 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         
         // generate validation messages for protocol violations
         if (!result.isValid){
-            generateProtocolValidation(node, pipelineCalls, result, accept);
+            generateProtocolValidation(node, context, result, accept, services);
         }
         generateObserverValidation(observers, accept);
     };
 };
 
-function extractValidationContext(
+const extractValidationContext = (
     node: SdsPipeline,
     services: SafeDsServices,
     observers: ProtocolObserver[],
     pipelineCalls: SdsCall[] = []
-): ValidationContext {
+): ValidationContext => {
     const analyzer = services.flow.DataFlowAnalyzer;
     const nodeMapper = services.helpers.NodeMapper;
     const builtinAnnotations = services.builtins.Annotations;
@@ -92,39 +92,64 @@ function extractValidationContext(
     return new ValidationContext(activitySequence, pipelineCalls, segmentCallSites, pipelineStatements, observers);
 }
 
-function generateProtocolValidation(
+const generateProtocolValidation = (
     node: SdsPipeline,
-    calls: SdsCall[],
+    context: ValidationContext,
     result: ValidationResult,
-    accept: ValidationAcceptor
-) : void {
+    accept: ValidationAcceptor,
+    services: SafeDsServices,
+) : void => {
+    const calls = context.calls;
+
     // get the problematic call
     const call = calls[result.validatedIndex];
+
+    // if the call is inside a segment, this is the pipeline-level call site that invoked the segment.
+    // it was recorded during call expansion (the segment call itself is not part of 'calls'), so we
+    // just read it by index here instead of trying to rediscover it from the call's AST container.
+    const segmentCallSite = context.segmentCallSites[result.validatedIndex];
 
     // get the validation message (aggregated from the entire protocol execution)
     const valMessage = result.generateValidationMessage();
 
     if (call) {
-        // pipeline violates protocol at specific call
+        // pipeline violates protocol at specific call. if that call is inside a segment, report on
+        // the segment call site instead and name the offending inner call in the message.
         accept(valMessage.severity,
-            valMessage.message, {
-            node: call,
+            segmentCallSite ? valMessage.message + segmentCauseSuffix(call, services) : valMessage.message, {
+            node: segmentCallSite ?? call,
             code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL
         });
     } else {
-        // pipeline violates protocol at end of the sequence by being incomplete
+        // pipeline violates protocol at end of the sequence by being incomplete. mirror the
+        // specific-call case: if the last call is inside a segment, report on its call site
+        const lastCall = calls.at(calls.length - 1);
+        const lastSegmentCallSite = context.segmentCallSites.at(calls.length - 1);
+
         accept(valMessage.severity,
             'Pipeline is missing at least one phase after this statement.\n' + valMessage.message, {
-            node: calls.at(calls.length - 1) ?? node,
+            node: lastSegmentCallSite ?? lastCall ?? node,
             code: CODE_PIPELINE_INCOMPLETE,
         });
     }
 }
 
-function generateObserverValidation(
+/**
+ * Builds a message suffix naming the offending inner call, used when a protocol violation found
+ * inside a segment is reported on the segment call site so the original cause stays discoverable.
+ */
+const segmentCauseSuffix = (call: SdsCall, services: SafeDsServices): string => {
+    const callable = services.helpers.NodeMapper.callToCallable(call);
+    const name = (isSdsFunction(callable) || isSdsClass(callable)) ? callable.name : undefined;
+    return name
+        ? `\n(Caused by the call to '${name}' inside this segment.)`
+        : '\n(Caused by a call inside this segment.)';
+}
+
+const generateObserverValidation = (
     observers: ProtocolObserver[],
     accept: ValidationAcceptor
-) : void {
+) : void => {
     for (const observer of observers) {
         const observerErrors = observer.finalize();
         // set general validation code
