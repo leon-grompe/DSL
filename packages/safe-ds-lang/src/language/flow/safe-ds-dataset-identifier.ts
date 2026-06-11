@@ -1,7 +1,7 @@
 import { AstUtils } from 'langium';
 import { SafeDsServices } from '../safe-ds-module.js';
 import { isSdsAssignment, isSdsCall, isSdsPlaceholder, isSdsReference, isSdsMemberAccess, isSdsSegment, isSdsYield,
-         SdsPlaceholder, SdsCall, SdsStatement, SdsAssignment, SdsSegment } from '../generated/ast.js';
+         SdsPlaceholder, SdsCall, SdsStatement, SdsAssignment, SdsSegment, SdsReference, SdsExpression } from '../generated/ast.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
 
 export enum DataSet {
@@ -164,25 +164,39 @@ export class SafeDsDatasetIdentifier {
 
     /**
      * Returns true if any data-typed reference argument of 'call' is in the forward slice of 'target',
-     * or if the member-access receiver of the call is in the forward slice.
+     * or if the root of the call's receiver chain is in the forward slice.
      */
     private anyArgInForwardSliceOfTarget(call: SdsCall, target: SdsPlaceholder): boolean {
         const forwardSlice = this.services.flow.Slicer.computeForwardSliceFromVariable(target);
 
-        // Check member-access receiver (e.g. training.toTabularDataset(...))
-        if (isSdsMemberAccess(call.receiver)) {
-            const base = call.receiver.receiver;
-            if (isSdsReference(base)) {
-                const ref = base.target.ref;
-                if (isSdsPlaceholder(ref) && forwardSlice.some(v => v === ref)) return true;
-            }
-        }
+        // Check the root of the receiver chain. This covers a direct receiver ('training.toTabularDataset(...)')
+        // as well as a chained one ('training.transformTable(a).transformTable(b).toTabularDataset(...)'),
+        // where every call in the chain operates on the data that enters at the bottom of the chain.
+        // Membership in the forward slice is the actual filter: it only ever contains data-typed
+        // local variables derived from 'target' — which includes segment parameters, not just
+        // placeholders — so we compare against it directly rather than restricting to placeholders.
+        const receiverRoot = this.receiverChainRoot(call);
+        if (receiverRoot && forwardSlice.some(v => v === receiverRoot.target.ref)) return true;
 
         return call.argumentList.arguments.some(arg => {
             if (!isSdsReference(arg.value)) return false;
             const ref = arg.value.target.ref;
-            return isSdsPlaceholder(ref) && forwardSlice.some(v => v === ref);
+            return forwardSlice.some(v => v === ref);
         });
+    }
+
+    /**
+     * Walks down the receiver chain of a call to its root reference. For a chained call such as
+     * 'table.transformTable(a).transformTable(b).toTabularDataset(...)' the receiver is a chain of
+     * member accesses and calls bottoming out in the 'table' reference, which identifies the data the
+     * whole chain operates on. Returns undefined if the chain does not bottom out in a plain reference.
+     */
+    private receiverChainRoot(call: SdsCall): SdsReference | undefined {
+        let current: SdsExpression = call.receiver;
+        while (isSdsMemberAccess(current) || isSdsCall(current)) {
+            current = current.receiver;
+        }
+        return isSdsReference(current) ? current : undefined;
     }
 
     /**
