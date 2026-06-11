@@ -93,16 +93,21 @@ export class SafeDsDataFlowAnalyzer {
     /**
      * Checks whether a statement contains a specific call.
      * When using the callable name 'split' or 'splitRows' it will check for both to work for tabular and image data.
+     * When using the callable name 'fit' it will also match 'fitAndTransform', which fits as part of its behaviour.
      */
     isSpecificCall(statement: SdsStatement, callableName: string) : boolean {
-        if (!(isSdsAssignment(statement) && isSdsCall(statement.expression))) return false; 
-      
+        if (!(isSdsAssignment(statement) && isSdsCall(statement.expression))) return false;
+
         const callable = this.services.helpers.NodeMapper.callToCallable(statement.expression);
-        
+
         if (callableName === 'split' || callableName === 'splitRows') {
-            return isSdsFunction(callable) && 
+            return isSdsFunction(callable) &&
                 (callable.name === 'splitRows' ||
                 callable.name === 'split');
+        } else if (callableName === 'fit') {
+            return isSdsFunction(callable) &&
+                (callable.name === 'fit' ||
+                callable.name === 'fitAndTransform');
         } else {
             return isSdsFunction(callable) && callable.name === callableName;
         }
@@ -113,6 +118,7 @@ export class SafeDsDataFlowAnalyzer {
      * 'callableName', or is a segment call that contains 'callableName' somewhere inside it.
      * In the segment case the segment-call assignment is returned, not the internal one.
      * When using the callable name 'split' or 'splitRows' it will filter both to work for tabular and image data.
+     * When using the callable name 'fit' it will filter for 'fit' and 'fitAndTransform' calls, since the latter includes the former.
      */
     extractAssignmentsWithSpecificCall(
         statements: SdsStatement[],

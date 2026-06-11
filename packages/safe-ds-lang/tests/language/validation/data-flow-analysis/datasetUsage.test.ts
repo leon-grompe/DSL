@@ -55,6 +55,37 @@ describe('testDataUsedForTraining', () => {
         expect(diagnostics.length).toBeGreaterThan(0);
     });
 
+    it('warns when test set is passed to fitAndTransform', async () => {
+        // fitAndTransform fits internally, so it must be treated like fit
+        const code = `
+            package test
+            fun getTable() -> result: Table
+            fun fitAndTransform(t: Table) -> result: Table
+            pipeline myPipeline {
+                val data = getTable();
+                val trainingSet, val testSet = data.splitRows(percentageInFirst = 0.8);
+                val transformed = fitAndTransform(testSet);
+            }
+        `;
+        const diagnostics = await getDiagnosticsFor(code);
+        expect(diagnostics.length).toBeGreaterThan(0);
+    });
+
+    it('does not warn when training set is passed to fitAndTransform', async () => {
+        const code = `
+            package test
+            fun getTable() -> result: Table
+            fun fitAndTransform(t: Table) -> result: Table
+            pipeline myPipeline {
+                val data = getTable();
+                val trainingSet, val testSet = data.splitRows(percentageInFirst = 0.8);
+                val transformed = fitAndTransform(trainingSet);
+            }
+        `;
+        const diagnostics = await getDiagnosticsFor(code);
+        expect(diagnostics).toHaveLength(0);
+    });
+
     it('does not warn when classifier is a variable and training set is passed to fit', async () => {
         // classifier variable is created first, then .fit() is called as a separate statement
         const code = `

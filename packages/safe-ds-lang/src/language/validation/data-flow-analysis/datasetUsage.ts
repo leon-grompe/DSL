@@ -10,7 +10,6 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
     const locator = services.workspace.AstNodeLocator;
     const nodeMapper = services.helpers.NodeMapper;
     
-    // fit -> transformer.fitAndTransform(table) | table.transformTable(transformer)
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
         const pipelineStatements = node.body.statements;
         const assignments = pipelineStatements.filter(isSdsAssignment);
@@ -48,7 +47,7 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
                     if (isSdsSegment(callable)) {
                         message = `This segment makes use of a '.fit()' call wich does not use a dataset derived from the training set ('${trainingSetName}').`
                     } else {
-                        message = `Only the training dataset ('${trainingSetName}') should be used for fitting.`;
+                        message = `Only placeholders derived from the training set ('${trainingSetName}') should be used for fitting.`;
                     }
                     accept('warning',
                         message, {
