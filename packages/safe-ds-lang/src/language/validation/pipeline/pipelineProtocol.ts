@@ -105,8 +105,7 @@ const generateProtocolValidation = (
     const call = calls[result.validatedIndex];
 
     // if the call is inside a segment, this is the pipeline-level call site that invoked the segment.
-    // it was recorded during call expansion (the segment call itself is not part of 'calls'), so we
-    // just read it by index here instead of trying to rediscover it from the call's AST container.
+    // it was recorded during call expansion, so we can just read it by index here.
     const segmentCallSite = context.segmentCallSites[result.validatedIndex];
 
     // get the validation message (aggregated from the entire protocol execution)
