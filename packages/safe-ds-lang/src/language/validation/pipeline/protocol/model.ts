@@ -125,7 +125,7 @@ export class ElementaryBlock extends ProtocolBlock{
         activities: Activity[] | undefined,
         statements: SdsStatement[],
     ) : ValidationResult {
-        const actual = identifier.identifyDataset(currentCall, statements) ?? DataSet.Original;
+        const actual = identifier.identifyDataset(currentCall, statements) ?? DataSet.Fallback;
         if (actual !== this.target) {
             return ValidationResult.failure(startIndex, new DatasetMismatchError(this.target!, actual, activities));
         }

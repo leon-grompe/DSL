@@ -5,10 +5,14 @@ import { isSdsAssignment, isSdsCall, isSdsPlaceholder, isSdsReference, isSdsMemb
 import { getAssignees } from '../helpers/nodeProperties.js';
 
 export enum DataSet {
-    Original   = 'Original',
+    /** Fallback dataset, used when dataset cannot be identified. */
+    Fallback   = 'Unidentified',
+    /** Training dataset, assigned by the first split call at position 0. */
     Training   = 'Training',
-    Test       = 'Test',
+    /** Validation dataset, assigned by the second split call at position 0. */
     Validation = 'Validation',
+    /** Test dataset, assigned by either first or second split call at position 1. */
+    Test       = 'Test',
 }
 
 export class SafeDsDatasetIdentifier {
@@ -95,7 +99,7 @@ export class SafeDsDatasetIdentifier {
             [DataSet.Training]:   () => this.getTrainingSetPlaceholder(statements),
             [DataSet.Validation]: () => this.getValidationSetPlaceholder(statements),
             [DataSet.Test]:       () => this.getTestSetPlaceholder(statements),
-            [DataSet.Original]:   () => undefined,
+            [DataSet.Fallback]:   () => undefined,
         };
 
         const rootPlaceholders = datasets.map((dataset) => roots[dataset]());

@@ -75,7 +75,7 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
         if (!info.phaseName || !info.callable || !info.detectedDataset) return;
         if (!this.trackedPhases.includes(info.phaseName)) return;
         if (this.excludedActivities.includes(info.activity)) return;
-        if (info.detectedDataset === DataSet.Original) return;
+        if (info.detectedDataset === DataSet.Fallback) return;
         if (info.activity === DSPipelineActivity.Any) return;
 
         // normalize by eliminating 'fit' calls and mapping 'transform' and 'fitAndTransform' 
