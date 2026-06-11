@@ -1,7 +1,7 @@
 import { AstUtils } from 'langium';
 import { SafeDsServices } from '../safe-ds-module.js';
 import { isSdsAssignment, isSdsCall, isSdsPlaceholder, isSdsReference, isSdsMemberAccess, isSdsSegment, isSdsYield,
-         SdsPlaceholder, SdsCall, SdsStatement, SdsAssignment, SdsSegment, SdsReference, SdsExpression } from '../generated/ast.js';
+         SdsPlaceholder, SdsCall, SdsStatement, SdsAssignment, SdsSegment, SdsReference, SdsExpression, SdsLocalVariable } from '../generated/ast.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
 
 export enum DataSet {
@@ -84,6 +84,38 @@ export class SafeDsDatasetIdentifier {
         if (this.callReferencesValidationSet(call, statements)) return DataSet.Validation;
         if (this.callReferencesTestSet(call, statements))       return DataSet.Test;
         return undefined;
+    }
+
+    /**
+     * Returns every data variable that belongs to one of the given dataset partitions,
+     * i.e. each partition's root placeholder plus everything derived from it.
+     */
+    getVariablesForDatasets(statements: SdsStatement[], datasets: DataSet[]): Set<SdsLocalVariable> {
+        const roots: Record<DataSet, () => SdsPlaceholder | undefined> = {
+            [DataSet.Training]:   () => this.getTrainingSetPlaceholder(statements),
+            [DataSet.Validation]: () => this.getValidationSetPlaceholder(statements),
+            [DataSet.Test]:       () => this.getTestSetPlaceholder(statements),
+            [DataSet.Original]:   () => undefined,
+        };
+
+        const rootPlaceholders = datasets.map((dataset) => roots[dataset]());
+
+        // The rest set is the pool that gets carved into validation/test, so it still holds that
+        // holdout data — suppressing val/test without it would leave the same data inspectable
+        // through the rest set. Only relevant for the two-split case; otherwise it resolves to a
+        // placeholder already covered above.
+        if (datasets.includes(DataSet.Validation) || datasets.includes(DataSet.Test)) {
+            rootPlaceholders.push(this.getRestSetPlaceholder(statements));
+        }
+
+        const result = new Set<SdsLocalVariable>();
+        for (const root of rootPlaceholders) {
+            if (!root) continue;
+            for (const variable of this.services.flow.Slicer.computeForwardSliceFromVariable(root)) {
+                result.add(variable);
+            }
+        }
+        return result;
     }
 
     /**

@@ -244,6 +244,73 @@ describe('SafeDsCodeLensProvider', () => {
                 `,
                 expectedCodeLensTitles: ['Run myPipeline', 'Print rowCount'],
             },
+            {
+                testName: 'suppresses lenses for validation/test split placeholders (direct split)',
+                code: `
+                    pipeline myPipeline {
+                        val data = Table();
+                        val trainSet, val restSet = data.splitRows(percentageInFirst = 0.7);
+                        val valSet, val testSet = restSet.splitRows(percentageInFirst = 0.5);
+                    }
+                `,
+                // valSet/testSet and the rest set they were carved from are suppressed; original
+                // and training data stay visible.
+                expectedCodeLensTitles: ['Run myPipeline', 'Explore data', 'Explore trainSet'],
+            },
+            {
+                testName: 'suppresses lenses for placeholders derived from the validation set',
+                code: `
+                    pipeline myPipeline {
+                        val data = Table();
+                        val trainSet, val restSet = data.splitRows(percentageInFirst = 0.7);
+                        val valSet, val testSet = restSet.splitRows(percentageInFirst = 0.5);
+                        val valShuffled = valSet.shuffleRows();
+                        val trainShuffled = trainSet.shuffleRows();
+                    }
+                `,
+                // valShuffled is in the forward slice of valSet and is suppressed too.
+                expectedCodeLensTitles: [
+                    'Run myPipeline',
+                    'Explore data',
+                    'Explore trainSet',
+                    'Explore trainShuffled',
+                ],
+            },
+            {
+                testName: 'suppresses output statements that reference test data',
+                code: `
+                    pipeline myPipeline {
+                        val data = Table();
+                        val trainSet, val restSet = data.splitRows(percentageInFirst = 0.7);
+                        val valSet, val testSet = restSet.splitRows(percentageInFirst = 0.5);
+                        out testSet;
+                        out trainSet;
+                    }
+                `,
+                expectedCodeLensTitles: [
+                    'Run myPipeline',
+                    'Explore data',
+                    'Explore trainSet',
+                    'Explore trainSet',
+                ],
+            },
+            {
+                testName: 'suppresses validation/test lenses when the split happens inside a segment',
+                code: `
+                    segment splitAll(data: Table) -> (trainSet: Table, valSet: Table, testSet: Table) {
+                        val trainSet, val restSet = data.splitRows(percentageInFirst = 0.7)
+                        val valSet, val testSet = restSet.splitRows(percentageInFirst = 0.5)
+                        yield trainSet = trainSet
+                        yield valSet = valSet
+                        yield testSet = testSet
+                    }
+                    pipeline myPipeline {
+                        val data = Table();
+                        val trainSet, val valSet, val testSet = splitAll(data);
+                    }
+                `,
+                expectedCodeLensTitles: ['Run myPipeline', 'Explore data', 'Explore trainSet'],
+            },
         ];
 
         it.each(testCases)('should compute code lenses ($testName)', async ({ code, expectedCodeLensTitles }) => {

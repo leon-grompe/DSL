@@ -9,12 +9,15 @@ import {
     isSdsOutputStatement,
     isSdsPipeline,
     isSdsPlaceholder,
+    isSdsReference,
     SdsAssignment,
+    SdsLocalVariable,
     SdsModuleMember,
     SdsOutputStatement,
     SdsPipeline,
     SdsPlaceholder,
 } from '../generated/ast.js';
+import { DataSet, SafeDsDatasetIdentifier } from '../flow/safe-ds-dataset-identifier.js';
 import { SafeDsRunner } from '../runtime/safe-ds-runner.js';
 import { getAssignees, getModuleMembers, getStatements } from '../helpers/nodeProperties.js';
 import { SafeDsTypeChecker } from '../typing/safe-ds-type-checker.js';
@@ -30,6 +33,7 @@ import { SafeDsSyntheticProperties } from '../helpers/safe-ds-synthetic-properti
 
 export class SafeDsCodeLensProvider implements CodeLensProvider {
     private readonly astNodeLocator: AstNodeLocator;
+    private readonly datasetIdentifier: SafeDsDatasetIdentifier;
     private readonly runner: SafeDsRunner;
     private readonly syntheticProperties: SafeDsSyntheticProperties;
     private readonly typeChecker: SafeDsTypeChecker;
@@ -37,6 +41,7 @@ export class SafeDsCodeLensProvider implements CodeLensProvider {
 
     constructor(services: SafeDsServices) {
         this.astNodeLocator = services.workspace.AstNodeLocator;
+        this.datasetIdentifier = services.flow.DatasetIdentifier;
         this.runner = services.runtime.Runner;
         this.syntheticProperties = services.helpers.SyntheticProperties;
         this.typeChecker = services.typing.TypeChecker;
@@ -77,12 +82,18 @@ export class SafeDsCodeLensProvider implements CodeLensProvider {
         if (isSdsPipeline(node)) {
             await this.computeCodeLensForPipeline(node, accept);
 
-            for (const statement of getStatements(node.body)) {
+            const statements = getStatements(node.body);
+            const excludedVariables = this.datasetIdentifier.getVariablesForDatasets(statements, [
+                DataSet.Validation,
+                DataSet.Test,
+            ]);
+
+            for (const statement of statements) {
                 await interruptAndCheck(cancelToken);
                 if (isSdsAssignment(statement)) {
-                    await this.computeCodeLensForAssignment(statement, accept);
+                    await this.computeCodeLensForAssignment(statement, accept, excludedVariables);
                 } else if (isSdsOutputStatement(statement)) {
-                    await this.computeCodeLensForOutputStatement(statement, accept);
+                    await this.computeCodeLensForOutputStatement(statement, accept, excludedVariables);
                 }
             }
         }
@@ -108,12 +119,13 @@ export class SafeDsCodeLensProvider implements CodeLensProvider {
     private async computeCodeLensForAssignment(
         node: SdsAssignment,
         accept: CodeLensAcceptor,
+        excludedVariables: Set<SdsLocalVariable>,
         cancelToken: CancellationToken = CancellationToken.None,
     ): Promise<void> {
         for (const assignee of getAssignees(node)) {
             await interruptAndCheck(cancelToken);
             if (isSdsPlaceholder(assignee)) {
-                await this.computeCodeLensForPlaceholder(node, assignee, accept);
+                await this.computeCodeLensForPlaceholder(node, assignee, accept, excludedVariables);
             }
         }
     }
@@ -122,7 +134,13 @@ export class SafeDsCodeLensProvider implements CodeLensProvider {
         assignment: SdsAssignment,
         placeholder: SdsPlaceholder,
         accept: CodeLensAcceptor,
+        excludedVariables: Set<SdsLocalVariable>,
     ): Promise<void> {
+        // Suppress lenses for placeholders that hold validation/test data.
+        if (excludedVariables.has(placeholder)) {
+            return;
+        }
+
         const cstNode = placeholder.$cstNode;
         if (!cstNode) {
             /* c8 ignore next 2 */
@@ -142,8 +160,14 @@ export class SafeDsCodeLensProvider implements CodeLensProvider {
     private async computeCodeLensForOutputStatement(
         node: SdsOutputStatement,
         accept: CodeLensAcceptor,
+        excludedVariables: Set<SdsLocalVariable>,
         cancelToken: CancellationToken = CancellationToken.None,
     ): Promise<void> {
+        // Suppress lenses for outputs that reference validation/test data.
+        if (isSdsReference(node.expression) && excludedVariables.has(node.expression.target.ref as SdsLocalVariable)) {
+            return;
+        }
+
         const cstNode = node.$cstNode;
         if (!cstNode) {
             /* c8 ignore next 2 */
