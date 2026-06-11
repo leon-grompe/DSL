@@ -1,8 +1,9 @@
 import { AstNode, AstUtils } from 'langium';
 import {
     isSdsAssignment, isSdsCall, isSdsClass, isSdsFunction, isSdsMemberAccess, isSdsPlaceholder, isSdsReference,
-    SdsCall, SdsCallable, SdsPlaceholder, SdsStatement,
+    SdsCall, SdsCallable, SdsClass, SdsPlaceholder, SdsStatement,
 } from '../../../generated/ast.js';
+import { ClassType } from '../../../typing/model.js';
 import { DataSet } from '../../../flow/safe-ds-dataset-identifier.js';
 import { SafeDsServices } from '../../../safe-ds-module.js';
 import { getAssignees } from '../../../helpers/nodeProperties.js';
@@ -72,8 +73,10 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
         if (info.activity === DSPipelineActivity.Any) return;
 
         // normalize by eliminating 'fit' calls and mapping 'transform' and 'fitAndTransform' 
-        // to their underlying class, so they are treated as the same callable across datasets
-        const normalizedCallable = this.normalizeCallable(info.callable);
+        // to their underlying class, so they are treated as the same callable across datasets.
+        // also map 'transformTable' to the class used in its argument, to be able to 
+        // differentiate different transform calls.
+        const normalizedCallable = this.normalizeCallable(info.callable, info.call);
         if (!normalizedCallable) return; // it was a 'fit' call
 
         // store pipeline statements for future dataflow check in finalize()
@@ -105,23 +108,46 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
     }
 
     /**
-     * Normalize callables by skipping 'fit' calls: they will only appear on the training set 
+     * Normalize callables by skipping 'fit' calls: they will only appear on the training set
      * (as validated in 'data-flow-analysis/datasetUsage.ts').
-     * Also map 'transform' and 'fitAndTransform' calls to their underlying class, so they are
-     * treated as the same callable since 'fitAndTransform' may only be applied to the training set
+     * Also map calls to their underlying transformer class, so the same transformer is treated as
+     * the same callable across datasets regardless of which API shape applied it:
+     *  - 'transform'/'fitAndTransform' are methods on the transformer -> use its container class
+     *  - 'table.transformTable(transformer)' is a method on the table -> use the transformer
+     *    argument's class, so 'transformTable(imputer)' and 'transformTable(scaler)' stay distinct
      */
-    private normalizeCallable(callable: SdsCallable): SdsCallable | null {
+    private normalizeCallable(callable: SdsCallable, call: SdsCall): SdsCallable | null {
         // keep segments as they are
         if (!isSdsFunction(callable)) return callable;
         // ignore 'fit'
         if (callable.name === 'fit') return null;
-        
+
         // if 'fitAndTransform' or 'transform', consider the underlying class as callable
         // this way these calls are treated the same for validation and test set
         if (callable.name === 'fitAndTransform' || callable.name === 'transform') {
             return AstUtils.getContainerOfType(callable, isSdsClass) ?? callable;
         }
+
+        // 'transformTable' takes the transformer as an argument; key by the transformer's class
+        // this way multiple calls with different transformers are treated differently
+        if (callable.name === 'transformTable') {
+            return this.transformerArgumentClass(call) ?? callable;
+        }
+
         return callable;
+    }
+
+    /**
+     * Resolves the class of the (first) transformer argument of a call via its type, so calls like
+     * 'transformTable(imputer)' and 'transformTable(scaler)' are keyed by their distinct classes.
+     */
+    private transformerArgumentClass(call: SdsCall): SdsClass | undefined {
+        for (const argument of call.argumentList.arguments) {
+            const type = this.services.typing.TypeComputer.computeType(argument.value);
+            // since 'transformTable' only receives one argument, this mapping is unambigous
+            if (type instanceof ClassType) return type.declaration;
+        }
+        return undefined;
     }
 
     /**
