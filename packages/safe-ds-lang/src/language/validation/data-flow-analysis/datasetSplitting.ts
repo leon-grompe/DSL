@@ -3,8 +3,8 @@ import { isSdsCall, isSdsFunction, isSdsPlaceholder, SdsAssignment, SdsPipeline,
 import { getAssignees } from '../../helpers/nodeProperties.js';
 import { SafeDsServices } from '../../index.js';
 
-export const CODE_MISSING_DATASET_SPLITTING = 'pipeline/missing-dataset-split';
-export const CODE_ILLEGAL_DATASET_SPLITTING = 'pipeline/illegal-dataset-split';
+export const CODE_MISSING_DATASET_SPLITTING = 'data-flow-analysis/missing-dataset-split';
+export const CODE_ILLEGAL_DATASET_SPLITTING = 'data-flow-analysis/illegal-dataset-split';
 
 export const pipelineShouldContainMultipleSplits = (services: SafeDsServices) => {
     const nodeMapper = services.helpers.NodeMapper;
