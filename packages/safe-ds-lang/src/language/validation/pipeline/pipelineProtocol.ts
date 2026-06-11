@@ -9,7 +9,6 @@ import { ValidationResult, InconsistentTransformationPresenceError, Inconsistent
 
 // protocol error codes
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
-export const CODE_PIPELINE_DATASET_MISMATCH = 'pipeline/dataset-mismatch';
 export const CODE_PIPELINE_INCOMPLETE = 'pipeline/incomplete-sequence';
 
 // observer error codes
@@ -65,7 +64,7 @@ function extractValidationContext(
     const pipelineStatements = node.body.statements;
 
     for (const statement of pipelineStatements) {
-        // expand calls in statement to get nested calls and their parameter-argument mappings
+        // expand calls in statement to get nested calls and parameter-argument mappings for segments
         const statementCallsWithParamArgMap = analyzer.expandCallsInStatement(statement);
 
         for (const { call, segmentCallSite } of statementCallsWithParamArgMap) {
