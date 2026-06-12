@@ -1,4 +1,5 @@
 import { DataSet } from '../../../flow/safe-ds-dataset-identifier.js';
+import { SdsReference } from '../../../generated/ast.js';
 import { Activity } from './model.js';
 import { activityTypeOf, phaseOf } from './dsPipelineActivity.js';
 
@@ -110,9 +111,10 @@ export class RepetitionBlockMinimumNotMetError extends ValidationError {
  */
 export class DatasetMismatchError extends ValidationError {
     constructor(
-        public expected: DataSet, 
-        public found: DataSet, 
-        public activities?: Activity[]
+        public expected: DataSet,
+        public found: DataSet,
+        public activities?: Activity[],
+        public wrongReference?: SdsReference,
     ) { super(); }
     readonly severity = 'error' as const;
     override readonly isPriority = true;
