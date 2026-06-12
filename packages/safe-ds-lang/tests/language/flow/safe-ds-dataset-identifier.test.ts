@@ -2,6 +2,7 @@ import { AstUtils } from 'langium';
 import { describe, expect, it } from 'vitest';
 import { isSdsCall, isSdsPipeline, isSdsPlaceholder, isSdsReference } from '../../../src/language/generated/ast.js';
 import { createSafeDsServices } from '../../../src/language/index.js';
+import { DataSet } from '../../../src/language/flow/safe-ds-dataset-identifier.js';
 import { NodeFileSystem } from 'langium/node';
 import { fail } from 'node:assert';
 import { getNodeOfType } from '../../helpers/nodeFinder.js';
@@ -323,6 +324,62 @@ describe('callReferencesTestSet', () => {
     });
     it('returns false when argument is original (unsplit) data', () => {
         expect(identifier.callReferencesTestSet(findCallWithArg('data'), stmts)).toBe(false);
+    });
+});
+
+describe('getDatasetOfCall', () => {
+    const stmts = callRefPipeline.body.statements;
+
+    it('returns the dataset and the deciding reference for an argument', () => {
+        const result = identifier.getDatasetOfCall(findCallWithArg('valSet'), stmts);
+        expect(result?.dataset).toBe(DataSet.Validation);
+        expect(isSdsReference(result!.reference) && result!.reference.target.ref?.name).toBe('valSet');
+    });
+
+    it('returns undefined for unsplit data', () => {
+        expect(identifier.getDatasetOfCall(findCallWithArg('data'), stmts)).toBeUndefined();
+    });
+});
+
+describe('getMostSpecificDatasetVariable', () => {
+    const code = `
+        package test
+        fun getTable() -> result: Table
+        fun process(data: Table) -> result: Table
+        fun useData(data: Table) -> result: Int
+        pipeline myPipeline {
+            val data = getTable();
+            val trainSet, val restSet = data.splitRows(percentageInFirst = 0.7);
+            val cleanTrain = process(trainSet);
+            val r1 = useData(restSet);
+        }
+    `;
+
+    it('picks the latest-derived training variable available before the given statement', async () => {
+        const pipeline = await getNodeOfType(services, code, isSdsPipeline);
+        const stmts = pipeline.body.statements;
+        // before the last statement (r1): both trainSet and cleanTrain are available -> cleanTrain
+        const result = identifier.getMostSpecificDatasetPlaceholder(stmts, DataSet.Training, stmts[3]!);
+        expect(result?.name).toBe('cleanTrain');
+    });
+
+    it('falls back to the root when nothing derived is available yet', async () => {
+        const pipeline = await getNodeOfType(services, code, isSdsPipeline);
+        const stmts = pipeline.body.statements;
+        // before the cleanTrain statement: only trainSet is available
+        const result = identifier.getMostSpecificDatasetPlaceholder(stmts, DataSet.Training, stmts[2]!);
+        expect(result?.name).toBe('trainSet');
+    });
+
+    it('returns undefined when the dataset has no placeholder', async () => {
+        const noSplit = `
+            package test
+            fun getTable() -> result: Table
+            pipeline myPipeline { val data = getTable(); }
+        `;
+        const pipeline = await getNodeOfType(services, noSplit, isSdsPipeline);
+        const stmts = pipeline.body.statements;
+        expect(identifier.getMostSpecificDatasetPlaceholder(stmts, DataSet.Training, stmts[0]!)).toBeUndefined();
     });
 });
 
