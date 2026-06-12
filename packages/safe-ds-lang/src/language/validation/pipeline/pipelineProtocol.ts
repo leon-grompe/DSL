@@ -5,11 +5,12 @@ import { Activity, ValidationContext } from './protocol/model.js';
 import { DSPipelineActivity } from './protocol/dsPipelineActivity.js';
 import { behaviourProtocol } from './behaviourProtocol.js';
 import { ConsistentTransformationObserver, ProtocolObserver } from './protocol/observer.js';
-import { ValidationResult, InconsistentTransformationPresenceError, InconsistentTransformationOrderError, InconsistentTransformationDataflowError } from './protocol/errors.js';
+import { ValidationResult, DatasetMismatchError, InconsistentTransformationPresenceError, InconsistentTransformationOrderError, InconsistentTransformationDataflowError } from './protocol/errors.js';
 
 // protocol error codes
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
 export const CODE_PIPELINE_INCOMPLETE = 'pipeline/incomplete-sequence';
+export const CODE_DATASET_MISMATCH = 'pipeline/dataset-mismatch';
 
 // observer error codes
 export const CODE_PIPELINE_OBSERVER = 'pipeline/observer-error';
@@ -99,6 +100,7 @@ const generateProtocolValidation = (
     accept: ValidationAcceptor,
     services: SafeDsServices,
 ) : void => {
+    const locator = services.workspace.AstNodeLocator;
     const calls = context.calls;
 
     // get the problematic call
@@ -111,14 +113,33 @@ const generateProtocolValidation = (
     // get the validation message (aggregated from the entire protocol execution)
     const valMessage = result.generateValidationMessage();
 
+    // a dataset mismatch is a priority error, so it already drives valMessage
+    const datasetError = result.errors.find((e): e is DatasetMismatchError => e instanceof DatasetMismatchError);
+
     if (call) {
-        // pipeline violates protocol at specific call. if that call is inside a segment, report on
-        // the segment call site instead and name the offending inner call in the message.
-        accept(valMessage.severity,
-            segmentCallSite ? valMessage.message + segmentCauseSuffix(call, services) : valMessage.message, {
-            node: segmentCallSite ?? call,
-            code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL
-        });
+        if (datasetError && !segmentCallSite && datasetError.wrongReference) {
+            // direct call: report on the wrong dataset reference itself and offer a quickfix to swap it
+            accept(valMessage.severity, valMessage.message, {
+                node: datasetError.wrongReference,
+                code: CODE_DATASET_MISMATCH,
+                data: { path: locator.getAstNodePath(datasetError.wrongReference), expected: datasetError.expected },
+            });
+        } else if (datasetError) {
+            // mismatch inside a segment (or no reference resolved): keep the diagnostic, but no quickfix
+            accept(valMessage.severity,
+                segmentCallSite ? valMessage.message + segmentCauseSuffix(call, services) : valMessage.message, {
+                node: segmentCallSite ?? call,
+                code: CODE_DATASET_MISMATCH,
+            });
+        } else {
+            // pipeline violates protocol at specific call. if that call is inside a segment, report on
+            // the segment call site instead and name the offending inner call in the message.
+            accept(valMessage.severity,
+                segmentCallSite ? valMessage.message + segmentCauseSuffix(call, services) : valMessage.message, {
+                node: segmentCallSite ?? call,
+                code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL
+            });
+        }
     } else {
         // pipeline violates protocol at end of the sequence by being incomplete. mirror the
         // specific-call case: if the last call is inside a segment, report on its call site
