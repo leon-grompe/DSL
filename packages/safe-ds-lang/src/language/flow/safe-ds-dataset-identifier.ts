@@ -1,6 +1,6 @@
-import { AstUtils } from 'langium';
+import { AstNode, AstUtils } from 'langium';
 import { SafeDsServices } from '../safe-ds-module.js';
-import { isSdsAssignment, isSdsCall, isSdsPlaceholder, isSdsReference, isSdsMemberAccess, isSdsSegment, isSdsYield,
+import { isSdsAssignment, isSdsCall, isSdsPlaceholder, isSdsReference, isSdsMemberAccess, isSdsSegment, isSdsStatement, isSdsYield,
          SdsPlaceholder, SdsCall, SdsStatement, SdsAssignment, SdsSegment, SdsReference, SdsExpression, SdsLocalVariable } from '../generated/ast.js';
 import { getAssignees } from '../helpers/nodeProperties.js';
 
@@ -26,8 +26,8 @@ export class SafeDsDatasetIdentifier {
     callReferencesTrainingSet(call: SdsCall, statements: SdsStatement[]): boolean {
         const trainingSet = this.getTrainingSetPlaceholder(statements);
         if (!trainingSet) return false;
-            
-        return this.anyArgInForwardSliceOfTarget(call, trainingSet);
+
+        return !!this.findReferenceInForwardSliceOfTarget(call, trainingSet);
     }
 
     /**
@@ -51,8 +51,8 @@ export class SafeDsDatasetIdentifier {
     callReferencesValidationSet(call: SdsCall, statements: SdsStatement[]): boolean {
         const validationSet = this.getValidationSetPlaceholder(statements);
         if (!validationSet) return false;
-        
-        return this.anyArgInForwardSliceOfTarget(call, validationSet);
+
+        return !!this.findReferenceInForwardSliceOfTarget(call, validationSet);
     }
 
     /**
@@ -77,17 +77,63 @@ export class SafeDsDatasetIdentifier {
         const testSet = this.getTestSetPlaceholder(statements);
         if (!testSet) return false;
 
-        return this.anyArgInForwardSliceOfTarget(call, testSet);
+        return !!this.findReferenceInForwardSliceOfTarget(call, testSet);
     }
 
     /**
      * Returns which dataset partition 'call' operates on, or undefined if it cannot be determined.
      */
     identifyDataset(call: SdsCall, statements: SdsStatement[]): DataSet | undefined {
-        if (this.callReferencesTrainingSet(call, statements))   return DataSet.Training;
-        if (this.callReferencesValidationSet(call, statements)) return DataSet.Validation;
-        if (this.callReferencesTestSet(call, statements))       return DataSet.Test;
+        return this.getDatasetOfCall(call, statements)?.dataset;
+    }
+
+    /**
+     * Returns which dataset partition 'call' operates on together with the reference that determined it.
+     * Checks Training → Validation → Test (same precedence as identifyDataset) and returns the first match.
+     */
+    getDatasetOfCall(call: SdsCall, statements: SdsStatement[]): { dataset: DataSet; reference: SdsReference } | undefined {
+        for (const dataset of [DataSet.Training, DataSet.Validation, DataSet.Test]) {
+            const root = this.getRootPlaceholder(statements, dataset);
+            if (!root) continue;
+
+            const reference = this.findReferenceInForwardSliceOfTarget(call, root);
+            if (reference) return { dataset, reference };
+        }
         return undefined;
+    }
+
+    /**
+     * Returns the most specific variable of 'dataset' that is available before 'before':
+     * the latest-derived placeholder declared in a statement preceding the one containing 'before',
+     * or the dataset's root placeholder if nothing derived qualifies. Undefined if the dataset has no
+     * placeholder in this pipeline.
+     */
+    getMostSpecificDatasetPlaceholder(statements: SdsStatement[], dataset: DataSet, before: AstNode): SdsPlaceholder | undefined {
+        const root = this.getRootPlaceholder(statements, dataset);
+        if (!root) return undefined;
+
+        const beforeOffset = AstUtils.getContainerOfType(before, isSdsStatement)?.$cstNode?.offset;
+        if (beforeOffset === undefined) return root;
+
+        let best: SdsPlaceholder = root;
+        let bestOffset = AstUtils.getContainerOfType(root, isSdsStatement)?.$cstNode?.offset ?? -1;
+
+        for (const variable of this.services.flow.Slicer.computeForwardSliceFromVariable(root)) {
+            if (!isSdsPlaceholder(variable)) continue;
+
+            // only pipeline-level placeholders declared in an earlier statement are usable here
+            const statement = AstUtils.getContainerOfType(variable, isSdsStatement);
+            if (!statement || !statements.includes(statement)) continue;
+
+            const offset = statement.$cstNode?.offset;
+            if (offset === undefined || offset >= beforeOffset) continue;
+
+            if (offset > bestOffset) {
+                best = variable;
+                bestOffset = offset;
+            }
+        }
+        return best;
     }
 
     /**
@@ -95,14 +141,7 @@ export class SafeDsDatasetIdentifier {
      * i.e. each partition's root placeholder plus everything derived from it.
      */
     getVariablesForDatasets(statements: SdsStatement[], datasets: DataSet[]): Set<SdsLocalVariable> {
-        const roots: Record<DataSet, () => SdsPlaceholder | undefined> = {
-            [DataSet.Training]:   () => this.getTrainingSetPlaceholder(statements),
-            [DataSet.Validation]: () => this.getValidationSetPlaceholder(statements),
-            [DataSet.Test]:       () => this.getTestSetPlaceholder(statements),
-            [DataSet.Fallback]:   () => undefined,
-        };
-
-        const rootPlaceholders = datasets.map((dataset) => roots[dataset]());
+        const rootPlaceholders = datasets.map((dataset) => this.getRootPlaceholder(statements, dataset));
 
         // The rest set is the pool that gets carved into validation/test, so it still holds that
         // holdout data — suppressing val/test without it would leave the same data inspectable
@@ -199,10 +238,11 @@ export class SafeDsDatasetIdentifier {
     }
 
     /**
-     * Returns true if any data-typed reference argument of 'call' is in the forward slice of 'target',
-     * or if the root of the call's receiver chain is in the forward slice.
+     * Returns the reference of 'call' that is derived from 'target' (the receiver-chain root if it is in
+     * the forward slice of 'target', otherwise the first data-typed argument reference that is), or
+     * undefined if none. This is the reference that identifies which dataset the call operates on.
      */
-    private anyArgInForwardSliceOfTarget(call: SdsCall, target: SdsPlaceholder): boolean {
+    private findReferenceInForwardSliceOfTarget(call: SdsCall, target: SdsPlaceholder): SdsReference | undefined {
         const forwardSlice = this.services.flow.Slicer.computeForwardSliceFromVariable(target);
 
         // Check the root of the receiver chain. This covers a direct receiver ('training.toTabularDataset(...)')
@@ -212,13 +252,26 @@ export class SafeDsDatasetIdentifier {
         // local variables derived from 'target' — which includes segment parameters, not just
         // placeholders — so we compare against it directly rather than restricting to placeholders.
         const receiverRoot = this.receiverChainRoot(call);
-        if (receiverRoot && forwardSlice.some(v => v === receiverRoot.target.ref)) return true;
+        if (receiverRoot && forwardSlice.some(v => v === receiverRoot.target.ref)) return receiverRoot;
 
-        return call.argumentList.arguments.some(arg => {
-            if (!isSdsReference(arg.value)) return false;
-            const ref = arg.value.target.ref;
-            return forwardSlice.some(v => v === ref);
-        });
+        for (const arg of call.argumentList.arguments) {
+            const value = arg.value;
+            if (!isSdsReference(value)) continue;
+            if (forwardSlice.some(v => v === value.target.ref)) return value;
+        }
+        return undefined;
+    }
+
+    /**
+     * Returns the root placeholder of a dataset partition, or undefined for Fallback / when absent.
+     */
+    private getRootPlaceholder(statements: SdsStatement[], dataset: DataSet): SdsPlaceholder | undefined {
+        switch (dataset) {
+            case DataSet.Training:   return this.getTrainingSetPlaceholder(statements);
+            case DataSet.Validation: return this.getValidationSetPlaceholder(statements);
+            case DataSet.Test:       return this.getTestSetPlaceholder(statements);
+            case DataSet.Fallback:   return undefined;
+        }
     }
 
     /**
