@@ -341,6 +341,20 @@ describe('getDatasetOfCall', () => {
     });
 });
 
+describe('findDatasetReferenceInCall', () => {
+    const stmts = callRefPipeline.body.statements;
+
+    it('returns the argument reference belonging to the requested dataset', () => {
+        const reference = identifier.findDatasetReferenceInCall(findCallWithArg('valSet'), stmts, DataSet.Validation);
+        expect(reference && isSdsReference(reference) && reference.target.ref?.name).toBe('valSet');
+    });
+
+    it('returns undefined when the call does not reference the requested dataset', () => {
+        // useData(valSet) references validation, not training
+        expect(identifier.findDatasetReferenceInCall(findCallWithArg('valSet'), stmts, DataSet.Training)).toBeUndefined();
+    });
+});
+
 describe('getMostSpecificDatasetVariable', () => {
     const code = `
         package test
