@@ -103,6 +103,18 @@ export class SafeDsDatasetIdentifier {
     }
 
     /**
+     * Returns the reference of 'call' that is derived from the given 'dataset' (its receiver-chain root
+     * or a data-typed argument), or undefined if none. Unlike getDatasetOfCall this targets a specific
+     * dataset, so it picks the right argument even when the call references several partitions.
+     */
+    findDatasetReferenceInCall(call: SdsCall, statements: SdsStatement[], dataset: DataSet): SdsReference | undefined {
+        const root = this.getRootPlaceholder(statements, dataset);
+        if (!root) return undefined;
+
+        return this.findReferenceInForwardSliceOfTarget(call, root);
+    }
+
+    /**
      * Returns the most specific variable of 'dataset' that is available before 'before':
      * the latest-derived placeholder declared in a statement preceding the one containing 'before',
      * or the dataset's root placeholder if nothing derived qualifies. Undefined if the dataset has no

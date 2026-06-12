@@ -8,15 +8,15 @@ import { ConsistentTransformationObserver, ProtocolObserver } from './protocol/o
 import { ValidationResult, DatasetMismatchError, InconsistentTransformationPresenceError, InconsistentTransformationOrderError, InconsistentTransformationDataflowError } from './protocol/errors.js';
 
 // protocol error codes
-export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL = 'pipeline/behaviour-protocol';
-export const CODE_PIPELINE_INCOMPLETE = 'pipeline/incomplete-sequence';
-export const CODE_DATASET_MISMATCH = 'pipeline/dataset-mismatch';
+export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL   = 'pipeline/behaviour-protocol';
+export const CODE_PIPELINE_INCOMPLETE           = 'pipeline/incomplete-sequence';
+export const CODE_DATASET_MISMATCH              = 'pipeline/dataset-mismatch';
 
 // observer error codes
 export const CODE_PIPELINE_OBSERVER = 'pipeline/observer-error';
-export const CODE_INCONSISTENT_TRANSFORMATION_PRESENCE = 'pipeline/inconsistent-transformation-presence';
-export const CODE_INCONSISTENT_TRANSFORMATION_ORDER = 'pipeline/inconsistent-transformation-order';
-export const CODE_INCONSISTENT_TRANSFORMATION_DATAFLOW = 'pipeline/inconsistent-transformation-dataflow';
+export const CODE_INCONSISTENT_TRANSFORMATION_PRESENCE  = 'pipeline/inconsistent-transformation-presence';
+export const CODE_INCONSISTENT_TRANSFORMATION_ORDER     = 'pipeline/inconsistent-transformation-order';
+export const CODE_INCONSISTENT_TRANSFORMATION_DATAFLOW  = 'pipeline/inconsistent-transformation-dataflow';
 
 export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
 
@@ -101,6 +101,7 @@ const generateProtocolValidation = (
     services: SafeDsServices,
 ) : void => {
     const locator = services.workspace.AstNodeLocator;
+    const identifier = services.flow.DatasetIdentifier;
     const calls = context.calls;
 
     // get the problematic call
@@ -117,23 +118,33 @@ const generateProtocolValidation = (
     const datasetError = result.errors.find((e): e is DatasetMismatchError => e instanceof DatasetMismatchError);
 
     if (call) {
-        if (datasetError && !segmentCallSite && datasetError.wrongReference) {
-            // direct call: report on the wrong dataset reference itself and offer a quickfix to swap it
-            accept(valMessage.severity, valMessage.message, {
-                node: datasetError.wrongReference,
-                code: CODE_DATASET_MISMATCH,
-                data: { path: locator.getAstNodePath(datasetError.wrongReference), expected: datasetError.expected },
-            });
-        } else if (datasetError) {
-            // mismatch inside a segment (or no reference resolved): keep the diagnostic, but no quickfix
-            accept(valMessage.severity,
-                segmentCallSite ? valMessage.message + segmentCauseSuffix(call, services) : valMessage.message, {
-                node: segmentCallSite ?? call,
-                code: CODE_DATASET_MISMATCH,
-            });
+        if (datasetError) {
+            // the wrong dataset is always swapped at the pipeline level: directly on the offending call,
+            // or — for a segment — on the argument that fed the wrong partition into the segment call site
+            // (the segment body itself is generic and must not be touched)
+            const wrongReference = segmentCallSite
+                ? identifier.findDatasetReferenceInCall(segmentCallSite, context.statements, datasetError.found)
+                : datasetError.wrongReference;
+
+            const message = segmentCallSite ? valMessage.message + segmentCauseSuffix(call, services) : valMessage.message;
+
+            if (wrongReference) {
+                // report on the wrong dataset reference itself and offer a quickfix to swap it
+                accept(valMessage.severity, message, {
+                    node: wrongReference,
+                    code: CODE_DATASET_MISMATCH,
+                    data: { path: locator.getAstNodePath(wrongReference), expected: datasetError.expected },
+                });
+            } else {
+                // couldn't resolve a reference to swap: keep the diagnostic, but no quickfix
+                accept(valMessage.severity, message, {
+                    node: segmentCallSite ?? call,
+                    code: CODE_DATASET_MISMATCH,
+                });
+            }
         } else {
             // pipeline violates protocol at specific call. if that call is inside a segment, report on
-            // the segment call site instead and name the offending inner call in the message.
+            // the segment call site instead and name the offending inner call in the message
             accept(valMessage.severity,
                 segmentCallSite ? valMessage.message + segmentCauseSuffix(call, services) : valMessage.message, {
                 node: segmentCallSite ?? call,
