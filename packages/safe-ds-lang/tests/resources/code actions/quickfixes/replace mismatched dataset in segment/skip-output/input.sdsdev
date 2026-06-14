@@ -1,0 +1,16 @@
+// $TEST$ apply "Use the training set ('train') instead."
+
+package tests.codeActions.quickfixes.replaceMismatchedDatasetInSegment
+
+@PipelineActivity([DSPipelineActivity.DataProcessingQExploration])
+fun explore(data: Table) -> result: Int
+
+segment processData(data: Table) -> result: Int {
+    yield result = explore(data);
+}
+
+pipeline myPipeline {
+    val rawData = Table.fromCsvFile("data.csv");
+    val train, val test = rawData.splitRows(percentageInFirst = 0.7);
+    val r = processData(train);
+}
