@@ -1,0 +1,17 @@
+package tests.validation.consistentTransformation.inconsistentDataflow
+
+
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val train, val test = data.splitRows(percentageInFirst = 0.7);
+
+    val imputer = SimpleImputer(SimpleImputer.Strategy.Median).fit(train);
+    val scaler = StandardScaler().fit(train);
+
+    val trainImputed = train.transformTable(imputer);
+    val _trainScaled = trainImputed.transformTable(scaler);
+
+    // $TEST$ warning r"Dataflow mismatch"
+    val _testImputed = test.transformTable(imputer);
+    val _testScaled = test.transformTable(scaler);
+}

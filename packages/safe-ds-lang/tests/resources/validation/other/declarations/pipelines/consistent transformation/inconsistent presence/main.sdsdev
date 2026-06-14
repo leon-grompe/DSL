@@ -1,0 +1,15 @@
+package tests.validation.consistentTransformation.inconsistentPresence
+
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val train, val test = data.splitRows(percentageInFirst = 0.7);
+
+    val imputer = SimpleImputer(SimpleImputer.Strategy.Median).fit(train);
+    val trainImputed = train.transformTable(imputer);
+    val _testImputed = test.transformTable(imputer);
+
+    val encoder = OneHotEncoder();
+
+    // $TEST$ warning r"'.*' is not applied on the Test dataset but applied once on the Training dataset."
+    val _trainEncoded = trainImputed.transformTable(encoder);
+}

@@ -1,0 +1,16 @@
+package tests.validation.consistentTransformation.inconsistentOrder
+
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val train, val test = data.splitRows(percentageInFirst = 0.7);
+
+    val imputer = SimpleImputer(SimpleImputer.Strategy.Median).fit(train);
+    val scaler = StandardScaler().fit(train);
+
+    val trainImputed = train.transformTable(imputer);
+    val _trainScaled = trainImputed.transformTable(scaler);
+
+    // $TEST$ warning r"Transformation order differs"
+    val testScaled = test.transformTable(scaler);
+    val _testImputed = testScaled.transformTable(imputer);
+}
