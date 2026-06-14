@@ -82,7 +82,7 @@ export const restDataUsedForNonSplitting = (services: SafeDsServices) => {
             if (containingStatement && analyzer.isSpecificCall(containingStatement, 'split')) return;
 
             accept('warning',
-                `The rest set ('${restSet.name}') should only be used for a secon split, not for anything else.`, {
+                `The rest set ('${restSet.name}') should only be used for a second split, not for anything else.`, {
                 node: reference,
                 code: CODE_REST_DATA_USED_FOR_NON_SPLITTING,
                 data: { path: locator.getAstNodePath(reference) },
