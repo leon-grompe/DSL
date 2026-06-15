@@ -55,21 +55,35 @@ export const behaviourProtocol = new SequenceBlock([
     ),
 
 // Model Building Layer
-    // Feature Engineering
+    // Feature Engineering followed by Feature Selection, as one group that repeats once per dataset.
+    // The inner pattern is (FE* FS+): zero or more feature-engineering activities ('transformTable', …)
+    // and then at least one feature-selection activity ('toTabularDataset'). Requiring each group to
+    // *end* with a selection keeps feature selection at the conclusion of every engineering run, so
+    // "do some feature engineering, select, then do more engineering without ever selecting again" is
+    // rejected. Repeating the group still admits both shapes we want:
+    //   - all engineering then all selection (one group): every partition is transformed, then every
+    //     partition is converted to a dataset;
+    //   - per-dataset chains (one group each): 'training.transformTable(t).toTabularDataset(...)' then
+    //     the same for the test set.
     new RepetitionBlock(
-        new AlternativeBlock([
-            new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQGeneral),
-            new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQFeatureTransformer),
-            new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQModification),
-            new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQConstruction),
-        ]),
-        DSPipelinePhase.FeatureEngineering
-    ),
+        new SequenceBlock([
+            // Feature Engineering (optional within the group)
+            new RepetitionBlock(
+                new AlternativeBlock([
+                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQGeneral),
+                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQFeatureTransformer),
+                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQModification),
+                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQConstruction),
+                ]),
+                DSPipelinePhase.FeatureEngineering
+            ),
 
-    // Feature Selection
-    new RepetitionBlock(
-        new ElementaryBlock(DSPipelineActivity.FeatureSelectionQGeneral),
-        DSPipelinePhase.FeatureSelection
+            // Feature Selection (at least once: every group must conclude with a selection)
+            new RepetitionBlock(
+                new ElementaryBlock(DSPipelineActivity.FeatureSelectionQGeneral),
+                DSPipelinePhase.FeatureSelection, 1
+            ),
+        ])
     ),
 
     // Modeling

@@ -3,6 +3,7 @@ import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline } f
 import { SafeDsServices } from '../../index.js';
 import { Activity, ValidationContext } from './protocol/model.js';
 import { DSPipelineActivity } from './protocol/dsPipelineActivity.js';
+import { DSPipelinePhase } from './protocol/dsPipelinePhase.js';
 import { behaviourProtocol } from './behaviourProtocol.js';
 import { ConsistentTransformationObserver, ProtocolObserver } from './protocol/observer.js';
 import { ValidationResult, DatasetMismatchError, InconsistentTransformationPresenceError, InconsistentTransformationOrderError, InconsistentTransformationDataflowError } from './protocol/errors.js';
@@ -31,7 +32,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
             new ConsistentTransformationObserver(
                 services,
                 node.body.statements,
-                ['DataProcessing', 'FeatureEngineering'],
+                [DSPipelinePhase.DataProcessing, DSPipelinePhase.FeatureEngineering, DSPipelinePhase.FeatureSelection],
                 [DSPipelineActivity.DataProcessingQExploration],
             ),
         ];
