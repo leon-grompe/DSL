@@ -209,6 +209,10 @@ export class RepetitionBlock extends ProtocolBlock{
                     }
                     break;
                 }
+                // stop if an iteration matched but consumed nothing, otherwise a repetition over a
+                // block that can succeed without advancing (e.g. a sequence of optional sub-blocks)
+                // would loop forever once there is nothing left to match.
+                if (result.validatedIndex === currentIndex) break;
                 currentIndex = result.validatedIndex;
             }
             return ValidationResult.success(currentIndex);
