@@ -10,6 +10,7 @@ import { SafeDsServices } from '../../../safe-ds-module.js';
 import { SdsCall, SdsStatement } from '../../../generated/ast.js';
 import { DataSet, SafeDsDatasetIdentifier } from '../../../flow/safe-ds-dataset-identifier.js';
 import { DSPipelineActivity } from './dsPipelineActivity.js';
+import { DSPipelinePhase } from './dsPipelinePhase.js';
 
 
 export type Activity = DSPipelineActivity;
@@ -164,7 +165,7 @@ export class SequenceBlock extends ProtocolBlock{
 export class RepetitionBlock extends ProtocolBlock{
     constructor(
         public block: ProtocolBlock,
-        public phaseName?: string,
+        public phaseName?: DSPipelinePhase,
         public min: number = 0,
         public max: number = Infinity,
         public exitDataset?: DataSet,
