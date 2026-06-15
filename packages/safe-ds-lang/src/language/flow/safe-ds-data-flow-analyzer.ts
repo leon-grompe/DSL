@@ -199,10 +199,13 @@ export class SafeDsDataFlowAnalyzer {
     ): { call: SdsCall, paramArgMap: Map<SdsParameter, SdsExpression>, segmentCallSite?: SdsCall }[] {
         if (isSdsExpressionStatement(statement) ||
             isSdsAssignment(statement) ||
-            isSdsOutputStatement(statement)) {
-
+            isSdsOutputStatement(statement)
+        ) {
+            const expression = statement.expression;
+            if (!expression) return [];
+            
             // Get direct calls in this statement, starting from innermost (reverse order)
-            const directCalls = AstUtils.streamAst(statement.expression as AstNode)
+            const directCalls = AstUtils.streamAst(expression)
                 .filter(isSdsCall)
                 .toArray()
                 .reverse();
