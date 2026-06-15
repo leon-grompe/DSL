@@ -1,5 +1,6 @@
 import { DataSet } from '../../flow/safe-ds-dataset-identifier.js';
 import { DSPipelineActivity } from './protocol/dsPipelineActivity.js';
+import { DSPipelinePhase } from './protocol/dsPipelinePhase.js';
 import { ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock } from './protocol/model.js';
 
 /**
@@ -11,7 +12,7 @@ export const behaviourProtocol = new SequenceBlock([
     // Data Acquisition
     new RepetitionBlock(
         new ElementaryBlock(DSPipelineActivity.DataAcquisitionQGeneral),
-        'DataAcquisition', 1
+        DSPipelinePhase.DataAcquisition, 1
     ),
     new RepetitionBlock(
         new AlternativeBlock([
@@ -19,7 +20,7 @@ export const behaviourProtocol = new SequenceBlock([
             new ElementaryBlock(DSPipelineActivity.DataAcquisitionQPreprocessing),
             new ElementaryBlock(DSPipelineActivity.DataAcquisitionQConstruction),
         ]),
-        'DataAcquisition'
+        DSPipelinePhase.DataAcquisition
     ),
 
     // Data Preparation
@@ -31,13 +32,13 @@ export const behaviourProtocol = new SequenceBlock([
             new ElementaryBlock(DSPipelineActivity.DataPreparationQTransformation),
             new ElementaryBlock(DSPipelineActivity.DataPreparationQModification),
         ]),
-        'DataPreparation'
+        DSPipelinePhase.DataPreparation
     ),
 
     // Data Partitioning
     new RepetitionBlock(
         new ElementaryBlock(DSPipelineActivity.DataPartitioningQGeneral),
-        'DataPartitioning', 1
+        DSPipelinePhase.DataPartitioning, 1
     ),
 
     // Data Processing
@@ -50,7 +51,7 @@ export const behaviourProtocol = new SequenceBlock([
             new ElementaryBlock(DSPipelineActivity.DataProcessingQTransformation),
             new ElementaryBlock(DSPipelineActivity.DataProcessingQModification),
         ]),
-        'DataProcessing'
+        DSPipelinePhase.DataProcessing
     ),
 
 // Model Building Layer
@@ -62,31 +63,31 @@ export const behaviourProtocol = new SequenceBlock([
             new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQModification),
             new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQConstruction),
         ]),
-        'FeatureEngineering'
+        DSPipelinePhase.FeatureEngineering
     ),
 
     // Feature Selection
     new RepetitionBlock(
-        new ElementaryBlock(DSPipelineActivity.FeatureSelectionQGeneral, DataSet.Training),
-        'FeatureSelection'
+        new ElementaryBlock(DSPipelineActivity.FeatureSelectionQGeneral),
+        DSPipelinePhase.FeatureSelection
     ),
 
     // Modeling
     new RepetitionBlock(
         new ElementaryBlock(DSPipelineActivity.ModelingQGeneral),
-        'Modeling', 1
+        DSPipelinePhase.Modeling, 1
     ),
 
     // Training
     new RepetitionBlock(
         new ElementaryBlock(DSPipelineActivity.TrainingQGeneral),
-        'Training', 1
+        DSPipelinePhase.Training, 1
     ),
 
     // Prediction
     new RepetitionBlock(
         new ElementaryBlock(DSPipelineActivity.PredictionQGeneral),
-        'Prediction'
+        DSPipelinePhase.Prediction
     ),
 
     // Evaluation
@@ -95,7 +96,7 @@ export const behaviourProtocol = new SequenceBlock([
             new ElementaryBlock(DSPipelineActivity.EvaluationQMetric, DataSet.Validation),
             new ElementaryBlock(DSPipelineActivity.EvaluationQVisualization, DataSet.Validation),
         ]),
-        'Evaluation', 1, Infinity, DataSet.Test
+        DSPipelinePhase.Evaluation, 1, Infinity, DataSet.Test
     ),
 
     // Testing
@@ -104,6 +105,6 @@ export const behaviourProtocol = new SequenceBlock([
             new ElementaryBlock(DSPipelineActivity.TestingQMetric, DataSet.Test),
             new ElementaryBlock(DSPipelineActivity.TestingQVisualization, DataSet.Test),
         ]),
-        'Testing'
+        DSPipelinePhase.Testing
     ),
 ])
