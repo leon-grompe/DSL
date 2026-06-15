@@ -1,0 +1,9 @@
+package tests.validation.consistentTabularDataset.inconsistentTarget
+
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val train, val test = data.splitRows(percentageInFirst = 0.7);
+    val _trainSet = train.toTabularDataset("a");
+    // $TEST$ warning r"All 'toTabularDataset' calls in a pipeline must have the same arguments."
+    val _testSet = test.toTabularDataset("b");
+}

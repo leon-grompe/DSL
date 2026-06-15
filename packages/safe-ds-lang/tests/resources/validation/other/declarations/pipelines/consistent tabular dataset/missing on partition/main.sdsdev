@@ -1,0 +1,14 @@
+package tests.validation.consistentTabularDataset.missingOnPartition
+
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val train, val test = data.splitRows(percentageInFirst = 0.7);
+
+    val scaler = StandardScaler().fit(train);
+
+    // $TEST$ warning r"'toTabularDataset' is not applied on the Test dataset but applied once on the Training dataset."
+    val trainSet = train.transformTable(scaler).toTabularDataset("label");
+    val _testScaled = test.transformTable(scaler);
+
+    val _classifier = GradientBoostingClassifier().fit(trainSet);
+}

@@ -1,9 +1,11 @@
 import { AstUtils, ValidationAcceptor } from 'langium';
 import { SafeDsServices } from '../../safe-ds-module.js';
-import { SdsCall, SdsPipeline, isSdsReference, isSdsPlaceholder, isSdsAssignment, SdsLocalVariable, isSdsSegment } from '../../generated/ast.js';
+import { SdsCall, SdsPipeline, isSdsReference, isSdsPlaceholder, isSdsAssignment, isSdsFunction, SdsLocalVariable, isSdsSegment } from '../../generated/ast.js';
+import { getArguments, getParameters } from '../../helpers/nodeProperties.js';
 
 export const CODE_TEST_DATA_USED_FOR_TRAINING = 'data-flow-analysis/test-data-used-for-training';
 export const CODE_REST_DATA_USED_FOR_NON_SPLITTING = 'data-flow-analysis/rest-data-used-for-non-splitting';
+export const CODE_INCONSISTENT_DATASET_ARGUMENTS = 'data-flow-analysis/inconsistent-dataset-arguments';
 
 export const testDataUsedForTraining = (services: SafeDsServices) => {
     const analyzer = services.flow.DataFlowAnalyzer;
@@ -88,5 +90,62 @@ export const restDataUsedForNonSplitting = (services: SafeDsServices) => {
                 data: { path: locator.getAstNodePath(reference) },
             });
         });
+    }
+}
+
+export const toTabularDatasetMustUseSameArguments = (services: SafeDsServices) => {
+    const analyzer = services.flow.DataFlowAnalyzer;
+    const nodeMapper = services.helpers.NodeMapper;
+    const partialEvaluator = services.evaluation.PartialEvaluator;
+    const locator = services.workspace.AstNodeLocator;
+
+    // 'toTabularDataset' only assigns column roles (target/extra/features) — it learns nothing from the
+    // data, so it is not leakage-prone. But the schema it produces must be identical for every dataset
+    // partition; diverging target/extra columns mean the model is fit and evaluated on different schemas.
+    return (node: SdsPipeline, accept: ValidationAcceptor) => {
+        // collect every distinct 'toTabularDataset' call in the pipeline, flattening segment calls.
+        // a segment-internal call reused for several datasets is a single source node, so it is
+        // consistent with itself — only distinct call sites can actually disagree.
+        const calls: SdsCall[] = [];
+        const seen = new Set<SdsCall>();
+        for (const statement of node.body.statements) {
+            for (const { call } of analyzer.expandCallsInStatement(statement)) {
+                const callable = nodeMapper.callToCallable(call);
+                if (isSdsFunction(callable) && callable.name === 'toTabularDataset' && !seen.has(call)) {
+                    seen.add(call);
+                    calls.push(call);
+                }
+            }
+        }
+        if (calls.length < 2) return;
+
+        // resolve the target and extra arguments to canonical value strings via the partial evaluator,
+        // so named/positional forms and omitted defaults (e.g. 'extraNames = null') compare equal.
+        const argsToStringValues = (call: SdsCall): { target: string; extra: string } => {
+            const substitutions = partialEvaluator.computeParameterSubstitutionsForCall(call);
+            const parameters = getParameters(nodeMapper.callToCallable(call));
+            
+            const stringValueOf = (parameterName: string): string => {
+                const parameter = parameters.find((it) => it.name === parameterName);
+                return parameter ? substitutions.get(parameter)?.toString() ?? '?' : '?';
+            };
+            return { target: stringValueOf('targetName'), extra: stringValueOf('extraNames') };
+        };
+
+        // the first call (in document order) is the reference; flag every call that disagrees with it.
+        const reference = argsToStringValues(calls[0]!);
+        for (const call of calls.slice(1)) {
+            const current = argsToStringValues(call);
+            if (current.target === reference.target && current.extra === reference.extra) continue;
+
+            accept('warning',
+                `All 'toTabularDataset()' calls in a pipeline must have the same arguments. \n` +
+                `This call uses 'targetName = ${current.target}, extraNames = ${current.extra}', but the ` + 
+                `reference call uses \n'targetName = ${reference.target}, extraNames = ${reference.extra}'.`, {
+                node: call,
+                code: CODE_INCONSISTENT_DATASET_ARGUMENTS,
+                data: { path: locator.getAstNodePath(call) },
+            });
+        }
     }
 }
