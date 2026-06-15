@@ -139,7 +139,7 @@ export const toTabularDatasetMustUseSameArguments = (services: SafeDsServices) =
             if (current.target === reference.target && current.extra === reference.extra) continue;
 
             accept('warning',
-                `All 'toTabularDataset()' calls in a pipeline must have the same arguments. \n` +
+                `All 'toTabularDataset' calls in a pipeline must have the same arguments. \n` +
                 `This call uses 'targetName = ${current.target}, extraNames = ${current.extra}', but the ` + 
                 `reference call uses \n'targetName = ${reference.target}, extraNames = ${reference.extra}'.`, {
                 node: call,
