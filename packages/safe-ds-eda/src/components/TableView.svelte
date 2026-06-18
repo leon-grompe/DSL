@@ -75,6 +75,13 @@
         }
     }
 
+    // Open the virtual-row window as soon as table data is available, regardless of mount
+    // timing. Relying only on onMount/the interval could leave visibleEnd at 0 (no rows
+    // rendered) when the container had no measured height when the component first mounted.
+    $: if ($table && tableContainer) {
+        recalculateVisibleRowCount();
+    }
+
     $: if (headerElements.length > 0) {
         // Is svelte reactive but so far only runs once which is what we want, consideration to have loop in onMount that waits until headerElements is filled and then runs this code once
         for (const column of headerElements) {
@@ -418,10 +425,10 @@
     };
 
     const recalculateVisibleRowCount = function (): void {
-        if (lastHeight === tableContainer.clientHeight) {
-            // Not recalculating if height didn't change
-            return;
-        }
+        // Always refresh the visible-row window. Previously this early-returned when the
+        // height was unchanged, which skipped the initial updateVisibleRows() when the
+        // container had no measured height yet on mount, leaving visibleEnd stuck at 0
+        // (table data present but no rows ever rendered until a manual scroll/resize).
         lastHeight = tableContainer.clientHeight;
         visibleRowCount = Math.ceil(tableContainer.clientHeight / rowHeight) + buffer;
         updateVisibleRows();
