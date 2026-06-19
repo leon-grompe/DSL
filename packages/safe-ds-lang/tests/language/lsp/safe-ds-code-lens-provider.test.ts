@@ -311,6 +311,31 @@ describe('SafeDsCodeLensProvider', () => {
                 `,
                 expectedCodeLensTitles: ['Run myPipeline', 'Explore data', 'Explore trainSet'],
             },
+            {
+                testName: 'unlocks validation/test outputs in their evaluation/testing phase',
+                code: `
+                    pipeline myPipeline {
+                        val data = Table();
+                        val trainSet, val restSet = data.splitRows(percentageInFirst = 0.6);
+                        val valSet, val testSet = restSet.splitRows(percentageInFirst = 0.5);
+                        val valMetrics = DecisionTreeClassifier().summarizeMetrics(valSet, 1);
+                        val testMetrics = DecisionTreeClassifier().summarizeMetrics(testSet, 1);
+                        out valMetrics;
+                        out testSet;
+                    }
+                `,
+                // Raw valSet/testSet/restSet stay hidden, but the metrics produced by the evaluation
+                // call on the validation set and the testing call on the test set are unlocked —
+                // including the `out valMetrics`. `out testSet` (raw test data) stays hidden.
+                expectedCodeLensTitles: [
+                    'Run myPipeline',
+                    'Explore data',
+                    'Explore trainSet',
+                    'Explore valMetrics',
+                    'Explore testMetrics',
+                    'Explore valMetrics',
+                ],
+            },
         ];
 
         it.each(testCases)('should compute code lenses ($testName)', async ({ code, expectedCodeLensTitles }) => {

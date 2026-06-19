@@ -149,27 +149,24 @@ export class SafeDsDatasetIdentifier {
     }
 
     /**
-     * Returns every data variable that belongs to one of the given dataset partitions,
-     * i.e. each partition's root placeholder plus everything derived from it.
+     * Returns every holdout data variable — the validation and test sets, plus the rest pool they
+     * were carved from — each including its root placeholder and everything derived from it.
+     * Training and original data are not included (their lenses are always shown).
      */
-    getVariablesForDatasets(statements: SdsStatement[], datasets: DataSet[]): Set<SdsLocalVariable> {
-        const rootPlaceholders = datasets.map((dataset) => this.getRootPlaceholder(statements, dataset));
-
-        // The rest set is the pool that gets carved into validation/test, so it still holds that
-        // holdout data — suppressing val/test without it would leave the same data inspectable
-        // through the rest set. Only relevant for the two-split case; otherwise it resolves to a
-        // placeholder already covered above.
-        if (datasets.includes(DataSet.Validation) || datasets.includes(DataSet.Test)) {
-            rootPlaceholders.push(this.getRestSetPlaceholder(statements));
-        }
-
+    getHoldoutVariables(statements: SdsStatement[]): Set<SdsLocalVariable> {
         const result = new Set<SdsLocalVariable>();
-        for (const root of rootPlaceholders) {
-            if (!root) continue;
+        const addSlice = (root: SdsPlaceholder | undefined) => {
+            if (!root) return;
             for (const variable of this.services.flow.Slicer.computeForwardSliceFromVariable(root)) {
                 result.add(variable);
             }
-        }
+        };
+
+        // Validation/test slices are subsets of the rest slice in the two-split case, but the
+        // split-all-segment case has no genuine rest placeholder, so all three roots are needed.
+        addSlice(this.getRestSetPlaceholder(statements));
+        addSlice(this.getRootPlaceholder(statements, DataSet.Validation));
+        addSlice(this.getRootPlaceholder(statements, DataSet.Test));
         return result;
     }
 

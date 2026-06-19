@@ -397,6 +397,36 @@ describe('getMostSpecificDatasetVariable', () => {
     });
 });
 
+describe('getHoldoutVariables', () => {
+    const code = `
+        package test
+        fun getTable() -> result: Table
+        pipeline myPipeline {
+            val data = getTable();
+            val trainSet, val restSet = data.splitRows(percentageInFirst = 0.7);
+            val valSet, val testSet = restSet.splitRows(percentageInFirst = 0.5);
+            val valDerived = valSet.shuffleRows();
+        }
+    `;
+
+    it('collects the validation, test, and rest variables plus their derivations', async () => {
+        const pipeline = await getNodeOfType(services, code, isSdsPipeline);
+        const holdout = identifier.getHoldoutVariables(pipeline.body.statements);
+
+        const names = new Set([...holdout].map((variable) => variable.name));
+
+        // validation/test/rest holdout data and anything derived from it
+        expect(names).toContain('valSet');
+        expect(names).toContain('valDerived');
+        expect(names).toContain('testSet');
+        expect(names).toContain('restSet');
+
+        // training and original data are not holdout
+        expect(names).not.toContain('trainSet');
+        expect(names).not.toContain('data');
+    });
+});
+
 // ---------------------------------------------------------------------------
 
 interface GetPlaceholderTest {
