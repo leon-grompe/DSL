@@ -62,6 +62,11 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
     private readonly datasetCallableMap = new Map<DataSet, ObservedEntry[]>();
     // input placeholder -> the normalized callables that consume it (recorded for every call)
     private readonly consumers = new Map<SdsPlaceholder, SdsCallable[]>();
+    // lazily-computed pipeline statements that feed a model (backward slice of every 'toTabularDataset')
+    private modelFeedingStatements: Set<SdsStatement> | undefined;
+    // lazily-computed map from every expanded call to the pipeline-level statement containing it
+    // (for a call inlined from a segment, this is the segment call site statement)
+    private callToPipelineStatement: Map<SdsCall, SdsStatement> | undefined;
 
     constructor(
         private readonly services: SafeDsServices,
@@ -78,7 +83,14 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
         if (info.detectedDataset === DataSet.Fallback) return;
         if (info.activity === DSPipelineActivity.Any) return;
 
-        // normalize by eliminating 'fit' calls and mapping 'transform' and 'fitAndTransform' 
+        // Plot-only escape (training set only): a tracked TRAINING call whose output never reaches the
+        // model (no dataflow path into a 'toTabularDataset') is exploratory shaping, not part of the
+        // model pipeline, so it must not be held to cross-partition consistency. Held-out partitions are
+        // never escaped — shaping/inspecting validation or test data off the model-feeding path stays
+        // tracked and is reported.
+        if (info.detectedDataset === DataSet.Training && !this.reachesModel(info.call)) return;
+
+        // normalize by eliminating 'fit' calls and mapping 'transform' and 'fitAndTransform'
         // to their underlying class, so they are treated as the same callable across datasets.
         // also map 'transformTable' to the class used in its argument, to be able to 
         // differentiate different transform calls.
@@ -414,6 +426,66 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
      */
     private callableName(callable: SdsCallable): string {
         return isSdsFunction(callable) || isSdsClass(callable) ? callable.name : callable.$type;
+    }
+
+    /**
+     * Returns true if 'call' lies on a dataflow path into the model, i.e. its enclosing pipeline
+     * statement is in the backward slice of some 'toTabularDataset' call. Lets purely exploratory
+     * training-set shaping (e.g. 'train.selectColumns(...).plot...') skip consistency tracking without
+     * masking anything that actually feeds the model.
+     */
+    private reachesModel(call: SdsCall): boolean {
+        const modelFeeding = this.getModelFeedingStatements();
+        // No 'toTabularDataset' anywhere: the model boundary is undefined, so "off the model path" is
+        // vacuous. Stay conservative and escape nothing, leaving plain consistency tracking in place.
+        if (modelFeeding.size === 0) return true;
+
+        const statement = this.callToPipelineStatementMap().get(call);
+        if (!statement) return false;
+        return modelFeeding.has(statement);
+    }
+
+    /**
+     * Builds (once) a map from every expanded call to the pipeline-level statement containing it.
+     * A call inlined from a segment maps to its segment call site statement, so membership tests
+     * against the pipeline-level slice stay meaningful. Keyed by the same call nodes the protocol
+     * matches on (both come from 'expandCallsInStatement').
+     */
+    private callToPipelineStatementMap(): Map<SdsCall, SdsStatement> {
+        if (this.callToPipelineStatement) return this.callToPipelineStatement;
+        const map = new Map<SdsCall, SdsStatement>();
+        const analyzer = this.services.flow.DataFlowAnalyzer;
+        for (const statement of this.statements) {
+            for (const { call } of analyzer.expandCallsInStatement(statement)) {
+                if (!map.has(call)) map.set(call, statement);
+            }
+        }
+        this.callToPipelineStatement = map;
+        return map;
+    }
+
+    /**
+     * Computes (once) the set of pipeline statements that contribute to producing the input of any
+     * 'toTabularDataset' call — the backward slice to every such call. Statements outside this set do
+     * not feed the model. Pure slicing is used (shaping ops are pure; only data dependencies matter).
+     */
+    private getModelFeedingStatements(): Set<SdsStatement> {
+        if (this.modelFeedingStatements) return this.modelFeedingStatements;
+        const nodeMapper = this.services.helpers.NodeMapper;
+
+        // every pipeline statement that (directly, inline, or via a segment) contains a 'toTabularDataset' call
+        const targets = new Set<SdsStatement>();
+        for (const [call, statement] of this.callToPipelineStatementMap()) {
+            const callable = nodeMapper.callToCallable(call);
+            if (isSdsFunction(callable) && callable.name === 'toTabularDataset') targets.add(statement);
+        }
+
+        // copy the statements: computeBackwardSliceToTargetsWithoutPurity reverses its input in place
+        const slice = this.services.flow.Slicer.computeBackwardSliceToTargetsWithoutPurity(
+            [...this.statements], [...targets],
+        );
+        this.modelFeedingStatements = new Set(slice);
+        return this.modelFeedingStatements;
     }
 
 }

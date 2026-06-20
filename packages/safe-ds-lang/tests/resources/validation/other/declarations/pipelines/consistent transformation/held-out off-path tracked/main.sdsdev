@@ -1,0 +1,20 @@
+package tests.validation.consistentTransformation.heldOutOffPathTracked
+
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val train, val test = data.splitRows(percentageInFirst = 0.7);
+
+    val scaler = StandardScaler().fit(train);
+    val imputer = SimpleImputer(SimpleImputer.Strategy.Median).fit(train);
+
+    // model path: the same transform reaches 'toTabularDataset' on both partitions
+    val trainScaled = train.transformTable(scaler);
+    val testScaled = test.transformTable(scaler);
+
+    // test-only transform off the model path -> escape is training-only, so it stays tracked and is flagged
+    // $TEST$ warning r"is applied once on the Test dataset but not applied on the Training dataset"
+    val _testOffPath = test.transformTable(imputer);
+
+    val _trainSet = trainScaled.toTabularDataset("label");
+    val _testSet = testScaled.toTabularDataset("label");
+}
