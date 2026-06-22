@@ -364,7 +364,8 @@ class ImageList {
      */
     @Pure
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQAugmentation
+        DSPipelineActivity.DataPreparationQImageTransformation,
+        DSPipelineActivity.DataProcessingQImageTransformation
     ])
     @PythonName("convert_to_grayscale")
     fun convertToGrayscale() -> imageList: ImageList
