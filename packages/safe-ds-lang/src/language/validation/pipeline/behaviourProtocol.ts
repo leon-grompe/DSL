@@ -9,78 +9,72 @@ import { ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock } fro
 */
 export const behaviourProtocol = new SequenceBlock([
 // Pre-Processing Layer
-    // Data Acquisition
+    // Data Acquisition (at least one load / hand-built datatype)
     new RepetitionBlock(
-        new ElementaryBlock(DSPipelineActivity.DataAcquisitionQGeneral),
+        new AlternativeBlock([
+            new ElementaryBlock(DSPipelineActivity.DataAcquisitionQLoading),
+            new ElementaryBlock(DSPipelineActivity.DataAcquisitionQDatatypeConstruction),
+        ]),
         DSPipelinePhase.DataAcquisition, 1
     ),
-    new RepetitionBlock(
-        new AlternativeBlock([
-            new ElementaryBlock(DSPipelineActivity.DataAcquisitionQGeneral),
-            new ElementaryBlock(DSPipelineActivity.DataAcquisitionQPreprocessing),
-            new ElementaryBlock(DSPipelineActivity.DataAcquisitionQConstruction),
-        ]),
-        DSPipelinePhase.DataAcquisition
-    ),
 
-    // Data Preparation
+    // Data Preparation (pre-split: deterministic cleaning, schema edits, image transforms, EDA, helpers)
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock(DSPipelineActivity.DataPreparationQGeneral),
             new ElementaryBlock(DSPipelineActivity.DataPreparationQExploration),
-            new ElementaryBlock(DSPipelineActivity.DataPreparationQPreprocessing),
-            new ElementaryBlock(DSPipelineActivity.DataPreparationQTransformation),
-            new ElementaryBlock(DSPipelineActivity.DataPreparationQModification),
+            new ElementaryBlock(DSPipelineActivity.DataPreparationQPreSplitCleaning),
+            new ElementaryBlock(DSPipelineActivity.DataPreparationQSchemaModification),
+            new ElementaryBlock(DSPipelineActivity.DataPreparationQUtilities),
+            new ElementaryBlock(DSPipelineActivity.DataPreparationQImageTransformation),
         ]),
         DSPipelinePhase.DataPreparation
     ),
 
     // Data Partitioning
     new RepetitionBlock(
-        new ElementaryBlock(DSPipelineActivity.DataPartitioningQGeneral),
+        new ElementaryBlock(DSPipelineActivity.DataPartitioningQSplit),
         DSPipelinePhase.DataPartitioning, 1
     ),
 
-    // Data Processing
+    // Data Processing (post-split). Exploration, post-split cleaning and augmentation are training-only.
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock(DSPipelineActivity.DataProcessingQGeneral),
             new ElementaryBlock(DSPipelineActivity.DataProcessingQExploration, DataSet.Training),
+            new ElementaryBlock(DSPipelineActivity.DataProcessingQPostSplitCleaning, DataSet.Training),
+            new ElementaryBlock(DSPipelineActivity.DataProcessingQAugmentation, DataSet.Training),
+            new ElementaryBlock(DSPipelineActivity.DataProcessingQSchemaModification),
+            new ElementaryBlock(DSPipelineActivity.DataProcessingQUtilities),
             new ElementaryBlock(DSPipelineActivity.DataProcessingQDataTransformer),
-            new ElementaryBlock(DSPipelineActivity.DataProcessingQPreprocessing),
-            new ElementaryBlock(DSPipelineActivity.DataProcessingQTransformation),
-            new ElementaryBlock(DSPipelineActivity.DataProcessingQModification),
+            new ElementaryBlock(DSPipelineActivity.DataProcessingQImageTransformation),
         ]),
         DSPipelinePhase.DataProcessing
     ),
 
 // Model Building Layer
     // Feature Engineering followed by Feature Selection, as one group that repeats once per dataset.
-    // The inner pattern is (FE* FS+): zero or more feature-engineering activities ('transformTable', …)
-    // and then at least one feature-selection activity ('toTabularDataset'). Requiring each group to
-    // *end* with a selection keeps feature selection at the conclusion of every engineering run, so
-    // "do some feature engineering, select, then do more engineering without ever selecting again" is
-    // rejected. Repeating the group still admits both shapes we want:
-    //   - all engineering then all selection (one group): every partition is transformed, then every
-    //     partition is converted to a dataset;
-    //   - per-dataset chains (one group each): 'training.transformTable(t).toTabularDataset(...)' then
-    //     the same for the test set.
+    // The inner pattern is (FE* FS+): zero or more feature-engineering activities and then at least one
+    // feature-selection activity (column trimming and/or 'toTabularDataset'). Requiring each group to
+    // *end* with a selection keeps feature selection at the conclusion of every engineering run.
     new RepetitionBlock(
         new SequenceBlock([
             // Feature Engineering (optional within the group)
             new RepetitionBlock(
                 new AlternativeBlock([
-                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQGeneral),
+                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQDatatypeConstruction),
+                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQSchemaModification),
+                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQUtilities),
+                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQEngineering),
                     new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQFeatureTransformer),
-                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQModification),
-                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQConstruction),
                 ]),
                 DSPipelinePhase.FeatureEngineering
             ),
 
             // Feature Selection (at least once: every group must conclude with a selection)
             new RepetitionBlock(
-                new ElementaryBlock(DSPipelineActivity.FeatureSelectionQGeneral),
+                new AlternativeBlock([
+                    new ElementaryBlock(DSPipelineActivity.FeatureSelectionQSchemaModification),
+                    new ElementaryBlock(DSPipelineActivity.FeatureSelectionQTabularDatasetConversion),
+                ]),
                 DSPipelinePhase.FeatureSelection, 1
             ),
         ])
@@ -88,37 +82,39 @@ export const behaviourProtocol = new SequenceBlock([
 
     // Modeling
     new RepetitionBlock(
-        new ElementaryBlock(DSPipelineActivity.ModelingQGeneral),
+        new ElementaryBlock(DSPipelineActivity.ModelingQCreating),
         DSPipelinePhase.Modeling, 1
     ),
 
-    // Training
+    // Training (optional: a loaded pretrained model may be used without fitting)
     new RepetitionBlock(
-        new ElementaryBlock(DSPipelineActivity.TrainingQGeneral),
-        DSPipelinePhase.Training, 1
+        new ElementaryBlock(DSPipelineActivity.TrainingQFitting),
+        DSPipelinePhase.Training
     ),
 
-    // Prediction
-    new RepetitionBlock(
-        new ElementaryBlock(DSPipelineActivity.PredictionQGeneral),
-        DSPipelinePhase.Prediction
-    ),
-
-    // Evaluation
+    // Evaluation (validation set only; prediction is folded in here). Exits when a test-set call appears.
     new RepetitionBlock(
         new AlternativeBlock([
+            new ElementaryBlock(DSPipelineActivity.EvaluationQPrediction, DataSet.Validation),
             new ElementaryBlock(DSPipelineActivity.EvaluationQMetric, DataSet.Validation),
             new ElementaryBlock(DSPipelineActivity.EvaluationQVisualization, DataSet.Validation),
         ]),
-        DSPipelinePhase.Evaluation, 1, Infinity, DataSet.Test
+        DSPipelinePhase.Evaluation, 0, Infinity, DataSet.Test
     ),
 
-    // Testing
+    // Testing (test set only; prediction is folded in here)
     new RepetitionBlock(
         new AlternativeBlock([
+            new ElementaryBlock(DSPipelineActivity.TestingQPrediction, DataSet.Test),
             new ElementaryBlock(DSPipelineActivity.TestingQMetric, DataSet.Test),
             new ElementaryBlock(DSPipelineActivity.TestingQVisualization, DataSet.Test),
         ]),
         DSPipelinePhase.Testing
+    ),
+
+    // Interpretation (trailing, optional: post-processing such as inverse-transforming predictions)
+    new RepetitionBlock(
+        new ElementaryBlock(DSPipelineActivity.InterpretationQPostProcessing),
+        DSPipelinePhase.Interpretation
     ),
 ])
