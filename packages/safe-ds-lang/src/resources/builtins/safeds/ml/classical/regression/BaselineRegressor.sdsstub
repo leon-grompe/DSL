@@ -12,7 +12,7 @@ from safeds.data.labeled.containers import TabularDataset
  */
 @Experimental
 @PipelineActivity([
-    DSPipelineActivity.ModelingQGeneral
+    DSPipelineActivity.ModelingQCreating
 ])
 class BaselineRegressor(
     @PythonName("extended_search") extendedSearch: Boolean = false
@@ -33,7 +33,7 @@ class BaselineRegressor(
      */
     @Pure
     @PipelineActivity([
-        DSPipelineActivity.TrainingQGeneral
+        DSPipelineActivity.TrainingQFitting
     ])
     fun fit(
         @PythonName("train_data") trainData: TabularDataset
@@ -50,7 +50,8 @@ class BaselineRegressor(
      */
     @Pure
     @PipelineActivity([
-        DSPipelineActivity.PredictionQGeneral
+        DSPipelineActivity.EvaluationQPrediction,
+        DSPipelineActivity.TestingQPrediction
     ])
     fun predict(
         @PythonName("test_data") testData: TabularDataset

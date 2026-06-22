@@ -27,8 +27,8 @@ from safeds.data.tabular.typing import Schema
  */
 @Category(DataScienceCategory.BasicElement)
 @PipelineActivity([
-    DSPipelineActivity.DataAcquisitionQConstruction,
-    DSPipelineActivity.FeatureEngineeringQConstruction
+    DSPipelineActivity.DataAcquisitionQDatatypeConstruction,
+    DSPipelineActivity.FeatureEngineeringQDatatypeConstruction
 ])
 class Table(
     data: Map<String, List<Any?>>
@@ -82,8 +82,8 @@ class Table(
     @PythonName("from_columns")
     @Category(DataScienceCategory.UtilitiesQConversion)
     @PipelineActivity([
-        DSPipelineActivity.DataAcquisitionQConstruction,
-        DSPipelineActivity.FeatureEngineeringQConstruction
+        DSPipelineActivity.DataAcquisitionQDatatypeConstruction,
+        DSPipelineActivity.FeatureEngineeringQDatatypeConstruction
     ])
     static fun fromColumns(
         columns: union<Column, List<Column>>
@@ -106,7 +106,7 @@ class Table(
     @PythonName("from_csv_file")
     @Category(DataScienceCategory.DataImport)
     @PipelineActivity([
-        DSPipelineActivity.DataAcquisitionQGeneral
+        DSPipelineActivity.DataAcquisitionQLoading
     ])
     static fun fromCsvFile(
         path: String,
@@ -130,7 +130,7 @@ class Table(
     @PythonName("from_dict")
     @Category(DataScienceCategory.DataImport)
     @PipelineActivity([
-        DSPipelineActivity.DataAcquisitionQGeneral
+        DSPipelineActivity.DataAcquisitionQLoading
     ])
     static fun fromMap(
         data: Map<String, List<Any>>
@@ -152,7 +152,7 @@ class Table(
     @PythonName("from_json_file")
     @Category(DataScienceCategory.DataImport)
     @PipelineActivity([
-        DSPipelineActivity.DataAcquisitionQGeneral
+        DSPipelineActivity.DataAcquisitionQLoading
     ])
     static fun fromJsonFile(
         path: String
@@ -174,7 +174,7 @@ class Table(
     @PythonName("from_parquet_file")
     @Category(DataScienceCategory.DataImport)
     @PipelineActivity([
-        DSPipelineActivity.DataAcquisitionQGeneral
+        DSPipelineActivity.DataAcquisitionQLoading
     ])
     static fun fromParquetFile(
         path: String
@@ -200,8 +200,9 @@ class Table(
     @PythonName("add_columns")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataAcquisitionQConstruction,
-        DSPipelineActivity.FeatureEngineeringQConstruction
+        DSPipelineActivity.DataPreparationQSchemaModification,
+        DSPipelineActivity.DataProcessingQSchemaModification,
+        DSPipelineActivity.FeatureEngineeringQSchemaModification
     ])
     fun addColumns(
         columns: union<Column, List<Column>, Table>
@@ -227,7 +228,7 @@ class Table(
     @PythonName("add_computed_column")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.FeatureEngineeringQGeneral
+        DSPipelineActivity.FeatureEngineeringQEngineering
     ])
     fun addComputedColumn(
         name: String,
@@ -254,8 +255,8 @@ class Table(
     @Pure
     @PythonName("add_index_column")
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQTransformation,
-        DSPipelineActivity.DataProcessingQTransformation
+        DSPipelineActivity.DataPreparationQSchemaModification,
+        DSPipelineActivity.DataProcessingQSchemaModification
     ])
     fun addIndexColumn(
         name: String,
@@ -345,9 +346,10 @@ class Table(
     @PythonName("remove_columns")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQModification,
-        DSPipelineActivity.DataProcessingQModification,
-        DSPipelineActivity.FeatureEngineeringQModification
+        DSPipelineActivity.DataPreparationQSchemaModification,
+        DSPipelineActivity.DataProcessingQSchemaModification,
+        DSPipelineActivity.FeatureEngineeringQSchemaModification,
+        DSPipelineActivity.FeatureSelectionQSchemaModification
     ])
     fun removeColumns(
         selector: union<List<String>, String>,
@@ -380,9 +382,10 @@ class Table(
     @PythonName("remove_columns_with_missing_values")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQModification,
-        DSPipelineActivity.DataProcessingQModification,
-        DSPipelineActivity.FeatureEngineeringQModification
+        DSPipelineActivity.DataPreparationQSchemaModification,
+        DSPipelineActivity.DataProcessingQSchemaModification,
+        DSPipelineActivity.FeatureEngineeringQSchemaModification,
+        DSPipelineActivity.FeatureSelectionQSchemaModification
     ])
     fun removeColumnsWithMissingValues() -> newTable: Table
 
@@ -403,9 +406,10 @@ class Table(
     @PythonName("remove_non_numeric_columns")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQModification,
-        DSPipelineActivity.DataProcessingQModification,
-        DSPipelineActivity.FeatureEngineeringQModification
+        DSPipelineActivity.DataPreparationQSchemaModification,
+        DSPipelineActivity.DataProcessingQSchemaModification,
+        DSPipelineActivity.FeatureEngineeringQSchemaModification,
+        DSPipelineActivity.FeatureSelectionQSchemaModification
     ])
     fun removeNonNumericColumns() -> newTable: Table
 
@@ -429,9 +433,9 @@ class Table(
     @PythonName("rename_column")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQModification,
-        DSPipelineActivity.DataProcessingQModification,
-        DSPipelineActivity.FeatureEngineeringQModification
+        DSPipelineActivity.DataPreparationQSchemaModification,
+        DSPipelineActivity.DataProcessingQSchemaModification,
+        DSPipelineActivity.FeatureEngineeringQSchemaModification
     ])
     fun renameColumn(
         @PythonName("old_name") oldName: String,
@@ -462,7 +466,7 @@ class Table(
     @PythonName("replace_column")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.FeatureEngineeringQGeneral
+        DSPipelineActivity.FeatureEngineeringQEngineering
     ])
     fun replaceColumn(
         @PythonName("old_name") oldName: String,
@@ -487,7 +491,10 @@ class Table(
     @Pure
     @PythonName("select_columns")
     @PipelineActivity([
-        DSPipelineActivity.FeatureEngineeringQGeneral
+        DSPipelineActivity.DataPreparationQSchemaModification,
+        DSPipelineActivity.DataProcessingQSchemaModification,
+        DSPipelineActivity.FeatureEngineeringQSchemaModification,
+        DSPipelineActivity.FeatureSelectionQSchemaModification
     ])
     fun selectColumns(
         selector: union<List<String>, String>
@@ -516,7 +523,7 @@ class Table(
     @PythonName("transform_columns")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.FeatureEngineeringQGeneral
+        DSPipelineActivity.FeatureEngineeringQEngineering
     ])
     fun transformColumns(
         selector: union<List<String>, String>,
@@ -579,7 +586,8 @@ class Table(
     @Pure
     @PythonName("filter_rows")
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQGeneral
+        DSPipelineActivity.DataPreparationQPreSplitCleaning,
+        DSPipelineActivity.DataProcessingQPostSplitCleaning
     ])
     fun filterRows(
         predicate: (row: Row) -> satisfiedPredicate: Cell<Boolean?>
@@ -604,7 +612,8 @@ class Table(
     @Pure
     @PythonName("filter_rows_by_column")
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQGeneral
+        DSPipelineActivity.DataPreparationQPreSplitCleaning,
+        DSPipelineActivity.DataProcessingQPostSplitCleaning
     ])
     fun filterRowsByColumn(
         name: String,
@@ -628,7 +637,7 @@ class Table(
     @PythonName("remove_duplicate_rows")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQGeneral
+        DSPipelineActivity.DataPreparationQPreSplitCleaning
     ])
     fun removeDuplicateRows() -> newTable: Table
 
@@ -651,7 +660,8 @@ class Table(
     @PythonName("remove_rows")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQGeneral
+        DSPipelineActivity.DataPreparationQPreSplitCleaning,
+        DSPipelineActivity.DataProcessingQPostSplitCleaning
     ])
     fun removeRows(
         predicate: (row: Row) -> satisfiesPredicate: Cell<Boolean?>
@@ -677,7 +687,8 @@ class Table(
     @PythonName("remove_rows_by_column")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQGeneral
+        DSPipelineActivity.DataPreparationQPreSplitCleaning,
+        DSPipelineActivity.DataProcessingQPostSplitCleaning
     ])
     fun removeRowsByColumn(
         name: String,
@@ -708,7 +719,7 @@ class Table(
     @PythonName("remove_rows_with_missing_values")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQGeneral
+        DSPipelineActivity.DataPreparationQPreSplitCleaning
     ])
     fun removeRowsWithMissingValues(
         selector: union<List<String>, String, Nothing?> = null
@@ -750,7 +761,7 @@ class Table(
     @PythonName("remove_rows_with_outliers")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQGeneral
+        DSPipelineActivity.DataProcessingQPostSplitCleaning
     ])
     fun removeRowsWithOutliers(
         selector: union<List<String>, String, Nothing?> = null,
@@ -778,6 +789,10 @@ class Table(
     @Pure
     @PythonName("shuffle_rows")
     @Category(DataScienceCategory.DataProcessingQTable)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQUtilities,
+        DSPipelineActivity.DataProcessingQUtilities
+    ])
     fun shuffleRows(
         @PythonName("random_seed") randomSeed: Int = 0
     ) -> newTable: Table
@@ -805,7 +820,9 @@ class Table(
     @PythonName("slice_rows")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQGeneral
+        DSPipelineActivity.DataPreparationQUtilities,
+        DSPipelineActivity.DataProcessingQUtilities,
+        DSPipelineActivity.FeatureEngineeringQUtilities
     ])
     fun sliceRows(
         start: Int = 0,
@@ -832,8 +849,9 @@ class Table(
     @PythonName("sort_rows")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQGeneral,
-        DSPipelineActivity.DataProcessingQGeneral
+        DSPipelineActivity.DataPreparationQUtilities,
+        DSPipelineActivity.DataProcessingQUtilities,
+        DSPipelineActivity.FeatureEngineeringQUtilities
     ])
     fun sortRows(
         @PythonName("key_selector") keySelector: (row: Row) -> key: Cell,
@@ -860,8 +878,9 @@ class Table(
     @PythonName("sort_rows_by_column")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQGeneral,
-        DSPipelineActivity.DataProcessingQGeneral
+        DSPipelineActivity.DataPreparationQUtilities,
+        DSPipelineActivity.DataProcessingQUtilities,
+        DSPipelineActivity.FeatureEngineeringQUtilities
     ])
     fun sortRowsByColumn(
         name: String,
@@ -897,7 +916,7 @@ class Table(
     @PythonName("split_rows")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataPartitioningQGeneral
+        DSPipelineActivity.DataPartitioningQSplit
     ])
     fun splitRows(
         @PythonName("percentage_in_first") percentageInFirst: Float,
@@ -925,9 +944,9 @@ class Table(
     @PythonName("add_tables_as_columns")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQModification,
-        DSPipelineActivity.DataProcessingQModification,
-        DSPipelineActivity.FeatureEngineeringQModification
+        DSPipelineActivity.DataPreparationQSchemaModification,
+        DSPipelineActivity.DataProcessingQSchemaModification,
+        DSPipelineActivity.FeatureEngineeringQSchemaModification
     ])
     fun addTablesAsColumns(
         others: union<List<Table>, Table>
@@ -953,7 +972,8 @@ class Table(
     @PythonName("add_tables_as_rows")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQGeneral
+        DSPipelineActivity.DataAcquisitionQDatatypeConstruction,
+        DSPipelineActivity.DataProcessingQAugmentation
     ])
     fun addTablesAsRows(
         others: union<List<Table>, Table>
@@ -982,7 +1002,8 @@ class Table(
     @PythonName("inverse_transform_table")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQDataTransformer
+        DSPipelineActivity.DataProcessingQDataTransformer,
+        DSPipelineActivity.InterpretationQPostProcessing
     ])
     fun inverseTransformTable(
         @PythonName("fitted_transformer") fittedTransformer: InvertibleTableTransformer
@@ -1029,8 +1050,9 @@ class Table(
     @Pure
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQGeneral,
-        DSPipelineActivity.DataProcessingQGeneral
+        DSPipelineActivity.DataPreparationQSchemaModification,
+        DSPipelineActivity.DataProcessingQSchemaModification,
+        DSPipelineActivity.FeatureEngineeringQSchemaModification
     ])
     fun join(
         @PythonName("right_table") rightTable: Table,
@@ -1224,7 +1246,7 @@ class Table(
     @PythonName("to_tabular_dataset")
     @Category(DataScienceCategory.UtilitiesQConversion)
     @PipelineActivity([
-        DSPipelineActivity.FeatureSelectionQGeneral
+        DSPipelineActivity.FeatureSelectionQTabularDatasetConversion
     ])
     fun toTabularDataset(
         @PythonName("target_name") targetName: String,

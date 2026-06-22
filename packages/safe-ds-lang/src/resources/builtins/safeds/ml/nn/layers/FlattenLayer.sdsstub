@@ -9,7 +9,7 @@ from safeds.ml.nn.typing import ModelImageSize
 @Experimental
 @Category(DataScienceCategory.ModelingQNeuralNetwork)
 @PipelineActivity([
-    DSPipelineActivity.ModelingQGeneral
+    DSPipelineActivity.ModelingQCreating
 ])
 class FlattenLayer() sub Layer {
     /**

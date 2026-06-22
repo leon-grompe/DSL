@@ -20,7 +20,7 @@ class Classifier sub SupervisedModel {
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalClassification)
     @PipelineActivity([
-        DSPipelineActivity.TrainingQGeneral
+        DSPipelineActivity.TrainingQFitting
     ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset

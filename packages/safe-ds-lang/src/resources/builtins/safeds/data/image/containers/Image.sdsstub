@@ -44,7 +44,7 @@ class Image {
     @Impure([ImpurityReason.FileReadFromParameterizedPath("path")])
     @PythonName("from_file")
     @Category(DataScienceCategory.DataImport)
-    @PipelineActivity([DSPipelineActivity.DataAcquisitionQGeneral])
+    @PipelineActivity([DSPipelineActivity.DataAcquisitionQLoading])
     static fun fromFile(
         path: String
     ) -> image: Image
@@ -104,8 +104,8 @@ class Image {
     @PythonName("change_channel")
     @Category(DataScienceCategory.DataProcessingQImage)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQTransformation,
-        DSPipelineActivity.DataProcessingQTransformation
+        DSPipelineActivity.DataPreparationQImageTransformation,
+        DSPipelineActivity.DataProcessingQImageTransformation
     ])
     fun changeChannel(
         channel: Int
@@ -130,8 +130,8 @@ class Image {
     @Pure
     @Category(DataScienceCategory.DataProcessingQImage)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQTransformation,
-        DSPipelineActivity.DataProcessingQTransformation
+        DSPipelineActivity.DataPreparationQImageTransformation,
+        DSPipelineActivity.DataProcessingQImageTransformation
     ])
     fun resize(
         @PythonName("new_width") const newWidth: Int,
@@ -161,8 +161,8 @@ class Image {
     @PythonName("convert_to_grayscale")
     @Category(DataScienceCategory.DataProcessingQImage)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQTransformation,
-        DSPipelineActivity.DataProcessingQTransformation
+        DSPipelineActivity.DataPreparationQImageTransformation,
+        DSPipelineActivity.DataProcessingQImageTransformation
     ])
     fun convertToGrayscale() -> newImage: Image
 
@@ -187,8 +187,8 @@ class Image {
     @Pure
     @Category(DataScienceCategory.DataProcessingQImage)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQTransformation,
-        DSPipelineActivity.DataProcessingQTransformation
+        DSPipelineActivity.DataPreparationQImageTransformation,
+        DSPipelineActivity.DataProcessingQImageTransformation
     ])
     fun crop(
         const x: Int,
@@ -219,8 +219,7 @@ class Image {
     @PythonName("flip_top_and_bottom")
     @Category(DataScienceCategory.DataProcessingQImage)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQTransformation,
-        DSPipelineActivity.DataProcessingQTransformation
+        DSPipelineActivity.DataProcessingQAugmentation
     ])
     fun flipTopAndBottom() -> result: Image
 
@@ -241,8 +240,7 @@ class Image {
     @PythonName("flip_left_and_right")
     @Category(DataScienceCategory.DataProcessingQImage)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQTransformation,
-        DSPipelineActivity.DataProcessingQTransformation
+        DSPipelineActivity.DataProcessingQAugmentation
     ])
     fun flipLeftAndRight() -> result: Image
 
@@ -269,8 +267,7 @@ class Image {
     @PythonName("adjust_brightness")
     @Category(DataScienceCategory.DataProcessingQImage)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQTransformation,
-        DSPipelineActivity.DataProcessingQTransformation
+        DSPipelineActivity.DataProcessingQAugmentation
     ])
     fun adjustBrightness(
         const factor: Float
@@ -297,8 +294,7 @@ class Image {
     @PythonName("add_noise")
     @Category(DataScienceCategory.DataProcessingQImage)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQTransformation,
-        DSPipelineActivity.DataProcessingQTransformation
+        DSPipelineActivity.DataProcessingQAugmentation
     ])
     fun addNoise(
         @PythonName("standard_deviation") const standardDeviation: Float
@@ -328,8 +324,7 @@ class Image {
     @PythonName("adjust_contrast")
     @Category(DataScienceCategory.DataProcessingQImage)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQTransformation,
-        DSPipelineActivity.DataProcessingQTransformation
+        DSPipelineActivity.DataProcessingQAugmentation
     ])
     fun adjustContrast(
         const factor: Float
@@ -359,8 +354,7 @@ class Image {
     @PythonName("adjust_color_balance")
     @Category(DataScienceCategory.DataProcessingQImage)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQTransformation,
-        DSPipelineActivity.DataProcessingQTransformation
+        DSPipelineActivity.DataProcessingQAugmentation
     ])
     fun adjustColorBalance(
         const factor: Float
@@ -387,8 +381,7 @@ class Image {
     @Pure
     @Category(DataScienceCategory.DataProcessingQImage)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQTransformation,
-        DSPipelineActivity.DataProcessingQTransformation
+        DSPipelineActivity.DataProcessingQAugmentation
     ])
     fun blur(
         const radius: Int
@@ -417,8 +410,7 @@ class Image {
     @Pure
     @Category(DataScienceCategory.DataProcessingQImage)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQTransformation,
-        DSPipelineActivity.DataProcessingQTransformation
+        DSPipelineActivity.DataProcessingQAugmentation
     ])
     fun sharpen(
         const factor: Float
@@ -443,8 +435,7 @@ class Image {
     @PythonName("invert_colors")
     @Category(DataScienceCategory.DataProcessingQImage)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQTransformation,
-        DSPipelineActivity.DataProcessingQTransformation
+        DSPipelineActivity.DataProcessingQAugmentation
     ])
     fun invertColors() -> newImage: Image
 
@@ -465,8 +456,7 @@ class Image {
     @PythonName("rotate_right")
     @Category(DataScienceCategory.DataProcessingQImage)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQTransformation,
-        DSPipelineActivity.DataProcessingQTransformation
+        DSPipelineActivity.DataProcessingQAugmentation
     ])
     fun rotateRight() -> newImage: Image
 
@@ -487,8 +477,7 @@ class Image {
     @PythonName("rotate_left")
     @Category(DataScienceCategory.DataProcessingQImage)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQTransformation,
-        DSPipelineActivity.DataProcessingQTransformation
+        DSPipelineActivity.DataProcessingQAugmentation
     ])
     fun rotateLeft() -> newImage: Image
 
@@ -509,7 +498,7 @@ class Image {
     @PythonName("find_edges")
     @Category(DataScienceCategory.DataProcessingQImage)
     @PipelineActivity([
-        DSPipelineActivity.FeatureEngineeringQGeneral
+        DSPipelineActivity.FeatureEngineeringQEngineering
     ])
     fun findEdges() -> newImage: Image
 }

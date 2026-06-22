@@ -19,7 +19,7 @@ from safeds.ml.classical.classification import Classifier
  * }
  */
 @PipelineActivity([
-    DSPipelineActivity.ModelingQGeneral
+    DSPipelineActivity.ModelingQCreating
 ])
 class KNearestNeighborsClassifier(
     @PythonName("neighbor_count") const neighborCount: Int
@@ -43,7 +43,7 @@ class KNearestNeighborsClassifier(
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalClassification)
     @PipelineActivity([
-        DSPipelineActivity.TrainingQGeneral
+        DSPipelineActivity.TrainingQFitting
     ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset

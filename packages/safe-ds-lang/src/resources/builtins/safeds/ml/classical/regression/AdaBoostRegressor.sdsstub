@@ -22,7 +22,7 @@ from safeds.ml.classical.regression import Regressor
  * }
  */
 @PipelineActivity([
-    DSPipelineActivity.ModelingQGeneral
+    DSPipelineActivity.ModelingQCreating
 ])
 class AdaBoostRegressor(
     learner: Regressor = DecisionTreeRegressor(),
@@ -57,7 +57,7 @@ class AdaBoostRegressor(
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
     @PipelineActivity([
-        DSPipelineActivity.TrainingQGeneral
+        DSPipelineActivity.TrainingQFitting
     ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset

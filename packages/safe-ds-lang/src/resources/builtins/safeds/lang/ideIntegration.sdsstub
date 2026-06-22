@@ -94,76 +94,76 @@ annotation PipelineActivity(activities: List<DSPipelineActivity>)
 enum DSPipelineActivity {
 // Pre-Processing Layer
     /**
-     * Load your data into the pipeline.
+     * Acquire data: load from external sources, or build a datatype by hand.
      */
-    DataAcquisitionQGeneral
-    DataAcquisitionQPreprocessing
-    DataAcquisitionQConstruction
+    DataAcquisitionQLoading
+    DataAcquisitionQDatatypeConstruction
 
     /**
-     * General data preparation tasks.
+     * Prepare data before the split: deterministic cleaning, schema edits, image transforms, EDA, helpers.
      */
-    DataPreparationQGeneral
     DataPreparationQExploration
-    DataPreparationQPreprocessing
-    DataPreparationQTransformation
-    DataPreparationQModification
+    DataPreparationQPreSplitCleaning
+    DataPreparationQSchemaModification
+    DataPreparationQUtilities
+    DataPreparationQImageTransformation
 
     /**
-     * Partition data into training, validation and test sets
+     * Partition data into training, validation and test sets.
      */
-    DataPartitioningQGeneral
+    DataPartitioningQSplit
 
     /**
-     * Process your data for analysis.
+     * Process data after the split. Exploration, post-split cleaning and augmentation are training-only.
      */
-    DataProcessingQGeneral
     DataProcessingQExploration
+    DataProcessingQPostSplitCleaning
+    DataProcessingQSchemaModification
+    DataProcessingQUtilities
     DataProcessingQDataTransformer
-    DataProcessingQPreprocessing
-    DataProcessingQTransformation
-    DataProcessingQModification
+    DataProcessingQImageTransformation
+    DataProcessingQAugmentation
 
 // Model Building Layer
     /**
      * Do feature engineering to prepare your data for modeling.
      */
-    FeatureEngineeringQGeneral
+    FeatureEngineeringQDatatypeConstruction
+    FeatureEngineeringQSchemaModification
+    FeatureEngineeringQUtilities
+    FeatureEngineeringQEngineering
     FeatureEngineeringQFeatureTransformer
-    FeatureEngineeringQModification
-    FeatureEngineeringQConstruction
 
     /**
-     * Select the most relevant features for your model.
+     * Select features and assemble the dataset for your model.
      */
-    FeatureSelectionQGeneral
+    FeatureSelectionQSchemaModification
+    FeatureSelectionQTabularDatasetConversion
 
     /**
-     *  Configure a model.
+     * Configure a model.
      */
-    ModelingQGeneral
+    ModelingQCreating
 
     /**
-     * Train the model on your data.
+     * Train the model on the training set.
      */
-    TrainingQGeneral
+    TrainingQFitting
 
     /**
-     * Use your trained model to make predictions.
+     * Predict, score and visualize on the validation set, then once on the test set.
      */
-    PredictionQGeneral
-
-    /**
-     * Evaluate the models performance with metrics or visualizations.
-     */
+    EvaluationQPrediction
+    TestingQPrediction
     EvaluationQMetric
+    TestingQMetric
     EvaluationQVisualization
+    TestingQVisualization
 
     /**
-     * Test your Models generality with the test set.
+     * Post-process results, e.g. inverse-transforming predictions back to original units.
      */
-    TestingQMetric
-    TestingQVisualization
+    InterpretationQPostProcessing
 
     /**
      * Can be used as a wildcard.

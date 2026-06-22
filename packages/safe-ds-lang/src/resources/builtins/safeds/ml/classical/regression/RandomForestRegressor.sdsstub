@@ -20,7 +20,7 @@ from safeds.ml.classical.regression import Regressor
  * }
  */
 @PipelineActivity([
-    DSPipelineActivity.ModelingQGeneral
+    DSPipelineActivity.ModelingQCreating
 ])
 class RandomForestRegressor(
     @PythonName("tree_count") const treeCount: Int = 100,
@@ -55,7 +55,7 @@ class RandomForestRegressor(
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
     @PipelineActivity([
-        DSPipelineActivity.TrainingQGeneral
+        DSPipelineActivity.TrainingQFitting
     ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset

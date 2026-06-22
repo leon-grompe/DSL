@@ -10,7 +10,7 @@ from safeds.ml.nn.typing import ModelImageSize
  */
 @Category(DataScienceCategory.ModelingQNeuralNetwork)
 @PipelineActivity([
-    DSPipelineActivity.ModelingQGeneral
+    DSPipelineActivity.ModelingQCreating
 ])
 class DropoutLayer(
     probability: Float

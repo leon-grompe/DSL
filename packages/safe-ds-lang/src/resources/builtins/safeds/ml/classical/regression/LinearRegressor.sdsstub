@@ -18,7 +18,7 @@ from safeds.ml.classical.regression import Regressor
  * }
  */
 @PipelineActivity([
-    DSPipelineActivity.ModelingQGeneral
+    DSPipelineActivity.ModelingQCreating
 ])
 class LinearRegressor(
     penalty: LinearRegressor.Penalty? = null
@@ -92,7 +92,7 @@ class LinearRegressor(
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
     @PipelineActivity([
-        DSPipelineActivity.TrainingQGeneral
+        DSPipelineActivity.TrainingQFitting
     ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset

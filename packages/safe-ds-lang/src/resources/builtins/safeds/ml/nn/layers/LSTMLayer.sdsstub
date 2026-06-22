@@ -9,7 +9,7 @@ from safeds.ml.nn.layers import Layer
  */
 @Experimental
 @PipelineActivity([
-    DSPipelineActivity.ModelingQGeneral
+    DSPipelineActivity.ModelingQCreating
 ])
 class LSTMLayer(
     @PythonName("neuron_count") neuronCount: Int

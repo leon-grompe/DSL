@@ -18,8 +18,8 @@ from safeds.data.tabular.typing import ColumnType
  */
 @Category(DataScienceCategory.BasicElement)
 @PipelineActivity([
-    DSPipelineActivity.DataAcquisitionQConstruction,
-    DSPipelineActivity.FeatureEngineeringQConstruction
+    DSPipelineActivity.DataAcquisitionQDatatypeConstruction,
+    DSPipelineActivity.FeatureEngineeringQDatatypeConstruction
 ])
 class Column<out T = Any?>(
     name: String,
@@ -290,9 +290,9 @@ class Column<out T = Any?>(
     @Pure
     @Category(DataScienceCategory.DataProcessingQColumn)
     @PipelineActivity([
-        DSPipelineActivity.DataPreparationQModification,
-        DSPipelineActivity.DataProcessingQModification,
-        DSPipelineActivity.FeatureEngineeringQModification
+        DSPipelineActivity.DataPreparationQSchemaModification,
+        DSPipelineActivity.DataProcessingQSchemaModification,
+        DSPipelineActivity.FeatureEngineeringQSchemaModification
     ])
     fun rename(
         @PythonName("new_name") newName: String
@@ -316,7 +316,7 @@ class Column<out T = Any?>(
     @Pure
     @Category(DataScienceCategory.DataProcessingQColumn)
     @PipelineActivity([
-        DSPipelineActivity.FeatureEngineeringQGeneral
+        DSPipelineActivity.FeatureEngineeringQEngineering
     ])
     fun transform<R>(
         transformer: (cell: Cell<T>) -> transformedCell: Cell<R>

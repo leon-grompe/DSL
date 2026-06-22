@@ -57,7 +57,8 @@ class InvertibleTableTransformer() sub TableTransformer {
     @Pure
     @PythonName("inverse_transform")
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQDataTransformer
+        DSPipelineActivity.DataProcessingQDataTransformer,
+        DSPipelineActivity.InterpretationQPostProcessing
     ])
     fun inverseTransform(
         @PythonName("transformed_table") transformedTable: Table
