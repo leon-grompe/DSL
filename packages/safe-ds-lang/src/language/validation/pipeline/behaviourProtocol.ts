@@ -14,6 +14,7 @@ export const behaviourProtocol = new SequenceBlock([
         new AlternativeBlock([
             new ElementaryBlock(DSPipelineActivity.DataAcquisitionQLoading),
             new ElementaryBlock(DSPipelineActivity.DataAcquisitionQDatatypeConstruction),
+            new ElementaryBlock(DSPipelineActivity.DataPreparationQImageTransformation),
         ]),
         DSPipelinePhase.DataAcquisition, 1
     ),
@@ -23,8 +24,8 @@ export const behaviourProtocol = new SequenceBlock([
         new AlternativeBlock([
             new ElementaryBlock(DSPipelineActivity.DataPreparationQExploration),
             new ElementaryBlock(DSPipelineActivity.DataPreparationQPreSplitCleaning),
-            new ElementaryBlock(DSPipelineActivity.DataPreparationQSchemaModification),
             new ElementaryBlock(DSPipelineActivity.DataPreparationQUtilities),
+            new ElementaryBlock(DSPipelineActivity.DataPreparationQSchemaModification),
             new ElementaryBlock(DSPipelineActivity.DataPreparationQImageTransformation),
         ]),
         DSPipelinePhase.DataPreparation
@@ -39,12 +40,15 @@ export const behaviourProtocol = new SequenceBlock([
     // Data Processing (post-split). Exploration, post-split cleaning and augmentation are training-only.
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock(DSPipelineActivity.DataProcessingQExploration, DataSet.Training),
-            new ElementaryBlock(DSPipelineActivity.DataProcessingQPostSplitCleaning, DataSet.Training),
-            new ElementaryBlock(DSPipelineActivity.DataProcessingQAugmentation, DataSet.Training),
-            new ElementaryBlock(DSPipelineActivity.DataProcessingQSchemaModification),
-            new ElementaryBlock(DSPipelineActivity.DataProcessingQUtilities),
+            new ElementaryBlock(DSPipelineActivity.DataProcessingQExploration, 
+                DataSet.Training),
+            new ElementaryBlock(DSPipelineActivity.DataProcessingQPostSplitCleaning, 
+                DataSet.Training),
+            new ElementaryBlock(DSPipelineActivity.DataProcessingQAugmentation, 
+                DataSet.Training),
             new ElementaryBlock(DSPipelineActivity.DataProcessingQDataTransformer),
+            new ElementaryBlock(DSPipelineActivity.DataProcessingQUtilities),
+            new ElementaryBlock(DSPipelineActivity.DataProcessingQSchemaModification),
         ]),
         DSPipelinePhase.DataProcessing
     ),
@@ -59,11 +63,11 @@ export const behaviourProtocol = new SequenceBlock([
             // Feature Engineering (optional within the group)
             new RepetitionBlock(
                 new AlternativeBlock([
-                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQDatatypeConstruction),
-                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQSchemaModification),
-                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQUtilities),
                     new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQEngineering),
                     new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQFeatureTransformer),
+                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQUtilities),
+                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQSchemaModification),
+                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQDatatypeConstruction),
                 ]),
                 DSPipelinePhase.FeatureEngineering
             ),
@@ -71,8 +75,8 @@ export const behaviourProtocol = new SequenceBlock([
             // Feature Selection (at least once: every group must conclude with a selection)
             new RepetitionBlock(
                 new AlternativeBlock([
-                    new ElementaryBlock(DSPipelineActivity.FeatureSelectionQSchemaModification),
                     new ElementaryBlock(DSPipelineActivity.FeatureSelectionQTabularDatasetConversion),
+                    new ElementaryBlock(DSPipelineActivity.FeatureSelectionQSchemaModification),
                 ]),
                 DSPipelinePhase.FeatureSelection, 1
             ),
@@ -94,9 +98,12 @@ export const behaviourProtocol = new SequenceBlock([
     // Evaluation (validation set only). Exits when a test-set call appears, to transition into Testing phase.
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock(DSPipelineActivity.EvaluationQPrediction, DataSet.Validation),
-            new ElementaryBlock(DSPipelineActivity.EvaluationQMetric, DataSet.Validation),
-            new ElementaryBlock(DSPipelineActivity.EvaluationQVisualization, DataSet.Validation),
+            new ElementaryBlock(DSPipelineActivity.EvaluationQPrediction, 
+                DataSet.Validation),
+            new ElementaryBlock(DSPipelineActivity.EvaluationQMetric, 
+                DataSet.Validation),
+            new ElementaryBlock(DSPipelineActivity.EvaluationQVisualization, 
+                DataSet.Validation),
         ]),
         DSPipelinePhase.Evaluation, 0, Infinity, DataSet.Test
     ),
@@ -104,9 +111,12 @@ export const behaviourProtocol = new SequenceBlock([
     // Testing (test set only)
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock(DSPipelineActivity.TestingQPrediction, DataSet.Test),
-            new ElementaryBlock(DSPipelineActivity.TestingQMetric, DataSet.Test),
-            new ElementaryBlock(DSPipelineActivity.TestingQVisualization, DataSet.Test),
+            new ElementaryBlock(DSPipelineActivity.TestingQPrediction, 
+                DataSet.Test),
+            new ElementaryBlock(DSPipelineActivity.TestingQMetric, 
+                DataSet.Test),
+            new ElementaryBlock(DSPipelineActivity.TestingQVisualization, 
+                DataSet.Test),
         ]),
         DSPipelinePhase.Testing
     ),
