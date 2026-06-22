@@ -121,7 +121,6 @@ enum DSPipelineActivity {
     DataProcessingQSchemaModification
     DataProcessingQUtilities
     DataProcessingQDataTransformer
-    DataProcessingQImageTransformation
     DataProcessingQAugmentation
 
 // Model Building Layer

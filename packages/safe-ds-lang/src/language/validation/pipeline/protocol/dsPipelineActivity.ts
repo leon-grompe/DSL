@@ -24,7 +24,6 @@ export enum DSPipelineActivity {
     DataProcessingQSchemaModification    = 'DataProcessingQSchemaModification',
     DataProcessingQUtilities             = 'DataProcessingQUtilities',
     DataProcessingQDataTransformer       = 'DataProcessingQDataTransformer',
-    DataProcessingQImageTransformation   = 'DataProcessingQImageTransformation',
     DataProcessingQAugmentation          = 'DataProcessingQAugmentation',
 
     // Feature Engineering

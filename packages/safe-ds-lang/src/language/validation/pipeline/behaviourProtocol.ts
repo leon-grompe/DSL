@@ -45,7 +45,6 @@ export const behaviourProtocol = new SequenceBlock([
             new ElementaryBlock(DSPipelineActivity.DataProcessingQSchemaModification),
             new ElementaryBlock(DSPipelineActivity.DataProcessingQUtilities),
             new ElementaryBlock(DSPipelineActivity.DataProcessingQDataTransformer),
-            new ElementaryBlock(DSPipelineActivity.DataProcessingQImageTransformation),
         ]),
         DSPipelinePhase.DataProcessing
     ),
