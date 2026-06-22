@@ -92,7 +92,7 @@ export const behaviourProtocol = new SequenceBlock([
         DSPipelinePhase.Training
     ),
 
-    // Evaluation (validation set only; prediction is folded in here). Exits when a test-set call appears.
+    // Evaluation (validation set only). Exits when a test-set call appears, to transition into Testing phase.
     new RepetitionBlock(
         new AlternativeBlock([
             new ElementaryBlock(DSPipelineActivity.EvaluationQPrediction, DataSet.Validation),
@@ -102,7 +102,7 @@ export const behaviourProtocol = new SequenceBlock([
         DSPipelinePhase.Evaluation, 0, Infinity, DataSet.Test
     ),
 
-    // Testing (test set only; prediction is folded in here)
+    // Testing (test set only)
     new RepetitionBlock(
         new AlternativeBlock([
             new ElementaryBlock(DSPipelineActivity.TestingQPrediction, DataSet.Test),
