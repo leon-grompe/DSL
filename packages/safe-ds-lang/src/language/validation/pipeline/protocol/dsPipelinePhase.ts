@@ -10,7 +10,7 @@ export enum DSPipelinePhase {
     FeatureSelection    = 'FeatureSelection',
     Modeling            = 'Modeling',
     Training            = 'Training',
-    Prediction          = 'Prediction',
     Evaluation          = 'Evaluation',
-    Testing             = 'Testing'
+    Testing             = 'Testing',
+    Interpretation      = 'Interpretation'
 }

@@ -4,46 +4,54 @@
  * lookups in extractValidationContext() continue to work via `name as DSPipelineActivity`.
  */
 export enum DSPipelineActivity {
-    // Pre-Processing Layer
-    DataAcquisitionQGeneral       = 'DataAcquisitionQGeneral',
-    DataAcquisitionQPreprocessing = 'DataAcquisitionQPreprocessing',
-    DataAcquisitionQConstruction  = 'DataAcquisitionQConstruction',
+    // Acquisition
+    DataAcquisitionQLoading              = 'DataAcquisitionQLoading',
+    DataAcquisitionQDatatypeConstruction = 'DataAcquisitionQDatatypeConstruction',
 
-    DataPreparationQGeneral       = 'DataPreparationQGeneral',
-    DataPreparationQExploration   = 'DataPreparationQExploration',
-    DataPreparationQPreprocessing = 'DataPreparationQPreprocessing',
-    DataPreparationQTransformation = 'DataPreparationQTransformation',
-    DataPreparationQModification  = 'DataPreparationQModification',
+    // Preparation (pre-split)
+    DataPreparationQExploration          = 'DataPreparationQExploration',
+    DataPreparationQPreSplitCleaning     = 'DataPreparationQPreSplitCleaning',
+    DataPreparationQSchemaModification   = 'DataPreparationQSchemaModification',
+    DataPreparationQUtilities            = 'DataPreparationQUtilities',
+    DataPreparationQImageTransformation  = 'DataPreparationQImageTransformation',
 
-    DataPartitioningQGeneral      = 'DataPartitioningQGeneral',
+    // Partitioning
+    DataPartitioningQSplit               = 'DataPartitioningQSplit',
 
-    DataProcessingQGeneral        = 'DataProcessingQGeneral',
-    DataProcessingQExploration    = 'DataProcessingQExploration',
-    DataProcessingQDataTransformer = 'DataProcessingQDataTransformer',
-    DataProcessingQPreprocessing  = 'DataProcessingQPreprocessing',
-    DataProcessingQTransformation = 'DataProcessingQTransformation',
-    DataProcessingQModification   = 'DataProcessingQModification',
+    // Processing (post-split)
+    DataProcessingQExploration           = 'DataProcessingQExploration',
+    DataProcessingQPostSplitCleaning     = 'DataProcessingQPostSplitCleaning',
+    DataProcessingQSchemaModification    = 'DataProcessingQSchemaModification',
+    DataProcessingQUtilities             = 'DataProcessingQUtilities',
+    DataProcessingQDataTransformer       = 'DataProcessingQDataTransformer',
+    DataProcessingQImageTransformation   = 'DataProcessingQImageTransformation',
+    DataProcessingQAugmentation          = 'DataProcessingQAugmentation',
 
-    // Model Building Layer
-    FeatureEngineeringQGeneral         = 'FeatureEngineeringQGeneral',
-    FeatureEngineeringQFeatureTransformer = 'FeatureEngineeringQFeatureTransformer',
-    FeatureEngineeringQModification    = 'FeatureEngineeringQModification',
-    FeatureEngineeringQConstruction    = 'FeatureEngineeringQConstruction',
+    // Feature Engineering
+    FeatureEngineeringQDatatypeConstruction = 'FeatureEngineeringQDatatypeConstruction',
+    FeatureEngineeringQSchemaModification   = 'FeatureEngineeringQSchemaModification',
+    FeatureEngineeringQUtilities            = 'FeatureEngineeringQUtilities',
+    FeatureEngineeringQEngineering          = 'FeatureEngineeringQEngineering',
+    FeatureEngineeringQFeatureTransformer   = 'FeatureEngineeringQFeatureTransformer',
 
-    FeatureSelectionQGeneral      = 'FeatureSelectionQGeneral',
+    // Feature Selection
+    FeatureSelectionQSchemaModification       = 'FeatureSelectionQSchemaModification',
+    FeatureSelectionQTabularDatasetConversion = 'FeatureSelectionQTabularDatasetConversion',
 
-    ModelingQGeneral              = 'ModelingQGeneral',
+    // Model Building
+    ModelingQCreating             = 'ModelingQCreating',
+    TrainingQFitting              = 'TrainingQFitting',
 
-    TrainingQGeneral              = 'TrainingQGeneral',
-
-    PredictionQGeneral            = 'PredictionQGeneral',
-
+    // Post-Modeling
+    EvaluationQPrediction         = 'EvaluationQPrediction',
+    TestingQPrediction            = 'TestingQPrediction',
     EvaluationQMetric             = 'EvaluationQMetric',
-    EvaluationQVisualization      = 'EvaluationQVisualization',
-
     TestingQMetric                = 'TestingQMetric',
+    EvaluationQVisualization      = 'EvaluationQVisualization',
     TestingQVisualization         = 'TestingQVisualization',
+    InterpretationQPostProcessing = 'InterpretationQPostProcessing',
 
+    // Wildcard
     Any                           = 'Any',
 }
 
