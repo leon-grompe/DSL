@@ -292,7 +292,8 @@ class Column<out T = Any?>(
     @PipelineActivity([
         DSPipelineActivity.DataPreparationQSchemaModification,
         DSPipelineActivity.DataProcessingQSchemaModification,
-        DSPipelineActivity.FeatureEngineeringQSchemaModification
+        DSPipelineActivity.FeatureEngineeringQSchemaModification,
+        DSPipelineActivity.FeatureSelectionQSchemaModification
     ])
     fun rename(
         @PythonName("new_name") newName: String

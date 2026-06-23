@@ -50,9 +50,6 @@ class ImageList {
     @Pure
     @PythonName("from_images")
     @Category(DataScienceCategory.DataImport)
-    @PipelineActivity([
-        DSPipelineActivity.DataAcquisitionQLoading
-    ])
     static fun fromImages(
         images: List<Image>
     ) -> imageList: ImageList
@@ -70,9 +67,6 @@ class ImageList {
     @Impure([ImpurityReason.FileReadFromParameterizedPath("path")])
     @PythonName("from_files")
     @Category(DataScienceCategory.DataImport)
-    @PipelineActivity([
-        DSPipelineActivity.DataAcquisitionQLoading
-    ])
     static fun fromFiles(
         path: union<List<String>, String>,
         @PythonName("load_percentage") loadPercentage: Float = 1.0
@@ -170,9 +164,6 @@ class ImageList {
      */
     @Pure
     @PythonName("change_channel")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQImageTransformation
-    ])
     fun changeChannel(
         channel: Int
     ) -> imageList: ImageList
@@ -188,9 +179,6 @@ class ImageList {
      */
     @Pure
     @PythonName("add_image")
-    @PipelineActivity([
-        DSPipelineActivity.DataAcquisitionQDatatypeConstruction
-    ])
     fun addImage(
         image: Image
     ) -> imageList: ImageList
@@ -206,9 +194,6 @@ class ImageList {
      */
     @Pure
     @PythonName("add_images")
-    @PipelineActivity([
-        DSPipelineActivity.DataAcquisitionQDatatypeConstruction
-    ])
     fun addImages(
         images: union<ImageList, List<Image>>
     ) -> imageList: ImageList
@@ -226,10 +211,6 @@ class ImageList {
      */
     @Pure
     @PythonName("remove_image")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQPreSplitCleaning,
-        DSPipelineActivity.DataProcessingQPostSplitCleaning
-    ])
     fun removeImage(
         image: Image
     ) -> imageList: ImageList
@@ -247,10 +228,6 @@ class ImageList {
      */
     @Pure
     @PythonName("remove_images")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQPreSplitCleaning,
-        DSPipelineActivity.DataProcessingQPostSplitCleaning
-    ])
     fun removeImages(
         images: List<Image>
     ) -> imageList: ImageList
@@ -266,10 +243,6 @@ class ImageList {
      */
     @Pure
     @PythonName("remove_image_by_index")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQPreSplitCleaning,
-        DSPipelineActivity.DataProcessingQPostSplitCleaning
-    ])
     fun removeImageByIndex(
         index: union<Int, List<Int>>
     ) -> imageList: ImageList
@@ -286,10 +259,6 @@ class ImageList {
      */
     @Pure
     @PythonName("remove_images_with_size")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQPreSplitCleaning,
-        DSPipelineActivity.DataProcessingQPostSplitCleaning
-    ])
     fun removeImagesWithSize(
         width: Int,
         height: Int
@@ -306,9 +275,6 @@ class ImageList {
      */
     @Pure
     @PythonName("remove_duplicate_images")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQPreSplitCleaning
-    ])
     fun removeDuplicateImages() -> imageList: ImageList
 
     /**
@@ -320,10 +286,6 @@ class ImageList {
      */
     @Pure
     @PythonName("shuffle_images")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQUtilities,
-        DSPipelineActivity.DataProcessingQUtilities
-    ])
     fun shuffleImages() -> imageList: ImageList
 
     /**
@@ -337,9 +299,6 @@ class ImageList {
      * @result imageList The image list with all images resized to the given width and height.
      */
     @Pure
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQImageTransformation
-    ])
     fun resize(
         @PythonName("new_width") const newWidth: Int,
         @PythonName("new_height") const newHeight: Int
@@ -359,9 +318,6 @@ class ImageList {
      * @result imageList The image list with all images converted to grayscale.
      */
     @Pure
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQImageTransformation
-    ])
     @PythonName("convert_to_grayscale")
     fun convertToGrayscale() -> imageList: ImageList
 
@@ -378,9 +334,6 @@ class ImageList {
      * @result imageList The image list with all images cropped
      */
     @Pure
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQImageTransformation
-    ])
     fun crop(
         const x: Int,
         const y: Int,
@@ -402,9 +355,6 @@ class ImageList {
      */
     @Pure
     @PythonName("flip_top_and_bottom")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQImageTransformation
-    ])
     fun flipTopAndBottom() -> imageList: ImageList
 
     /**
@@ -416,9 +366,6 @@ class ImageList {
      */
     @Pure
     @PythonName("flip_left_and_right")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQImageTransformation
-    ])
     fun flipLeftAndRight() -> imageList: ImageList
 
     /**
@@ -436,9 +383,6 @@ class ImageList {
      */
     @Pure
     @PythonName("adjust_brightness")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQImageTransformation
-    ])
     fun adjustBrightness(
         const factor: Float
     ) -> imageList: ImageList where {
@@ -456,9 +400,6 @@ class ImageList {
      */
     @Pure
     @PythonName("add_noise")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQImageTransformation
-    ])
     fun addNoise(
         @PythonName("standard_deviation") const standardDeviation: Float
     ) -> imageList: ImageList where {
@@ -479,9 +420,6 @@ class ImageList {
      */
     @Pure
     @PythonName("adjust_contrast")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQImageTransformation
-    ])
     fun adjustContrast(
         const factor: Float
     ) -> imageList: ImageList where {
@@ -502,9 +440,6 @@ class ImageList {
      */
     @Pure
     @PythonName("adjust_color_balance")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQImageTransformation
-    ])
     fun adjustColorBalance(
         const factor: Float
     ) -> imageList: ImageList where {
@@ -522,9 +457,6 @@ class ImageList {
      * @result imageList The image list with blurred images
      */
     @Pure
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQImageTransformation
-    ])
     fun blur(
         const radius: Int
     ) -> imageList: ImageList where {
@@ -544,9 +476,6 @@ class ImageList {
      * @result imageList The image list with sharpened images
      */
     @Pure
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQImageTransformation
-    ])
     fun sharpen(
         const factor: Float
     ) -> imageList: ImageList where {
@@ -562,9 +491,6 @@ class ImageList {
      */
     @Pure
     @PythonName("invert_colors")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQImageTransformation
-    ])
     fun invertColors() -> imageList: ImageList
 
     /**
@@ -576,9 +502,6 @@ class ImageList {
      */
     @Pure
     @PythonName("rotate_right")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQImageTransformation
-    ])
     fun rotateRight() -> imageList: ImageList
 
     /**
@@ -590,9 +513,6 @@ class ImageList {
      */
     @Pure
     @PythonName("rotate_left")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQImageTransformation
-    ])
     fun rotateLeft() -> imageList: ImageList
 
     /**
@@ -604,8 +524,5 @@ class ImageList {
      */
     @Pure
     @PythonName("find_edges")
-    @PipelineActivity([
-        DSPipelineActivity.DataPreparationQImageTransformation
-    ])
     fun findEdges() -> imageList: ImageList
 }

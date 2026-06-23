@@ -202,7 +202,8 @@ class Table(
     @PipelineActivity([
         DSPipelineActivity.DataPreparationQSchemaModification,
         DSPipelineActivity.DataProcessingQSchemaModification,
-        DSPipelineActivity.FeatureEngineeringQSchemaModification
+        DSPipelineActivity.FeatureEngineeringQSchemaModification,
+        DSPipelineActivity.FeatureSelectionQSchemaModification
     ])
     fun addColumns(
         columns: union<Column, List<Column>, Table>
@@ -256,7 +257,9 @@ class Table(
     @PythonName("add_index_column")
     @PipelineActivity([
         DSPipelineActivity.DataPreparationQSchemaModification,
-        DSPipelineActivity.DataProcessingQSchemaModification
+        DSPipelineActivity.DataProcessingQSchemaModification,
+        DSPipelineActivity.FeatureEngineeringQSchemaModification,
+        DSPipelineActivity.FeatureSelectionQSchemaModification
     ])
     fun addIndexColumn(
         name: String,
@@ -435,7 +438,8 @@ class Table(
     @PipelineActivity([
         DSPipelineActivity.DataPreparationQSchemaModification,
         DSPipelineActivity.DataProcessingQSchemaModification,
-        DSPipelineActivity.FeatureEngineeringQSchemaModification
+        DSPipelineActivity.FeatureEngineeringQSchemaModification,
+        DSPipelineActivity.FeatureSelectionQSchemaModification
     ])
     fun renameColumn(
         @PythonName("old_name") oldName: String,
@@ -791,7 +795,8 @@ class Table(
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
         DSPipelineActivity.DataPreparationQUtilities,
-        DSPipelineActivity.DataProcessingQUtilities
+        DSPipelineActivity.DataProcessingQUtilities,
+        DSPipelineActivity.FeatureEngineeringQUtilities
     ])
     fun shuffleRows(
         @PythonName("random_seed") randomSeed: Int = 0
@@ -946,7 +951,8 @@ class Table(
     @PipelineActivity([
         DSPipelineActivity.DataPreparationQSchemaModification,
         DSPipelineActivity.DataProcessingQSchemaModification,
-        DSPipelineActivity.FeatureEngineeringQSchemaModification
+        DSPipelineActivity.FeatureEngineeringQSchemaModification,
+        DSPipelineActivity.FeatureSelectionQSchemaModification
     ])
     fun addTablesAsColumns(
         others: union<List<Table>, Table>
@@ -972,8 +978,8 @@ class Table(
     @PythonName("add_tables_as_rows")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataAcquisitionQDatatypeConstruction,
-        DSPipelineActivity.DataProcessingQAugmentation
+        DSPipelineActivity.DataPreparationQUtilities,
+        DSPipelineActivity.DataProcessingQUtilities
     ])
     fun addTablesAsRows(
         others: union<List<Table>, Table>
@@ -1052,7 +1058,8 @@ class Table(
     @PipelineActivity([
         DSPipelineActivity.DataPreparationQSchemaModification,
         DSPipelineActivity.DataProcessingQSchemaModification,
-        DSPipelineActivity.FeatureEngineeringQSchemaModification
+        DSPipelineActivity.FeatureEngineeringQSchemaModification,
+        DSPipelineActivity.FeatureSelectionQSchemaModification
     ])
     fun join(
         @PythonName("right_table") rightTable: Table,
