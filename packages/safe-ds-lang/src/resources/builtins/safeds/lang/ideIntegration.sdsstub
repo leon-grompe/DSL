@@ -100,13 +100,12 @@ enum DSPipelineActivity {
     DataAcquisitionQDatatypeConstruction
 
     /**
-     * Prepare data before the split: deterministic cleaning, schema edits, image transforms, EDA, helpers.
+     * Prepare data before the split: deterministic cleaning, schema edits, EDA, helpers.
      */
     DataPreparationQExploration
     DataPreparationQPreSplitCleaning
     DataPreparationQSchemaModification
     DataPreparationQUtilities
-    DataPreparationQImageTransformation
 
     /**
      * Partition data into training, validation and test sets.
@@ -150,19 +149,18 @@ enum DSPipelineActivity {
     TrainingQFitting
 
     /**
-     * Predict, score and visualize on the validation set, then once on the test set.
+     * Predict and score on the validation set, then once on the test set.
      */
     EvaluationQPrediction
     TestingQPrediction
     EvaluationQMetric
     TestingQMetric
-    EvaluationQVisualization
-    TestingQVisualization
 
     /**
-     * Post-process results, e.g. inverse-transforming predictions back to original units.
+     * Interpret results: inverse-transform predictions back to original units, visualize the model.
      */
     InterpretationQPostProcessing
+    InterpretationQVisualization
 
     /**
      * Can be used as a wildcard.
