@@ -60,8 +60,7 @@ class DecisionTreeClassifier(
      */
     @Pure
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQVisualization,
-        DSPipelineActivity.TestingQVisualization
+        DSPipelineActivity.InterpretationQVisualization
     ])
     fun plot() -> plot: Image
 }

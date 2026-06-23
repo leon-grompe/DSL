@@ -68,8 +68,7 @@ class ArimaRegressor() {
     @PythonName("plot_predictions")
     @Category(DataScienceCategory.ModelEvaluationQVisualization)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQVisualization,
-        DSPipelineActivity.TestingQVisualization
+        DSPipelineActivity.InterpretationQVisualization
     ])
     fun plotPredictions(
         @PythonName("test_series") testSeries: TimeSeriesDataset
