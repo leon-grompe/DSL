@@ -13,7 +13,6 @@ export enum DSPipelineActivity {
     DataPreparationQPreSplitCleaning     = 'DataPreparationQPreSplitCleaning',
     DataPreparationQSchemaModification   = 'DataPreparationQSchemaModification',
     DataPreparationQUtilities            = 'DataPreparationQUtilities',
-    DataPreparationQImageTransformation  = 'DataPreparationQImageTransformation',
 
     // Partitioning
     DataPartitioningQSplit               = 'DataPartitioningQSplit',
@@ -46,9 +45,8 @@ export enum DSPipelineActivity {
     TestingQPrediction            = 'TestingQPrediction',
     EvaluationQMetric             = 'EvaluationQMetric',
     TestingQMetric                = 'TestingQMetric',
-    EvaluationQVisualization      = 'EvaluationQVisualization',
-    TestingQVisualization         = 'TestingQVisualization',
     InterpretationQPostProcessing = 'InterpretationQPostProcessing',
+    InterpretationQVisualization  = 'InterpretationQVisualization',
 
     // Wildcard
     Any                           = 'Any',

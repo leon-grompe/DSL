@@ -9,24 +9,23 @@ import { ElementaryBlock, AlternativeBlock, RepetitionBlock, SequenceBlock } fro
 */
 export const behaviourProtocol = new SequenceBlock([
 // Pre-Processing Layer
-    // Data Acquisition (at least one load / hand-built datatype)
+    // Data Acquisition (at least one load / hand-built datatype). Utilities allowed for pre-split table assembly.
     new RepetitionBlock(
         new AlternativeBlock([
             new ElementaryBlock(DSPipelineActivity.DataAcquisitionQLoading),
             new ElementaryBlock(DSPipelineActivity.DataAcquisitionQDatatypeConstruction),
-            new ElementaryBlock(DSPipelineActivity.DataPreparationQImageTransformation),
+            new ElementaryBlock(DSPipelineActivity.DataPreparationQUtilities),
         ]),
         DSPipelinePhase.DataAcquisition, 1
     ),
 
-    // Data Preparation (pre-split: deterministic cleaning, schema edits, image transforms, EDA, helpers)
+    // Data Preparation (pre-split: deterministic cleaning, schema edits, EDA, helpers)
     new RepetitionBlock(
         new AlternativeBlock([
             new ElementaryBlock(DSPipelineActivity.DataPreparationQExploration),
             new ElementaryBlock(DSPipelineActivity.DataPreparationQPreSplitCleaning),
             new ElementaryBlock(DSPipelineActivity.DataPreparationQUtilities),
             new ElementaryBlock(DSPipelineActivity.DataPreparationQSchemaModification),
-            new ElementaryBlock(DSPipelineActivity.DataPreparationQImageTransformation),
         ]),
         DSPipelinePhase.DataPreparation
     ),
@@ -100,9 +99,7 @@ export const behaviourProtocol = new SequenceBlock([
         new AlternativeBlock([
             new ElementaryBlock(DSPipelineActivity.EvaluationQPrediction, 
                 DataSet.Validation),
-            new ElementaryBlock(DSPipelineActivity.EvaluationQMetric, 
-                DataSet.Validation),
-            new ElementaryBlock(DSPipelineActivity.EvaluationQVisualization, 
+            new ElementaryBlock(DSPipelineActivity.EvaluationQMetric,
                 DataSet.Validation),
         ]),
         DSPipelinePhase.Evaluation, 0, Infinity, DataSet.Test
@@ -113,17 +110,18 @@ export const behaviourProtocol = new SequenceBlock([
         new AlternativeBlock([
             new ElementaryBlock(DSPipelineActivity.TestingQPrediction, 
                 DataSet.Test),
-            new ElementaryBlock(DSPipelineActivity.TestingQMetric, 
-                DataSet.Test),
-            new ElementaryBlock(DSPipelineActivity.TestingQVisualization, 
+            new ElementaryBlock(DSPipelineActivity.TestingQMetric,
                 DataSet.Test),
         ]),
         DSPipelinePhase.Testing
     ),
 
-    // Interpretation (trailing, optional: post-processing such as inverse-transforming predictions)
+    // Interpretation (trailing, optional: inverse-transforming predictions, visualizing the model)
     new RepetitionBlock(
-        new ElementaryBlock(DSPipelineActivity.InterpretationQPostProcessing),
+        new AlternativeBlock([
+            new ElementaryBlock(DSPipelineActivity.InterpretationQPostProcessing),
+            new ElementaryBlock(DSPipelineActivity.InterpretationQVisualization),
+        ]),
         DSPipelinePhase.Interpretation
     ),
 ])
