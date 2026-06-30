@@ -57,11 +57,10 @@ const pipelineStructureComments : string[] = [
     'DATA PROCESSING',
     'FEATURE ENGINEERING',
     'FEATURE SELECTION',
-    'MODELING',
-    'TRAINING',
-    'PREDICTION',
+    'MODELING & TRAINING',
     'EVALUATION',
-    'TESTING'
+    'TESTING',
+    'INTERPRETATION',
 ]
 
 const minPadding = 25;
