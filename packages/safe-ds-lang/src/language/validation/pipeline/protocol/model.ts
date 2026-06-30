@@ -1,10 +1,5 @@
-import {
-    ValidationResult, SequenceBlockFailedError,
-    ElemBlockOobError, ElemBlockActivityMismatchError,
-    OrBlockNoMatchError,
-    RepetitionBlockMinimumNotMetError,
-    DatasetMismatchError,
-} from './errors.js'
+import { ProtocolViolation, DatasetMismatchError } from './errors.js'
+import { ValidationResult } from './validationResult.js';
 import { ProtocolObserver } from './observer.js';
 import { SafeDsServices } from '../../../safe-ds-module.js';
 import { SdsCall, SdsStatement } from '../../../generated/ast.js';
@@ -15,14 +10,22 @@ import { DSPipelinePhase } from './dsPipelinePhase.js';
 
 export type Activity = DSPipelineActivity;
 
+/**
+ * Context the protocol validation needs to validate a sequence of activites.
+ */
 export class ValidationContext {
     public currentPhaseName: string | undefined = undefined;
 
     constructor(
+        /** Sequence of activities in the pipeline. */
         public activitySequence: Activity[][],
+        /** Calls in the pipeline. */
         public calls: SdsCall[],
+        /** Call sites of segments to trace errors back to pipeline level. */
         public segmentCallSites: (SdsCall | undefined)[],
+        /** Statements in the pipeline .*/
         public statements: SdsStatement[],
+        /** Attached observers to provide additional validation logic. */
         public observers: ProtocolObserver[] = [],
     ){}
 }
@@ -30,21 +33,22 @@ export class ValidationContext {
 /**
  * Abstract base class for protocol blocks.
  * Protocol Blocks can be elementary, sequences of blocks, repetitions of a block, or alternatives between blocks.
- * Using these Blocks a regular expression like structure can be created to define the valid sequences of activities in a pipeline.
+ * Using these Blocks a regular-expression-like structure can be created to define a valid sequence of activities.
  */
 export abstract class ProtocolBlock {
-    constructor(){}
-
     /**
      * Validates a sequence of activities against the protocol block.
-     * @param sequence The sequence of activities to validate.
+     * @param context Context needed to validate an activity sequence.
      * @param startIndex The index to start validation from.
-     * @returns A tuple indicating if the validation was successful and the index of the next activity to validate.
+     * @returns The validation result, including the validation errors recorded by the protocol blocks involved.
      */
     abstract validate(context: ValidationContext, startIndex: number, services: SafeDsServices) : ValidationResult;
     
+    /**
+     * Checks if the validation result's error is a DatasetMismatchError, since it is a priority error.
+     */
     protected containsDatasetMismatch(result: ValidationResult): boolean {
-        return result.errors.some(e => e instanceof DatasetMismatchError);
+        return result.error instanceof DatasetMismatchError;
     }
 }
 
@@ -54,15 +58,19 @@ export abstract class ProtocolBlock {
  */
 export class ElementaryBlock extends ProtocolBlock{
     constructor(
+        /** The allowed activity for this block. */
         public activity: Activity,
+        /** If set, the activity may only be performed on this dataset. */
         public target?: DataSet,
     ){ super() }
 
     validate(context: ValidationContext, startIndex: number, services: SafeDsServices) : ValidationResult {
         const identifier = services.flow.DatasetIdentifier;
 
+        // start index past the end of the sequence -> no activity here; an empty `found` means end of pipeline
         if (startIndex > context.activitySequence.length) {
-            return ValidationResult.failure(startIndex, new ElemBlockOobError());
+            return ValidationResult.failure(startIndex,
+                new ProtocolViolation([this.activity], []));
         }
         
         const currentActivities = context.activitySequence[startIndex];
@@ -92,9 +100,10 @@ export class ElementaryBlock extends ProtocolBlock{
             return ValidationResult.success(startIndex + 1);
         }
         else {
-            return ValidationResult.failure(startIndex, new ElemBlockActivityMismatchError(
-                this.activity,
-                currentActivities ?? ['EndOfPipeline' as Activity]
+            // currentActivities is undefined at the end of the sequence -> empty `found` means end of pipeline
+            return ValidationResult.failure(startIndex, new ProtocolViolation(
+                [this.activity],
+                currentActivities ?? [],
             ));
         }
     }
@@ -104,7 +113,6 @@ export class ElementaryBlock extends ProtocolBlock{
         const currentCall = context.calls[startIndex];
         if (!currentCall) return;
 
-        const segmentCallSite = context.segmentCallSites[startIndex];
         const callable = services.helpers.NodeMapper.callToCallable(currentCall);
         const detectedDataset = services.flow.DatasetIdentifier.identifyDataset(currentCall, context.statements);
 
@@ -149,7 +157,8 @@ export class SequenceBlock extends ProtocolBlock{
         for (const block of this.blocks){
             const result = block.validate(context, updatedStartingPoint, services);
             if(!result.isValid){
-                return ValidationResult.failure(result.validatedIndex, new SequenceBlockFailedError(), result);
+                // propagate the inner error unchanged since it carries all needed details
+                return result;
             }
             if (result.validatedIndex > updatedStartingPoint) {
                 updatedStartingPoint = result.validatedIndex;
@@ -182,9 +191,7 @@ export class RepetitionBlock extends ProtocolBlock{
             for (let counter = 0; counter < this.min; counter++) {
                 const result = this.block.validate(context, currentIndex, services);
                 if (!result.isValid) {
-                    return ValidationResult.failure(result.validatedIndex,
-                        new RepetitionBlockMinimumNotMetError(this.min, counter, this.phaseName),
-                        result);
+                    return this.enrichWithPhase(result);
                 }
                 currentIndex = result.validatedIndex;
             }
@@ -203,9 +210,7 @@ export class RepetitionBlock extends ProtocolBlock{
                 const result = this.block.validate(context, currentIndex, services);
                 if (!result.isValid) {
                     if (this.containsDatasetMismatch(result)) {
-                        return ValidationResult.failure(result.validatedIndex,
-                            new RepetitionBlockMinimumNotMetError(this.min, counter, this.phaseName),
-                            result);
+                        return this.enrichWithPhase(result);
                     }
                     break;
                 }
@@ -223,6 +228,18 @@ export class RepetitionBlock extends ProtocolBlock{
         }
     }
 
+    /**
+     * Attaches this block's phase to the error of a failed inner result, so the message can name the
+     * phase the violation occurred in. Only the innermost phase-carrying block sets it (withPhase
+     * keeps an already-set phase), and only the two error kinds that need a phase are enriched.
+     */
+    private enrichWithPhase(result: ValidationResult): ValidationResult {
+        if (result.error instanceof ProtocolViolation || result.error instanceof DatasetMismatchError) {
+            return ValidationResult.failure(result.validatedIndex, result.error.withPhase(this.phaseName));
+        }
+        return result;
+    }
+
 }
 
 /**
@@ -238,14 +255,17 @@ export class AlternativeBlock extends ProtocolBlock{
             .filter(b => b instanceof ElementaryBlock)
             .map(b => (b as ElementaryBlock).activity);
 
+        // the activities actually present at this position, used to name the offending activity in the
+        // message when none of the alternatives match; an empty list (no activity here) means the pipeline ended
+        const found = context.activitySequence[startIndex] ?? [];
+
         for (const block of this.blocks) {
             const result = block.validate(context, startIndex, services);
             if (result.isValid) return result;
-            if (this.containsDatasetMismatch(result)) {
-                return ValidationResult.failure(startIndex, new OrBlockNoMatchError(alternatives), result);
-            }
+            // a dataset mismatch in an alternative is a priority error: propagate it as-is
+            if (this.containsDatasetMismatch(result)) return result;
         }
-        return ValidationResult.failure(startIndex, new OrBlockNoMatchError(alternatives));
+        return ValidationResult.failure(startIndex, new ProtocolViolation(alternatives, found));
     }
 }
 

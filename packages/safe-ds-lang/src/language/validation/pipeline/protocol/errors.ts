@@ -1,5 +1,6 @@
 import { DataSet } from '../../../flow/safe-ds-dataset-identifier.js';
 import { SdsReference } from '../../../generated/ast.js';
+import { guidanceForPhase, nextPhaseOf } from './dsPipelinePhase.js';
 import { Activity } from './model.js';
 import { activityTypeOf, phaseOf } from './dsPipelineActivity.js';
 
@@ -13,101 +14,74 @@ export interface ValidationMessage {
 // ---------------------------------------------------------------------------
 
 /**
- * Abstract base class for validation errors. Each error type should extend this 
- * class and implement the formatMessage method to provide a user-friendly error 
- * message. The severity property indicates the kind of validation , and the 
- * isPriority flag can be used to short-circuit further error processing when a 
- * critical issue is detected (e.g., dataset mismatch).
+ * Abstract base class for validation errors. Each error type implements `formatMessage` to provide a
+ * user-friendly message. `severity` corresponds to langium's severity; `isPriority` lets a critical
+ * error (e.g. a dataset mismatch) be reported on its own.
  */
 export abstract class ValidationError {
-    /** The severity of the error. Corresponds to langiums severity. */
+    /** The severity of the error. Corresponds to langium's severity. */
     abstract readonly severity: 'error' | 'warning' | 'info';
-    /** Priority errors short-circuit message generation (no further errors are processed). */
+    /** Priority errors are reported on their own, ahead of any structural violation. */
     readonly isPriority: boolean = false;
     
-    /** Returns a message fragment, or null if this error contributes nothing useful. */
-    abstract formatMessage(phase: string): string | null;
+    /** Returns the user-facing message for this error. `phase` is the detected phase, or '' if unknown. */
+    abstract formatMessage(phase: string): string;
 }
 
 /**
- * This error occurs when a SequenceBlock fails to validate.
- * Usually does not contain useful information by itself.
+ * The single structural protocol violation: the activity at this position is not one the protocol allows
+ * here, or a required activity is missing because the pipeline ended. Carries the allowed activities
+ * (`expected`), what was actually found (`found`), and the phase it occurred in (`phase`, attached by
+ * the enclosing RepetitionBlock).
  */
-export class SequenceBlockFailedError extends ValidationError {
-    readonly severity = 'warning' as const;
-    formatMessage(_phase: string): null { return null; }
-}
-
-/**
- * This error occurs when an ElementaryBlock tries to validate an activity that 
- * is out of bounds (i.e., the activity sequence has already ended).
- */
-export class ElemBlockOobError extends ValidationError {
-    readonly severity = 'warning' as const;
-    formatMessage(_phase: string): string { return 'Pipeline ended unexpectedly.'; }
-}
-
-/**
- * This error occurs when an ElementaryBlock tries to validate an activity that 
- * does not match the expected one. The error message lists the expected activity
- * and the found activities.
- */
-export class ElemBlockActivityMismatchError extends ValidationError {
+export class ProtocolViolation extends ValidationError {
     constructor(
-        public expected: Activity, 
-        public found: Activity[]
+        /** The activities the protocol allows at this position. */
+        public expected: Activity[],
+        /** The activities actually present here; an empty list means the pipeline ended before this position. */
+        public found: Activity[],
+        public phase?: string,
     ) { super(); }
     readonly severity = 'warning' as const;
-    formatMessage(_phase: string): string {
-        const foundNames = [...new Set(this.found
-            .map(a => `'${(a as string).replace('Q', ' - ')}'`))]
-            .join(', ');
-        return `Expected '${(this.expected as string).replace('Q', ' - ')}' but found ${foundNames}.`;
+
+    /** Returns a copy carrying `phase`, unless a (more specific, inner) phase is already set. */
+    withPhase(phase: string | undefined): ProtocolViolation {
+        if (this.phase || !phase) return this;
+        return new ProtocolViolation(this.expected, this.found, phase);
     }
-}
 
-
-/**
- * This error occurs when an OrBlock fails to find any matching activity in any
- * of its alternatives. The error message lists the expected activities across 
- * all alternatives for the current phase.
- */
-export class OrBlockNoMatchError extends ValidationError {
-    constructor(
-        public alternatives: Activity[]
-    ) { super(); }
-    readonly severity = 'warning' as const;
+    /**
+     * Generates a Message in the following format:
+     *   Current phase: '<phase>'. <what is wrong>
+     *   Allowed Activites: '<...>'.
+     *   Next phase: '<...>'. (only for a wrong activity, not a missing one)
+     *   Fix: <short info about current phase>
+     */
     formatMessage(phase: string): string {
-        const context = phase !== '' ? `phase ${phase}` : 'current phase';
-        const names = this.alternatives.map(a => `'${activityTypeOf(a)}'`).join(', ');
-        return `Expected one of the following activities during ${context}: ${names}.`;
-    }
-}
+        const here = phase ? `Current phase: '${phase}'. ` : '';
+        const lines: string[] = [];
 
-/**
- * This error occurs when a RepetitionBlock does not meet its minimum occurrence 
- * requirement. If 'min' is greater than 1, the error message specifies how many 
- * occurrences were expected and found.
- */
-export class RepetitionBlockMinimumNotMetError extends ValidationError {
-    constructor(
-        public min: number, 
-        public actual: number, 
-        public phaseName?: string
-    ) { super(); }
-    readonly severity = 'warning' as const;
-    formatMessage(phase: string): string {
-        if (this.min > 1 && this.actual > 1) {
-            return `Phase ${phase} requires at least ${this.min} occurrences but found ${this.actual}.`;
+        if (ranPastEnd(this.found)) {
+            // a required activity is missing: state what is expected here, not what comes next
+            lines.push(`${here}A required activity is missing before the pipeline ends.`);
+            lines.push(`Allowed Activities: ${describeAllowed(this.expected)}.`);
+        } else {
+            lines.push(`${here}Activity ${describeFound(this.found)} is not allowed here.`);
+            lines.push(`Allowed Activities: ${describeAllowed(this.expected)}.`);
+            const next = nextPhaseOf(phase);
+            if (next) lines.push(`Next phase: '${next}'.`);
         }
-        return `Detected activity is not allowed during phase ${phase}.`;
+
+        const hint = guidanceForPhase(phase);
+        if (hint) lines.push(`Fix: ${hint}`);
+        return lines.join('\n');
     }
 }
 
 /**
- * This error occurs when an activity is performed on a dataset that does not match 
- * the expected dataset for the current phase. The error message specifies the expected
- * and found datasets, and if available, the activities that caused the mismatch.
+ * A dataset-bound activity (e.g. a training-only post-split step, or evaluation on the validation set)
+ * runs on the wrong partition, risking data leakage. Priority error with an `error` severity and a
+ * quick-fix (driven by `wrongReference`). `phase` is attached by the enclosing RepetitionBlock.
  */
 export class DatasetMismatchError extends ValidationError {
     constructor(
@@ -115,19 +89,38 @@ export class DatasetMismatchError extends ValidationError {
         public found: DataSet,
         public activities?: Activity[],
         public wrongReference?: SdsReference,
+        public phase?: string,
     ) { super(); }
     readonly severity = 'error' as const;
     override readonly isPriority = true;
+
+    /** Returns a copy carrying `phase`, unless one is already set (mirrors ProtocolViolation). */
+    withPhase(phase: string | undefined): DatasetMismatchError {
+        if (this.phase || !phase) return this;
+        return new DatasetMismatchError(this.expected, this.found, this.activities, this.wrongReference, phase);
+    }
+
     formatMessage(phase: string): string {
-        const formattedActivities = getActivityOnPhaseMatch(this.activities ?? [], phase).join(', ');
-        return `Dataset mismatch: During phase ${phase} the activity '${formattedActivities}' may only be ` +
-               `performed on the '${this.expected}' dataset, not the '${this.found}' dataset.`;
+        const resolvedPhase = this.phase ?? phase;
+        const here = resolvedPhase ? `Current phase: '${resolvedPhase}'. ` : '';
+        const matched = getActivityOnPhaseMatch(this.activities ?? [], resolvedPhase);
+        const activity = matched.length ? `'${matched.join("', '")}'` : 'this activity';
+
+        const lines = [
+            `${here}Activity ${activity} may only run on '${this.expected}', not '${this.found}' (risks data leakage).`,
+        ];
+        const next = nextPhaseOf(resolvedPhase);
+        if (next) lines.push(`Next phase: '${next}'.`);
+        lines.push(`Fix: use '${this.expected}' here (a quick fix is available to swap the dataset).`);
+        return lines.join('\n');
     }
 }
 
+// ---------------------------------------------------------------------------
+// Observer Errors (cross-cutting consistency checks; span several phases, so no phase line)
+// ---------------------------------------------------------------------------
+
 export abstract class InconsistentTransformationError extends ValidationError {
-    constructor(
-    ) { super(); }
     readonly severity = 'warning' as const;
 }
 
@@ -141,8 +134,9 @@ export class InconsistentTransformationPresenceError extends InconsistentTransfo
     ) { super(); }
 
     formatMessage(_phase: string): string {
-        return `'${this.callableName}' is ${this.describeCount(this.deviatingCount)} on the ${this.deviatingDataset} ` +
-               `dataset but ${this.describeCount(this.referenceCount)} on the ${this.referenceDataset} dataset.`;
+        return `Inconsistent preprocessing: '${this.callableName}' is ${this.describeCount(this.deviatingCount)} on ` +
+               `'${this.deviatingDataset}' but ${this.describeCount(this.referenceCount)} on '${this.referenceDataset}'.\n` +
+               `Fix: apply '${this.callableName}' the same number of times on every partition.`;
     }
 
     private describeCount(count: number): string {
@@ -161,10 +155,11 @@ export class InconsistentTransformationOrderError extends InconsistentTransforma
     ) { super(); }
 
     formatMessage(_phase: string): string {
-        const ref = this.referenceSequence.map(n => `'${n}'`).join(', ');
-        const dev = this.deviatingSequence.map(n => `'${n}'`).join(', ');
-        return `Transformation order differs: ${this.referenceDataset} applies [${ref}] but ` +
-               `${this.deviatingDataset} applies [${dev}]. Consider using the same order for readability.`;
+        const ref = this.referenceSequence.join(', ');
+        const dev = this.deviatingSequence.join(', ');
+        return `Inconsistent preprocessing order: '${this.deviatingDataset}' applies [${dev}] but ` +
+               `'${this.referenceDataset}' applies [${ref}].\n` +
+               `Fix: use the same order on every partition.`;
     }
 }
 
@@ -178,64 +173,14 @@ export class InconsistentTransformationDataflowError extends InconsistentTransfo
     ) { super(); }
 
     formatMessage(_phase: string): string {
-        const refOutput = this.formatSuccessors(this.referenceSuccessors);
-        const devOutput = this.formatSuccessors(this.deviatingSuccessors);
-        return `Dataflow mismatch after '${this.callableName}': its output flows into ${devOutput} on the ` +
-               `${this.deviatingDataset} dataset but into ${refOutput} on the ${this.referenceDataset} dataset. ` +
-               `Ensure data flows consistently across all partitions.`;
+        return `Inconsistent data flow: '${this.callableName}' feeds ${this.formatSuccessors(this.deviatingSuccessors)} ` +
+               `on '${this.deviatingDataset}' but ${this.formatSuccessors(this.referenceSuccessors)} on '${this.referenceDataset}'.\n` +
+               `Fix: route the output of '${this.callableName}' the same way on every partition.`;
     }
 
     private formatSuccessors(successors: string[]): string {
         if (successors.length === 0) return 'nothing';
         return successors.map(n => `'${n}'`).join(' and ');
-    }
-}
-
-// ---------------------------------------------------------------------------
-// ValidationResult
-// ---------------------------------------------------------------------------
-
-export class ValidationResult {
-    public readonly isValid: boolean;
-    public readonly validatedIndex: number;
-    public readonly errors: ValidationError[];
-
-    private constructor(isValid: boolean, validatedIndex: number, errors: ValidationError[]) {
-        this.isValid = isValid;
-        this.validatedIndex = validatedIndex;
-        this.errors = errors;
-    }
-
-    static success(validatedIndex: number): ValidationResult {
-        return new ValidationResult(true, validatedIndex, []);
-    }
-
-    static failure(validatedIndex: number, error?: ValidationError, base?: ValidationResult): ValidationResult {
-        const errors = [...(error ? [error] : []), ...(base?.errors ?? [])];
-        return new ValidationResult(false, validatedIndex, errors);
-    }
-
-    generateValidationMessage(): ValidationMessage {
-        // resolve phase name from the first repetition-block error that carries one
-        let phase = '';
-        for (const error of this.errors) {
-            if (error instanceof RepetitionBlockMinimumNotMetError && error.phaseName) {
-                phase = `'${error.phaseName}'`;
-                break;
-            }
-        }
-
-        // priority errors (e.g. dataset mismatch) short-circuit the rest
-        const priorityError = this.errors.find(e => e.isPriority);
-        if (priorityError) {
-            return { message: priorityError.formatMessage(phase) ?? '', severity: priorityError.severity };
-        }
-
-        const messages = this.errors
-            .map(e => e.formatMessage(phase))
-            .filter((m): m is string => m !== null);
-
-        return { message: messages.join('\n'), severity: 'warning' };
     }
 }
 
@@ -249,3 +194,29 @@ const getActivityOnPhaseMatch = (activities: Activity[], phaseName: string): str
         .filter(a => phaseOf(a) === cleanPhaseName)
         .map(a => activityTypeOf(a));
 };
+
+/** Renders an activity as its full 'Phase - Type' name, e.g. "DataPartitioning - Split". */
+const fullActivityName = (activity: Activity): string => {
+    return (activity as string).replace('Q', ' - ');
+}
+
+/**
+ * True when the validator ran past the last call, i.e. there was no activity at the checked position.
+ * A real position always holds at least one activity (an un-annotated call yields `[Any]`), so an
+ * empty `found` list is the sentinel for "the pipeline ended here".
+ */
+const ranPastEnd = (found: Activity[]): boolean => {
+    return found.length === 0;
+}
+
+/** Renders the activities found at a position, e.g. "'Modeling - Creating'"; an empty list means the end of the pipeline. */
+const describeFound = (found: Activity[]): string => {
+    const unique = [...new Set(found)];
+    if (unique.length === 0) return 'the end of the pipeline';
+    return unique.map((activity) => `'${fullActivityName(activity)}'`).join(', ');
+};
+
+/** Renders the allowed activities as a quoted, type-only list, e.g. "'Split'" or "'Exploration', 'Augmentation'". */
+const describeAllowed = (expected: Activity[]): string => {
+    return expected.map((activity) => `'${activityTypeOf(activity)}'`).join(', ');
+}
