@@ -12,9 +12,10 @@ export const suggestPipelineStructure = (services: SafeDsServices) => {
             return; 
         }
         
-        accept('info', 
-            'Pipeline is empty. Suggestion for Pipeline structure available.', {   
-                node: node,
+        accept('info',
+            'This pipeline is empty. A quick fix is available to insert a suggested data-science pipeline structure.', {
+                node: node, 
+                property: 'name',
                 code: CODE_SUGGEST_PIPELINE_STRUCTURE,
                 data: { path: locator.getAstNodePath(node) }
             }
