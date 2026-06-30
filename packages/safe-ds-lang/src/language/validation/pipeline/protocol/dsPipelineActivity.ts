@@ -1,3 +1,5 @@
+import { DSPipelinePhase } from "./dsPipelinePhase.js";
+
 /**
  * TypeScript mirror of the DSPipelineActivity enum defined in ideIntegration.sdsstub.
  * String values must exactly match the annotation variant names so that annotation
@@ -53,15 +55,22 @@ export enum DSPipelineActivity {
 }
 
 /** Returns the phase portion of an activity name (the part before 'Q'). */
-export function phaseOf(activity: DSPipelineActivity): string {
+export const phaseOf = (activity: DSPipelineActivity): string => {
     const name = activity as string;
     const i = name.indexOf('Q');
     return i !== -1 ? name.slice(0, i) : name;
 }
 
 /** Returns the type portion of an activity name (the part after 'Q'). */
-export function activityTypeOf(activity: DSPipelineActivity): string {
+export const activityTypeOf = (activity: DSPipelineActivity): string => {
     const name = activity as string;
     const i = name.indexOf('Q');
     return i !== -1 ? name.slice(i + 1) : name;
+}
+
+/** Returns all activities that belong to a given phase. */
+export const getActivitiesFromPhase = (phase: DSPipelinePhase): DSPipelineActivity[] => {
+    return Object
+        .values(DSPipelineActivity)
+        .filter((activity) => phaseOf(activity) === phase);
 }
