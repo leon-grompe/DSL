@@ -6,7 +6,8 @@ import { DSPipelineActivity } from './protocol/dsPipelineActivity.js';
 import { DSPipelinePhase } from './protocol/dsPipelinePhase.js';
 import { behaviourProtocol } from './behaviourProtocol.js';
 import { ConsistentTransformationObserver, ProtocolObserver } from './protocol/observer.js';
-import { ValidationResult, DatasetMismatchError, InconsistentTransformationPresenceError, InconsistentTransformationOrderError, InconsistentTransformationDataflowError } from './protocol/errors.js';
+import { DatasetMismatchError, InconsistentTransformationPresenceError, InconsistentTransformationOrderError, InconsistentTransformationDataflowError } from './protocol/errors.js';
+import { ValidationResult } from './protocol/validationResult.js';
 
 // protocol error codes
 export const CODE_PIPELINE_BEHAVIOUR_PROTOCOL   = 'pipeline/behaviour-protocol';
@@ -122,7 +123,7 @@ const generateProtocolValidation = (
     const valMessage = result.generateValidationMessage();
 
     // a dataset mismatch is a priority error, so it already drives valMessage
-    const datasetError = result.errors.find((e): e is DatasetMismatchError => e instanceof DatasetMismatchError);
+    const datasetError = result.error instanceof DatasetMismatchError ? result.error : undefined;
 
     if (call) {
         if (datasetError) {
@@ -164,8 +165,8 @@ const generateProtocolValidation = (
         const lastCall = calls.at(calls.length - 1);
         const lastSegmentCallSite = context.segmentCallSites.at(calls.length - 1);
 
-        accept(valMessage.severity,
-            'Pipeline is missing at least one phase after this statement.\n' + valMessage.message, {
+        accept(valMessage.severity, 
+            valMessage.message, {
             node: lastSegmentCallSite ?? lastCall ?? node,
             code: CODE_PIPELINE_INCOMPLETE,
         });
@@ -180,8 +181,8 @@ const segmentCauseSuffix = (call: SdsCall, services: SafeDsServices): string => 
     const callable = services.helpers.NodeMapper.callToCallable(call);
     const name = (isSdsFunction(callable) || isSdsClass(callable)) ? callable.name : undefined;
     return name
-        ? `\n(Caused by the call to '${name}' inside this segment.)`
-        : '\n(Caused by a call inside this segment.)';
+        ? `\n(The problem originates from the call to '${name}' inside this segment — fix it there.)`
+        : '\n(The problem originates from a call inside this segment.)';
 }
 
 const generateObserverValidation = (
