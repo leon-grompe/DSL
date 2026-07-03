@@ -18,7 +18,7 @@ export enum DSPipelineActivity {
     DataPreparationQUtilities            = 'DataPreparationQUtilities',
 
     // Partitioning
-    DataPartitioningQDatasetSplitting    = 'DataPartitioningQDatasetSplitting',
+    DataPartitioningQDataSplitting    = 'DataPartitioningQDataSplitting',
 
     // Processing (post-split)
     DataProcessingQExploration           = 'DataProcessingQExploration',
