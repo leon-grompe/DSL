@@ -10,6 +10,6 @@ pipeline myPipeline {
 
     val encoder = OneHotEncoder();
 
-    // $TEST$ warning r"'.*' is not applied on the Test dataset but applied once on the Training dataset."
+    // $TEST$ warning r"'.*' is not applied on 'Test' but applied once on 'Training'."
     val _trainEncoded = trainImputed.transformTable(encoder);
 }

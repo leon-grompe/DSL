@@ -1,0 +1,9 @@
+package tests.validation.behaviourProtocol.datasetMismatch
+
+// post-split cleaning (training-only) is applied to the test set: a data-leakage dataset mismatch
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val _train, val test = data.splitRows(percentageInFirst = 0.7);
+    // $TEST$ error r"Change 'Test' to 'Training' to avoid data leakage."
+    val _cleanedTest = test.removeRowsWithOutliers();
+}

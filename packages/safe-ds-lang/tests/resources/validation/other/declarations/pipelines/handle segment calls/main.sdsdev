@@ -1,10 +1,10 @@
 package tests.validation.other.declarations.pipelines.handleSegmentCalls
-// $TEST$ no error r"Dataset mismatch"
-pipeline titanic {
+// $TEST$ no error r"data leakage"
+pipeline myPipeline {
     val rawData = Table.fromCsvFile("titanic.csv");
     val rawTraining, val rawTest = rawData.splitRows(percentageInFirst = 0.7);
-    val imputer = SimpleImputer(SimpleImputer.Strategy.Median, columnNames = ["age", "fare"]).fit(rawTraining);
-    val encoder = OneHotEncoder(columnNames = ["sex"]).fit(rawTraining);
+    val imputer = SimpleImputer(SimpleImputer.Strategy.Median, selector = ["age", "fare"]).fit(rawTraining);
+    val encoder = OneHotEncoder(selector = ["sex"]).fit(rawTraining);
 
     val trainingSet = preprocessAfterSplit(rawTraining, imputer, encoder);
     val testSet = preprocessAfterSplit(rawTest, imputer, encoder);

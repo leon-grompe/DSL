@@ -11,7 +11,7 @@ pipeline myPipeline {
     val trainImputed = train.transformTable(imputer);
     val _trainScaled = trainImputed.transformTable(scaler);
 
-    // $TEST$ warning r"Dataflow mismatch"
+    // $TEST$ warning r"Inconsistent data flow"
     val _testImputed = test.transformTable(imputer);
     val _testScaled = test.transformTable(scaler);
 }

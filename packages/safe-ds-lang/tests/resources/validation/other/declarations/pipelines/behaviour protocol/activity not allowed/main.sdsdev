@@ -1,0 +1,8 @@
+package tests.validation.behaviourProtocol.activityNotAllowed
+
+// a model is created before the data is partitioned: the activity is not allowed at this position
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    // $TEST$ warning r"The Activity 'Modeling - ModelCreation' is not allowed in current Phase"
+    val _model = GradientBoostingClassifier(treeCount = 10, learningRate = 0.2);
+}

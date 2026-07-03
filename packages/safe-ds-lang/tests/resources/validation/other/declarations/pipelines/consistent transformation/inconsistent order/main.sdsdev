@@ -10,7 +10,7 @@ pipeline myPipeline {
     val trainImputed = train.transformTable(imputer);
     val _trainScaled = trainImputed.transformTable(scaler);
 
-    // $TEST$ warning r"Transformation order differs"
+    // $TEST$ warning r"Inconsistent preprocessing order"
     val testScaled = test.transformTable(scaler);
     val _testImputed = testScaled.transformTable(imputer);
 }

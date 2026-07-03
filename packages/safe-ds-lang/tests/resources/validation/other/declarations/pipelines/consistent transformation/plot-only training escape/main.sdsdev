@@ -12,9 +12,9 @@ pipeline myPipeline {
     val testScaled = test.transformTable(scaler);
 
     // training-only transform whose output feeds a plot, not the model -> escaped, must NOT be flagged
-    // $TEST$ no warning r"is not applied on the Test dataset but applied once on the Training dataset"
+    // $TEST$ no warning r"is not applied on 'Test' but applied once on 'Training'"
     val trainForPlot = train.transformTable(imputer);
-    val _plot = trainForPlot.plot.histogram();
+    val _plot = trainForPlot.plot.histograms();
 
     val _trainSet = trainScaled.toTabularDataset("label");
     val _testSet = testScaled.toTabularDataset("label");

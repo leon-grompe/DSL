@@ -12,7 +12,7 @@ pipeline myPipeline {
     val testScaled = test.transformTable(scaler);
 
     // test-only transform off the model path -> escape is training-only, so it stays tracked and is flagged
-    // $TEST$ warning r"is applied once on the Test dataset but not applied on the Training dataset"
+    // $TEST$ warning r"is applied once on 'Test' but not applied on 'Training'"
     val _testOffPath = test.transformTable(imputer);
 
     val _trainSet = trainScaled.toTabularDataset("label");

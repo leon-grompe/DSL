@@ -6,9 +6,11 @@ pipeline myPipeline {
 
     val scaler = StandardScaler().fit(train);
 
-    // $TEST$ warning r"'toTabularDataset' is not applied on the Test dataset but applied once on the Training dataset."
-    val trainSet = train.transformTable(scaler).toTabularDataset("label");
+    val trainScaled = train.transformTable(scaler);
     val _testScaled = test.transformTable(scaler);
+
+    // $TEST$ warning r"'toTabularDataset' is not applied on 'Test' but applied once on 'Training'."
+    val trainSet = trainScaled.toTabularDataset("label");
 
     val _classifier = GradientBoostingClassifier().fit(trainSet);
 }

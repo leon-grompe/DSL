@@ -1,0 +1,35 @@
+package tests.validation.consistentTransformation.segmentAcrossPartitions
+
+// Preprocessing transforms are factored into a segment applied once per partition; 'toTabularDataset' is
+// done in the pipeline (outside the segment), so all transforms precede all selections and the protocol
+// accepts the pipeline. Per-partition attribution must see the segment's transforms on both the training
+// and test set, so the consistency observer stays quiet.
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val train, val test = data.splitRows(percentageInFirst = 0.7);
+    val imputer = SimpleImputer(SimpleImputer.Strategy.Median, selector = ["age"]).fit(train);
+    val scaler = StandardScaler().fit(train);
+
+    // the reordered shape (all transforms, then all selections) is accepted by the protocol: no violation
+    // $TEST$ no warning r"is not allowed in current Phase"
+    // $TEST$ no warning r"required activity is missing"
+    val trainTransformed = applyTransforms(train, imputer, scaler);
+    // $TEST$ no warning r"Inconsistent preprocessing"
+    val testTransformed = applyTransforms(test, imputer, scaler);
+
+    val trainSet = trainTransformed.toTabularDataset("label");
+    val testSet = testTransformed.toTabularDataset("label");
+
+    val classifier = GradientBoostingClassifier().fit(trainSet);
+    val _accuracy = classifier.accuracy(testSet);
+}
+
+segment applyTransforms(
+    table: Table,
+    a: TableTransformer,
+    b: TableTransformer,
+) -> result: Table {
+    yield result = table
+        .transformTable(a)
+        .transformTable(b);
+}
