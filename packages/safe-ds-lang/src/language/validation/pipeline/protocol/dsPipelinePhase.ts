@@ -25,24 +25,28 @@ export const nextPhaseOf = (phase: string): DSPipelinePhase | undefined => {
 };
 
 /**
- * Per-phase guidance: a short description what to do in each phase. Rendered after `Fix: `,
+ * Per-phase explanation: a short description what to do in each phase. Rendered after `Fix: `,
  * so each entry is lowercase and reads as the completion of "Fix: ...".
  * Only shows if a phase is required (min > 0). Currently required phases are: DataAcquisition, DataPartitioning and Modeling.
  */
-const PHASE_GUIDANCE: Record<DSPipelinePhase, string> = {
-    [DSPipelinePhase.DataAcquisition]: 'load a dataset or construct one by hand before doing anything else.',
-    [DSPipelinePhase.DataPreparation]: 'clean, reshape or explore the whole dataset before splitting.',
-    [DSPipelinePhase.DataPartitioning]: 'split the data into at least training and test sets before any post-split step.',
-    [DSPipelinePhase.DataProcessing]: 'process data on every partition consistently, or explore/clean/augment the training set only.',
-    [DSPipelinePhase.FeatureEngineering]: 'engineer features on every partition consistently.',
-    [DSPipelinePhase.FeatureSelection]: 'trim columns and/or convert to a tabular dataset before modeling.',
-    [DSPipelinePhase.Modeling]: 'create a model first.',
-    [DSPipelinePhase.Training]: 'fit the model on the training set first.',
-    [DSPipelinePhase.Evaluation]: 'evaluate the model on the validation set to optimize hyperparameters.',
-    [DSPipelinePhase.Testing]: 'test the model on the test set to test its generality on unseen data.',
-    [DSPipelinePhase.Interpretation]: 'interpret the results through model visualization or inverse-transformation of target features.',
+const PHASE_EXPLANATION: Record<DSPipelinePhase, string> = {
+    [DSPipelinePhase.DataAcquisition]:      'load a dataset or construct one by hand.',
+    [DSPipelinePhase.DataPreparation]:      'clean, reshape or explore the whole dataset.',
+    [DSPipelinePhase.DataPartitioning]:     'split the data into at least training and test sets.',
+    [DSPipelinePhase.DataProcessing]:       'process data consistently on every partition, or explore/clean/augment the training set only.',
+    [DSPipelinePhase.FeatureEngineering]:   'engineer features consistently on every partition.',
+    [DSPipelinePhase.FeatureSelection]:     'convert the table to a tabular dataset and optionally trim columns.',
+    [DSPipelinePhase.Modeling]:             'select and create a model.',
+    [DSPipelinePhase.Training]:             'fit the model on the training set.',
+    [DSPipelinePhase.Evaluation]:           'evaluate the model on the validation set to optimize hyperparameters.',
+    [DSPipelinePhase.Testing]:              'test the model on the test set to test its generality on unseen data.',
+    [DSPipelinePhase.Interpretation]:       'interpret the results through model visualization or inverse-transformation of target features.',
 };
+
 /** Looks up the short `Fix:` hint for a phase, if any. */
 export const guidanceForPhase = (phase: string): string | undefined => {
-    return PHASE_GUIDANCE[phase as DSPipelinePhase];
+    return PHASE_EXPLANATION[phase as DSPipelinePhase];
 };
+
+/** Position of a phase in protocol order, or -1 if unknown. */
+export const phaseIndex = (phase: string): number => PHASE_ORDER.indexOf(phase as DSPipelinePhase);
