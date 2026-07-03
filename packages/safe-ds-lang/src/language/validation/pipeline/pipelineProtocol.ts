@@ -1,5 +1,5 @@
 import { ValidationAcceptor } from 'langium';
-import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline } from '../../generated/ast.js';
+import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsExpression } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
 import { Activity, ValidationContext } from './protocol/model.js';
 import { DSPipelineActivity } from './protocol/dsPipelineActivity.js';
@@ -101,6 +101,12 @@ const extractValidationContext = (
     return new ValidationContext(activitySequence, pipelineCalls, segmentCallSites, pipelineStatements, observers);
 }
 
+/**
+ * Generates validation messages for a protocol violation found in the pipeline.
+ * If the violation is a dataset mismatch, it will also generate a quickfix to swap the wrong dataset reference.
+ * If the violation is found inside a segment, the message will be reported on the segment call site and will
+ * include a suffix naming the offending inner call.
+ */
 const generateProtocolValidation = (
     node: SdsPipeline,
     context: ValidationContext,
@@ -143,12 +149,14 @@ const generateProtocolValidation = (
                     code: CODE_DATASET_MISMATCH,
                     data: { path: locator.getAstNodePath(wrongReference), expected: datasetError.expected },
                 });
+                generatePipelineValidation(node, wrongReference, accept);
             } else {
                 // couldn't resolve a reference to swap: keep the diagnostic, but no quickfix
                 accept(valMessage.severity, message, {
                     node: segmentCallSite ?? call,
                     code: CODE_DATASET_MISMATCH,
                 });
+                generatePipelineValidation(node, segmentCallSite ?? call, accept);
             }
         } else {
             // pipeline violates protocol at specific call. if that call is inside a segment, report on
@@ -158,33 +166,28 @@ const generateProtocolValidation = (
                 node: segmentCallSite ?? call,
                 code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL
             });
+            generatePipelineValidation(node, segmentCallSite ?? call, accept);
         }
     } else {
         // pipeline violates protocol at end of the sequence by being incomplete. mirror the
         // specific-call case: if the last call is inside a segment, report on its call site
         const lastCall = calls.at(calls.length - 1);
         const lastSegmentCallSite = context.segmentCallSites.at(calls.length - 1);
-
+        if (!lastCall) return;
         accept(valMessage.severity, 
             valMessage.message, {
-            node: lastSegmentCallSite ?? lastCall ?? node,
+            node: lastSegmentCallSite ?? lastCall,
             code: CODE_PIPELINE_INCOMPLETE,
         });
+        generatePipelineValidation(node, lastSegmentCallSite ?? lastCall, accept);
     }
 }
 
 /**
- * Builds a message suffix naming the offending inner call, used when a protocol violation found
- * inside a segment is reported on the segment call site so the original cause stays discoverable.
+ * Generates validation messages for all errors reported by the observers.
+ * Each observer can report multiple errors, and each error can be reported on a different call site.
+ * The validation code is set depending on the concrete instance of the error.
  */
-const segmentCauseSuffix = (call: SdsCall, services: SafeDsServices): string => {
-    const callable = services.helpers.NodeMapper.callToCallable(call);
-    const name = (isSdsFunction(callable) || isSdsClass(callable)) ? callable.name : undefined;
-    return name
-        ? `\n(The problem originates from the call to '${name}' inside this segment — fix it there.)`
-        : '\n(The problem originates from a call inside this segment.)';
-}
-
 const generateObserverValidation = (
     observers: ProtocolObserver[],
     accept: ValidationAcceptor
@@ -204,7 +207,7 @@ const generateObserverValidation = (
                 validationCode = CODE_INCONSISTENT_TRANSFORMATION_DATAFLOW;
             }
             
-            const msg = error.formatMessage('');
+            const msg = error.formatMessage();
             if (!msg) continue;
             
             accept(error.severity,
@@ -215,4 +218,37 @@ const generateObserverValidation = (
             );
         }
     }
+}
+
+/**
+ * Generates a validation message for the pipeline itself, indicating that it has been validated by the behaviour protocol until a certain point.
+ * This message is informational and does not indicate an error, but rather provides feedback on the validation process.
+ * The message includes a link to documentation for further reading on pipeline structure, best practices, and activities.
+ */
+const generatePipelineValidation = (
+    pipeline: SdsPipeline,
+    erroneousPoint: SdsExpression,
+    accept: ValidationAcceptor
+) => {
+    const line = erroneousPoint.$cstNode?.range.start.line! + 1;
+    accept('info', 
+        `Pipeline has been validated by the behaviour protocol until line ${line}.\n` + 
+        `Read more about pipeline structure, best practices and activities at: ...\n` + 
+        `You may disable this validation entirely by adding the annotation '@DisableProtocol' to the pipeline declaration.`, {
+        node: pipeline,
+        property: 'name',
+        code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL
+    });
+}
+
+/**
+ * Builds a message suffix naming the offending inner call, used when a protocol violation found
+ * inside a segment is reported on the segment call site so the original cause stays discoverable.
+ */
+const segmentCauseSuffix = (call: SdsCall, services: SafeDsServices): string => {
+    const callable = services.helpers.NodeMapper.callToCallable(call);
+    const name = (isSdsFunction(callable) || isSdsClass(callable)) ? callable.name : undefined;
+    return name
+        ? `\n(The problem originates from the call to '${name}' inside this segment — fix it there.)`
+        : '\n(The problem originates from a call inside this segment.)';
 }
