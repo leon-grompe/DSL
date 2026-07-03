@@ -12,9 +12,9 @@ export const behaviourProtocol = new SequenceBlock([
     // Data Acquisition (at least one load / hand-built datatype). Utilities allowed for pre-split table assembly.
     new RepetitionBlock(
         new AlternativeBlock([
-            new ElementaryBlock(DSPipelineActivity.DataAcquisitionQLoading),
+            new ElementaryBlock(DSPipelineActivity.DataAcquisitionQDataLoading),
             new ElementaryBlock(DSPipelineActivity.DataAcquisitionQDatatypeConstruction),
-            new ElementaryBlock(DSPipelineActivity.DataPreparationQUtilities),
+            new ElementaryBlock(DSPipelineActivity.DataAcquisitionQUtilities),
         ]),
         DSPipelinePhase.DataAcquisition, 1
     ),
@@ -32,7 +32,7 @@ export const behaviourProtocol = new SequenceBlock([
 
     // Data Partitioning
     new RepetitionBlock(
-        new ElementaryBlock(DSPipelineActivity.DataPartitioningQSplit),
+        new ElementaryBlock(DSPipelineActivity.DataPartitioningQDataSplitting),
         DSPipelinePhase.DataPartitioning, 1
     ),
 
@@ -45,7 +45,7 @@ export const behaviourProtocol = new SequenceBlock([
                 DataSet.Training),
             new ElementaryBlock(DSPipelineActivity.DataProcessingQAugmentation, 
                 DataSet.Training),
-            new ElementaryBlock(DSPipelineActivity.DataProcessingQDataTransformer),
+            new ElementaryBlock(DSPipelineActivity.DataProcessingQDataTransformation),
             new ElementaryBlock(DSPipelineActivity.DataProcessingQUtilities),
             new ElementaryBlock(DSPipelineActivity.DataProcessingQSchemaModification),
         ]),
@@ -53,44 +53,36 @@ export const behaviourProtocol = new SequenceBlock([
     ),
 
 // Model Building Layer
-    // Feature Engineering followed by Feature Selection, as one group that repeats once per dataset.
-    // The inner pattern is (FE* FS+): zero or more feature-engineering activities and then at least one
-    // feature-selection activity (column trimming and/or 'toTabularDataset'). Requiring each group to
-    // *end* with a selection keeps feature selection at the conclusion of every engineering run.
+    // Feature Engineering    
     new RepetitionBlock(
-        new SequenceBlock([
-            // Feature Engineering (optional within the group)
-            new RepetitionBlock(
-                new AlternativeBlock([
-                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQEngineering),
-                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQFeatureTransformer),
-                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQUtilities),
-                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQSchemaModification),
-                    new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQDatatypeConstruction),
-                ]),
-                DSPipelinePhase.FeatureEngineering
-            ),
+        new AlternativeBlock([
+            new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQEngineering),
+            new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQFeatureTransformation),
+            new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQUtilities),
+            new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQSchemaModification),
+            new ElementaryBlock(DSPipelineActivity.FeatureEngineeringQDatatypeConstruction),
+        ]),
+        DSPipelinePhase.FeatureEngineering
+    ),
 
-            // Feature Selection (at least once: every group must conclude with a selection)
-            new RepetitionBlock(
-                new AlternativeBlock([
-                    new ElementaryBlock(DSPipelineActivity.FeatureSelectionQTabularDatasetConversion),
-                    new ElementaryBlock(DSPipelineActivity.FeatureSelectionQSchemaModification),
-                ]),
-                DSPipelinePhase.FeatureSelection, 1
-            ),
-        ])
+    // Feature Selection (at least once: every group must conclude with a selection)
+    new RepetitionBlock(
+        new AlternativeBlock([
+            new ElementaryBlock(DSPipelineActivity.FeatureSelectionQTabularDatasetConversion),
+            new ElementaryBlock(DSPipelineActivity.FeatureSelectionQSchemaModification),
+        ]),
+        DSPipelinePhase.FeatureSelection, 1
     ),
 
     // Modeling
     new RepetitionBlock(
-        new ElementaryBlock(DSPipelineActivity.ModelingQCreating),
+        new ElementaryBlock(DSPipelineActivity.ModelingQModelCreation),
         DSPipelinePhase.Modeling, 1
     ),
 
     // Training (optional: a loaded pretrained model may be used without fitting)
     new RepetitionBlock(
-        new ElementaryBlock(DSPipelineActivity.TrainingQFitting),
+        new ElementaryBlock(DSPipelineActivity.TrainingQModelFitting),
         DSPipelinePhase.Training
     ),
 
@@ -99,7 +91,7 @@ export const behaviourProtocol = new SequenceBlock([
         new AlternativeBlock([
             new ElementaryBlock(DSPipelineActivity.EvaluationQPrediction, 
                 DataSet.Validation),
-            new ElementaryBlock(DSPipelineActivity.EvaluationQMetric,
+            new ElementaryBlock(DSPipelineActivity.EvaluationQMetricCalculation,
                 DataSet.Validation),
         ]),
         DSPipelinePhase.Evaluation, 0, Infinity, DataSet.Test
@@ -110,7 +102,7 @@ export const behaviourProtocol = new SequenceBlock([
         new AlternativeBlock([
             new ElementaryBlock(DSPipelineActivity.TestingQPrediction, 
                 DataSet.Test),
-            new ElementaryBlock(DSPipelineActivity.TestingQMetric,
+            new ElementaryBlock(DSPipelineActivity.TestingQMetricCalculation,
                 DataSet.Test),
         ]),
         DSPipelinePhase.Testing
