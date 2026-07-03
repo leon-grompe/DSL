@@ -1,6 +1,6 @@
 import { DataSet } from '../../../flow/safe-ds-dataset-identifier.js';
 import { SdsReference } from '../../../generated/ast.js';
-import { guidanceForPhase, nextPhaseOf } from './dsPipelinePhase.js';
+import { guidanceForPhase, nextPhaseOf, phaseIndex } from './dsPipelinePhase.js';
 import { Activity } from './model.js';
 import { activityTypeOf, phaseOf } from './dsPipelineActivity.js';
 
@@ -25,7 +25,7 @@ export abstract class ValidationError {
     readonly isPriority: boolean = false;
     
     /** Returns the user-facing message for this error. `phase` is the detected phase, or '' if unknown. */
-    abstract formatMessage(phase: string): string;
+    abstract formatMessage(): string;
 }
 
 /**
@@ -51,30 +51,45 @@ export class ProtocolViolation extends ValidationError {
     }
 
     /**
-     * Generates a Message in the following format:
-     *   Current phase: '<phase>'. <what is wrong>
-     *   Allowed Activites: '<...>'.
-     *   Next phase: '<...>'. (only for a wrong activity, not a missing one)
-     *   Fix: <short info about current phase>
+     * Returns a user-facing message for this error. 
+     * If the pipeline ended before the required phase was complete, the message explains what to do to satisfy the phase. 
+     * If the pipeline is complete but the activity at this position is not allowed, the message explains what to do to satisfy the phase 
+     * and relates the found activity's phase(s) to the required phase we're stuck on, via protocol order.
      */
-    formatMessage(phase: string): string {
-        const here = phase ? `Current phase: '${phase}'. ` : '';
+    formatMessage(): string {
         const lines: string[] = [];
 
         if (ranPastEnd(this.found)) {
-            // a required activity is missing: state what is expected here, not what comes next
-            lines.push(`${here}A required activity is missing before the pipeline ends.`);
-            lines.push(`Allowed Activities: ${describeAllowed(this.expected)}.`);
+            // pipeline is incomplete -> a required phase is missing
+            lines.push(`The Pipeline ended before the required Phase '${this.phase}' is complete.`);
+            lines.push(`To satisfy the phase, use the following Activities ${describeAllowed(this.expected)} to ${guidanceForPhase(this.phase!)}`);
         } else {
-            lines.push(`${here}Activity ${describeFound(this.found)} is not allowed here.`);
-            lines.push(`Allowed Activities: ${describeAllowed(this.expected)}.`);
-            const next = nextPhaseOf(phase);
-            if (next) lines.push(`Next phase: '${next}'.`);
-        }
+            // pipeline is complete, but the activity at this position is not allowed here
+            lines.push(`The Activity ${describeFound(this.found)} is not allowed in current Phase '${this.phase}'.`);
+            lines.push(`Use ${describeAllowed(this.expected)} during the current Phase to ${guidanceForPhase(this.phase!)}`);
 
-        const hint = guidanceForPhase(phase);
-        if (hint) lines.push(`Fix: ${hint}`);
+            // relate the found activity's phase(s) to the required phase we're stuck on, via protocol order
+            lines.push(this.relationToCurrentPhase(lines));
+        }
         return lines.join('\n');
+    }
+
+    /**
+     * Adds a line to the message that relates the found activity's phase(s) to the required phase we're stuck on, via protocol order. 
+     * If all found phases are before or after the required phase, a line is added to explain that.
+     */
+    private relationToCurrentPhase(lines: string[]) : string {
+        const requiredPos = phaseIndex(this.phase!);
+        const foundPositions = [...new Set(this.found.map(phaseOf))].map(phaseIndex);
+        if (foundPositions.every(pos => pos > requiredPos)) {
+            // all found activities are in a later phase than the required one
+            return `This Activity is only allowed after completing the required '${this.phase}' Phase.`;
+        } else if (foundPositions.every(pos => pos < requiredPos)) {
+            // all found activities are in an earlier phase than the required one
+            return `This Activity is only allowed before the '${this.phase}' Phase.`;
+        }
+        // mixed (an op valid both before and after, e.g. pre-/post-split cleaning): omit the line
+        return '';
     }
 }
 
@@ -100,19 +115,16 @@ export class DatasetMismatchError extends ValidationError {
         return new DatasetMismatchError(this.expected, this.found, this.activities, this.wrongReference, phase);
     }
 
-    formatMessage(phase: string): string {
-        const resolvedPhase = this.phase ?? phase;
-        const here = resolvedPhase ? `Current phase: '${resolvedPhase}'. ` : '';
-        const matched = getActivityOnPhaseMatch(this.activities ?? [], resolvedPhase);
-        const activity = matched.length ? `'${matched.join("', '")}'` : 'this activity';
+    formatMessage(): string {
+        const resolvedPhase = this.phase;
+        const matched = getActivityOnPhaseMatch(this.activities ?? [], resolvedPhase!);
+        const activity = matched.length ? `'${matched.join("', '")}'` : 'this Activity';
 
-        const lines = [
-            `${here}Activity ${activity} may only run on '${this.expected}', not '${this.found}' (risks data leakage).`,
-        ];
-        const next = nextPhaseOf(resolvedPhase);
-        if (next) lines.push(`Next phase: '${next}'.`);
-        lines.push(`Fix: use '${this.expected}' here (a quick fix is available to swap the dataset).`);
-        return lines.join('\n');
+        const message = 
+            `During Phase '${resolvedPhase}' the Activity ${activity} should only be performed on '${this.expected}'. \n` + 
+            `Change '${this.found}' to '${this.expected}' to avoid data leakage.`
+
+        return message;
     }
 }
 
@@ -133,7 +145,7 @@ export class InconsistentTransformationPresenceError extends InconsistentTransfo
         public readonly deviatingCount: number,
     ) { super(); }
 
-    formatMessage(_phase: string): string {
+    formatMessage(): string {
         return `Inconsistent preprocessing: '${this.callableName}' is ${this.describeCount(this.deviatingCount)} on ` +
                `'${this.deviatingDataset}' but ${this.describeCount(this.referenceCount)} on '${this.referenceDataset}'.\n` +
                `Fix: apply '${this.callableName}' the same number of times on every partition.`;
@@ -154,7 +166,7 @@ export class InconsistentTransformationOrderError extends InconsistentTransforma
         public readonly deviatingSequence: string[],
     ) { super(); }
 
-    formatMessage(_phase: string): string {
+    formatMessage(): string {
         const ref = this.referenceSequence.join(', ');
         const dev = this.deviatingSequence.join(', ');
         return `Inconsistent preprocessing order: '${this.deviatingDataset}' applies [${dev}] but ` +
@@ -172,7 +184,7 @@ export class InconsistentTransformationDataflowError extends InconsistentTransfo
         public readonly deviatingSuccessors: string[],
     ) { super(); }
 
-    formatMessage(_phase: string): string {
+    formatMessage(): string {
         return `Inconsistent data flow: '${this.callableName}' feeds ${this.formatSuccessors(this.deviatingSuccessors)} ` +
                `on '${this.deviatingDataset}' but ${this.formatSuccessors(this.referenceSuccessors)} on '${this.referenceDataset}'.\n` +
                `Fix: route the output of '${this.callableName}' the same way on every partition.`;
