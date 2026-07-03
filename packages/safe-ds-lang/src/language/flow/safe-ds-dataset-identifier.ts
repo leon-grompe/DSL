@@ -27,7 +27,7 @@ export class SafeDsDatasetIdentifier {
         const trainingSet = this.getTrainingSetPlaceholder(statements);
         if (!trainingSet) return false;
 
-        return !!this.findReferenceInForwardSliceOfTarget(call, trainingSet);
+        return Boolean(this.findReferenceInForwardSliceOfTarget(call, trainingSet));
     }
 
     /**
@@ -52,7 +52,7 @@ export class SafeDsDatasetIdentifier {
         const validationSet = this.getValidationSetPlaceholder(statements);
         if (!validationSet) return false;
 
-        return !!this.findReferenceInForwardSliceOfTarget(call, validationSet);
+        return Boolean(this.findReferenceInForwardSliceOfTarget(call, validationSet));
     }
 
     /**
@@ -77,7 +77,7 @@ export class SafeDsDatasetIdentifier {
         const testSet = this.getTestSetPlaceholder(statements);
         if (!testSet) return false;
 
-        return !!this.findReferenceInForwardSliceOfTarget(call, testSet);
+        return Boolean(this.findReferenceInForwardSliceOfTarget(call, testSet));
     }
 
     /**
