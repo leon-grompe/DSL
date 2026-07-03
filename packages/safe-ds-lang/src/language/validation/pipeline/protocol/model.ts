@@ -114,7 +114,14 @@ export class ElementaryBlock extends ProtocolBlock{
         if (!currentCall) return;
 
         const callable = services.helpers.NodeMapper.callToCallable(currentCall);
-        const detectedDataset = services.flow.DatasetIdentifier.identifyDataset(currentCall, context.statements);
+
+        // a segment-inlined call operates on the (partition-agnostic) segment parameter, so its dataset is
+        // ambiguous; attribute it to the partition of the segment call site's data argument instead.
+        const segmentCallSite = context.segmentCallSites[startIndex];
+        const identifier = services.flow.DatasetIdentifier;
+        const detectedDataset = segmentCallSite
+            ? identifier.datasetOfDataArguments(segmentCallSite, context.statements)
+            : identifier.identifyDataset(currentCall, context.statements);
 
         for (const observer of context.observers) {
             observer.onElementaryMatch({

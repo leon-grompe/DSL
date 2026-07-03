@@ -103,6 +103,32 @@ export class SafeDsDatasetIdentifier {
     }
 
     /**
+     * Returns the partition a call operates on, considering only its data-typed argument references
+     * (ignoring e.g. transformer arguments). Used to attribute a segment invocation to the partition of
+     * its data argument, since the segment body's own calls reference the partition-agnostic parameter,
+     * which is reachable from every partition the segment is invoked with. Checks Training → Validation →
+     * Test and returns the first match.
+     */
+    datasetOfDataArguments(call: SdsCall, statements: SdsStatement[]): DataSet | undefined {
+        for (const dataset of [DataSet.Training, DataSet.Validation, DataSet.Test]) {
+            const root = this.getRootPlaceholder(statements, dataset);
+            if (!root) continue;
+
+            const forwardSlice = this.services.flow.Slicer.computeForwardSliceFromVariable(root);
+            for (const argument of call.argumentList.arguments) {
+                const value = argument.value;
+                if (!isSdsReference(value)) continue;
+                const reference = value.target.ref;
+                // only data-typed args (the partition itself) count; transformer args are fit on the
+                // training set and would otherwise pull every invocation to Training by precedence
+                if (!isSdsPlaceholder(reference) || !this.services.flow.DataFlowAnalyzer.isData(reference)) continue;
+                if (forwardSlice.some((variable) => variable === reference)) return dataset;
+            }
+        }
+        return undefined;
+    }
+
+    /**
      * Returns the reference of 'call' that is derived from the given 'dataset' (its receiver-chain root
      * or a data-typed argument), or undefined if none. Unlike getDatasetOfCall this targets a specific
      * dataset, so it picks the right argument even when the call references several partitions.
