@@ -32,6 +32,6 @@ export class ValidationResult {
         }
         // the phase travels on the error itself (attached by the enclosing RepetitionBlock), so the
         // error's own formatMessage can resolve it; '' is just a fallback for errors without a phase.
-        return { message: error.formatMessage(''), severity: error.severity };
+        return { message: error.formatMessage(), severity: error.severity };
     }
 }
