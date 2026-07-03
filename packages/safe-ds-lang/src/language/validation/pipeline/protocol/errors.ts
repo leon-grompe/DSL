@@ -66,10 +66,11 @@ export class ProtocolViolation extends ValidationError {
         } else {
             // pipeline is complete, but the activity at this position is not allowed here
             lines.push(`The Activity ${describeFound(this.found)} is not allowed in current Phase '${this.phase}'.`);
-            lines.push(`Use ${describeAllowed(this.expected)} during the current Phase to ${guidanceForPhase(this.phase!)}`);
-
+            
             // relate the found activity's phase(s) to the required phase we're stuck on, via protocol order
             lines.push(this.relationToCurrentPhase(lines));
+            
+            lines.push(`Use ${describeAllowed(this.expected)} during the current Phase to ${guidanceForPhase(this.phase!)}`);
         }
         return lines.join('\n');
     }
