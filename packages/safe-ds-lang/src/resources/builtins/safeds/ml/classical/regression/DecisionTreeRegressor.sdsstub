@@ -19,7 +19,7 @@ from safeds.ml.classical.regression import Regressor
  * }
  */
 @PipelineActivity([
-    DSPipelineActivity.ModelingQCreating
+    DSPipelineActivity.ModelingQModelCreation
 ])
 class DecisionTreeRegressor(
     @PythonName("max_depth") maxDepth: Int? = null,
@@ -48,7 +48,7 @@ class DecisionTreeRegressor(
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
     @PipelineActivity([
-        DSPipelineActivity.TrainingQFitting
+        DSPipelineActivity.TrainingQModelFitting
     ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset

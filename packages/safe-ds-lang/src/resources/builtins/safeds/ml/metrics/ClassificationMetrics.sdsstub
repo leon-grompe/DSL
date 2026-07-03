@@ -19,8 +19,8 @@ class ClassificationMetrics {
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     static fun summarize(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -42,8 +42,8 @@ class ClassificationMetrics {
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     static fun accuracy(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -66,8 +66,8 @@ class ClassificationMetrics {
     @PythonName("f1_score")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     static fun f1Score(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -90,8 +90,8 @@ class ClassificationMetrics {
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     static fun precision(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -114,8 +114,8 @@ class ClassificationMetrics {
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     static fun recall(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,

@@ -20,7 +20,7 @@ from safeds.ml.classical.classification import Classifier
  * }
  */
 @PipelineActivity([
-    DSPipelineActivity.ModelingQCreating
+    DSPipelineActivity.ModelingQModelCreation
 ])
 class RandomForestClassifier(
     @PythonName("tree_count") const treeCount: Int = 100,
@@ -55,7 +55,7 @@ class RandomForestClassifier(
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalClassification)
     @PipelineActivity([
-        DSPipelineActivity.TrainingQFitting
+        DSPipelineActivity.TrainingQModelFitting
     ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset

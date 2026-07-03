@@ -27,7 +27,7 @@ from safeds.data.tabular.transformation import TableTransformer
  * }
  */
 @PipelineActivity([
-    DSPipelineActivity.DataProcessingQDataTransformer
+    DSPipelineActivity.DataProcessingQDataTransformation
 ])
 class SimpleImputer(
     strategy: SimpleImputer.Strategy,
@@ -85,7 +85,7 @@ class SimpleImputer(
      */
     @Pure
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQDataTransformer
+        DSPipelineActivity.DataProcessingQDataTransformation
     ])
     fun fit(
         table: Table
@@ -104,7 +104,7 @@ class SimpleImputer(
     @Pure
     @PythonName("fit_and_transform")
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQDataTransformer
+        DSPipelineActivity.DataProcessingQDataTransformation
     ])
     fun fitAndTransform(
         table: Table
@@ -112,7 +112,7 @@ class SimpleImputer(
 
     @Pure
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQDataTransformer
+        DSPipelineActivity.DataProcessingQDataTransformation
     ])
     fun transform(
         table: Table

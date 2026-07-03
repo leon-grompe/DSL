@@ -18,8 +18,8 @@ class RegressionMetrics {
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     static fun summarize(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -53,8 +53,8 @@ class RegressionMetrics {
     @PythonName("coefficient_of_determination")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     static fun coefficientOfDetermination(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -77,8 +77,8 @@ class RegressionMetrics {
     @PythonName("mean_absolute_error")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     static fun meanAbsoluteError(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -105,8 +105,8 @@ class RegressionMetrics {
     @PythonName("mean_directional_accuracy")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     static fun meanDirectionalAccuracy(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -131,8 +131,8 @@ class RegressionMetrics {
     @PythonName("mean_squared_error")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     static fun meanSquaredError(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -155,8 +155,8 @@ class RegressionMetrics {
     @PythonName("median_absolute_deviation")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     static fun medianAbsoluteDeviation(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,

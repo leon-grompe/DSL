@@ -106,7 +106,7 @@ class Table(
     @PythonName("from_csv_file")
     @Category(DataScienceCategory.DataImport)
     @PipelineActivity([
-        DSPipelineActivity.DataAcquisitionQLoading
+        DSPipelineActivity.DataAcquisitionQDataLoading
     ])
     static fun fromCsvFile(
         path: String,
@@ -130,7 +130,7 @@ class Table(
     @PythonName("from_dict")
     @Category(DataScienceCategory.DataImport)
     @PipelineActivity([
-        DSPipelineActivity.DataAcquisitionQLoading
+        DSPipelineActivity.DataAcquisitionQDataLoading
     ])
     static fun fromMap(
         data: Map<String, List<Any>>
@@ -152,7 +152,7 @@ class Table(
     @PythonName("from_json_file")
     @Category(DataScienceCategory.DataImport)
     @PipelineActivity([
-        DSPipelineActivity.DataAcquisitionQLoading
+        DSPipelineActivity.DataAcquisitionQDataLoading
     ])
     static fun fromJsonFile(
         path: String
@@ -174,7 +174,7 @@ class Table(
     @PythonName("from_parquet_file")
     @Category(DataScienceCategory.DataImport)
     @PipelineActivity([
-        DSPipelineActivity.DataAcquisitionQLoading
+        DSPipelineActivity.DataAcquisitionQDataLoading
     ])
     static fun fromParquetFile(
         path: String
@@ -794,6 +794,7 @@ class Table(
     @PythonName("shuffle_rows")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
+        DSPipelineActivity.DataAcquisitionQUtilities,
         DSPipelineActivity.DataPreparationQUtilities,
         DSPipelineActivity.DataProcessingQUtilities,
         DSPipelineActivity.FeatureEngineeringQUtilities
@@ -825,6 +826,7 @@ class Table(
     @PythonName("slice_rows")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
+        DSPipelineActivity.DataAcquisitionQUtilities,
         DSPipelineActivity.DataPreparationQUtilities,
         DSPipelineActivity.DataProcessingQUtilities,
         DSPipelineActivity.FeatureEngineeringQUtilities
@@ -854,6 +856,7 @@ class Table(
     @PythonName("sort_rows")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
+        DSPipelineActivity.DataAcquisitionQUtilities,
         DSPipelineActivity.DataPreparationQUtilities,
         DSPipelineActivity.DataProcessingQUtilities,
         DSPipelineActivity.FeatureEngineeringQUtilities
@@ -883,6 +886,7 @@ class Table(
     @PythonName("sort_rows_by_column")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
+        DSPipelineActivity.DataAcquisitionQUtilities,
         DSPipelineActivity.DataPreparationQUtilities,
         DSPipelineActivity.DataProcessingQUtilities,
         DSPipelineActivity.FeatureEngineeringQUtilities
@@ -921,7 +925,7 @@ class Table(
     @PythonName("split_rows")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataPartitioningQSplit
+        DSPipelineActivity.DataPartitioningQDataSplitting
     ])
     fun splitRows(
         @PythonName("percentage_in_first") percentageInFirst: Float,
@@ -978,8 +982,9 @@ class Table(
     @PythonName("add_tables_as_rows")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
+        DSPipelineActivity.DataAcquisitionQUtilities,
         DSPipelineActivity.DataPreparationQUtilities,
-        DSPipelineActivity.DataProcessingQUtilities
+        DSPipelineActivity.DataProcessingQUtilities,
     ])
     fun addTablesAsRows(
         others: union<List<Table>, Table>
@@ -1008,7 +1013,7 @@ class Table(
     @PythonName("inverse_transform_table")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQDataTransformer,
+        DSPipelineActivity.DataProcessingQDataTransformation,
         DSPipelineActivity.InterpretationQPostProcessing
     ])
     fun inverseTransformTable(
@@ -1091,8 +1096,8 @@ class Table(
     @PythonName("transform_table")
     @Category(DataScienceCategory.DataProcessingQTable)
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQDataTransformer,
-        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+        DSPipelineActivity.DataProcessingQDataTransformation,
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
     ])
     fun transformTable(
         @PythonName("fitted_transformer") fittedTransformer: TableTransformer

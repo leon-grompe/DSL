@@ -12,7 +12,7 @@ from safeds.data.tabular.transformation import TableTransformer
  */
 
 @PipelineActivity([
-    DSPipelineActivity.DataProcessingQDataTransformer
+    DSPipelineActivity.DataProcessingQDataTransformation
 ])
 class KNearestNeighborsImputer(
     @PythonName("neighbor_count") neighborCount: Int,
@@ -40,7 +40,7 @@ class KNearestNeighborsImputer(
     @Pure
     @Category(DataScienceCategory.DataProcessingQTransformer)
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQDataTransformer
+        DSPipelineActivity.DataProcessingQDataTransformation
     ])
     fun fit(
         table: Table
@@ -60,7 +60,7 @@ class KNearestNeighborsImputer(
     @PythonName("fit_and_transform")
     @Category(DataScienceCategory.DataProcessingQTransformer)
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQDataTransformer
+        DSPipelineActivity.DataProcessingQDataTransformation
     ])
     fun fitAndTransform(
         table: Table
@@ -69,7 +69,7 @@ class KNearestNeighborsImputer(
     @Pure
     @Category(DataScienceCategory.DataProcessingQTransformer)
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQDataTransformer
+        DSPipelineActivity.DataProcessingQDataTransformation
     ])
     fun transform(
         table: Table

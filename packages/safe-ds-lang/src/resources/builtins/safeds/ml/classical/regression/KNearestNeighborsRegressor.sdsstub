@@ -19,7 +19,7 @@ from safeds.ml.classical.regression import Regressor
  * }
  */
 @PipelineActivity([
-    DSPipelineActivity.ModelingQCreating
+    DSPipelineActivity.ModelingQModelCreation
 ])
 class KNearestNeighborsRegressor(
     @PythonName("neighbor_count") const neighborCount: Int
@@ -43,7 +43,7 @@ class KNearestNeighborsRegressor(
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
     @PipelineActivity([
-        DSPipelineActivity.TrainingQFitting
+        DSPipelineActivity.TrainingQModelFitting
     ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset

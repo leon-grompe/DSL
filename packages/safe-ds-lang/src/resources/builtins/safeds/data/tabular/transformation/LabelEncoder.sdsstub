@@ -21,7 +21,7 @@ from safeds.data.tabular.transformation import InvertibleTableTransformer
  * }
  */
 @PipelineActivity([
-    DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+    DSPipelineActivity.FeatureEngineeringQFeatureTransformation
 ])
 class LabelEncoder(
     selector: union<List<String>, String, Nothing?> = null,
@@ -43,7 +43,7 @@ class LabelEncoder(
      */
     @Pure
     @PipelineActivity([
-        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
     ])
     fun fit(
         table: Table
@@ -62,7 +62,7 @@ class LabelEncoder(
     @Pure
     @PythonName("fit_and_transform")
     @PipelineActivity([
-        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
     ])
     fun fitAndTransform(
         table: Table
@@ -70,7 +70,7 @@ class LabelEncoder(
 
     @Pure
     @PipelineActivity([
-        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
     ])
     fun transform(
         table: Table

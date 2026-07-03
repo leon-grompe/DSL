@@ -7,8 +7,9 @@ import { DSPipelinePhase } from "./dsPipelinePhase.js";
  */
 export enum DSPipelineActivity {
     // Acquisition
-    DataAcquisitionQLoading              = 'DataAcquisitionQLoading',
+    DataAcquisitionQDataLoading          = 'DataAcquisitionQDataLoading',
     DataAcquisitionQDatatypeConstruction = 'DataAcquisitionQDatatypeConstruction',
+    DataAcquisitionQUtilities            = 'DataAcquisitionQUtilities',
 
     // Preparation (pre-split)
     DataPreparationQExploration          = 'DataPreparationQExploration',
@@ -17,36 +18,40 @@ export enum DSPipelineActivity {
     DataPreparationQUtilities            = 'DataPreparationQUtilities',
 
     // Partitioning
-    DataPartitioningQSplit               = 'DataPartitioningQSplit',
+    DataPartitioningQDatasetSplitting    = 'DataPartitioningQDatasetSplitting',
 
     // Processing (post-split)
     DataProcessingQExploration           = 'DataProcessingQExploration',
     DataProcessingQPostSplitCleaning     = 'DataProcessingQPostSplitCleaning',
     DataProcessingQSchemaModification    = 'DataProcessingQSchemaModification',
     DataProcessingQUtilities             = 'DataProcessingQUtilities',
-    DataProcessingQDataTransformer       = 'DataProcessingQDataTransformer',
+    DataProcessingQDataTransformation    = 'DataProcessingQDataTransformation',
     DataProcessingQAugmentation          = 'DataProcessingQAugmentation',
 
     // Feature Engineering
-    FeatureEngineeringQDatatypeConstruction = 'FeatureEngineeringQDatatypeConstruction',
-    FeatureEngineeringQSchemaModification   = 'FeatureEngineeringQSchemaModification',
-    FeatureEngineeringQUtilities            = 'FeatureEngineeringQUtilities',
-    FeatureEngineeringQEngineering          = 'FeatureEngineeringQEngineering',
-    FeatureEngineeringQFeatureTransformer   = 'FeatureEngineeringQFeatureTransformer',
+    FeatureEngineeringQDatatypeConstruction     = 'FeatureEngineeringQDatatypeConstruction',
+    FeatureEngineeringQSchemaModification       = 'FeatureEngineeringQSchemaModification',
+    FeatureEngineeringQUtilities                = 'FeatureEngineeringQUtilities',
+    FeatureEngineeringQEngineering              = 'FeatureEngineeringQEngineering',
+    FeatureEngineeringQFeatureTransformation    = 'FeatureEngineeringQFeatureTransformation',
 
     // Feature Selection
     FeatureSelectionQSchemaModification       = 'FeatureSelectionQSchemaModification',
     FeatureSelectionQTabularDatasetConversion = 'FeatureSelectionQTabularDatasetConversion',
 
     // Model Building
-    ModelingQCreating             = 'ModelingQCreating',
-    TrainingQFitting              = 'TrainingQFitting',
+    ModelingQModelCreation        = 'ModelingQModelCreation',
+    TrainingQModelFitting         = 'TrainingQModelFitting',
 
-    // Post-Modeling
+    // Evaluation
     EvaluationQPrediction         = 'EvaluationQPrediction',
+    EvaluationQMetricCalculation  = 'EvaluationQMetricCalculation',
+    
+    // Testing
     TestingQPrediction            = 'TestingQPrediction',
-    EvaluationQMetric             = 'EvaluationQMetric',
-    TestingQMetric                = 'TestingQMetric',
+    TestingQMetricCalculation     = 'TestingQMetricCalculation',
+    
+    // Interpretation
     InterpretationQPostProcessing = 'InterpretationQPostProcessing',
     InterpretationQVisualization  = 'InterpretationQVisualization',
 

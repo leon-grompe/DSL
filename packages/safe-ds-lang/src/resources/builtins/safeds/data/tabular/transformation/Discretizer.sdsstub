@@ -18,7 +18,7 @@ from safeds.data.tabular.transformation import TableTransformer
  * }
  */
 @PipelineActivity([
-    DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+    DSPipelineActivity.FeatureEngineeringQFeatureTransformation
 ])
 class Discretizer(
     @PythonName("bin_count") const binCount: Int = 5,
@@ -42,7 +42,7 @@ class Discretizer(
      */
     @Pure
     @PipelineActivity([
-        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
     ])
     fun fit(
         table: Table
@@ -61,7 +61,7 @@ class Discretizer(
     @Pure
     @PythonName("fit_and_transform")
     @PipelineActivity([
-        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
     ])
     fun fitAndTransform(
         table: Table
@@ -69,7 +69,7 @@ class Discretizer(
 
     @Pure
     @PipelineActivity([
-        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
     ])
     fun transform(
         table: Table

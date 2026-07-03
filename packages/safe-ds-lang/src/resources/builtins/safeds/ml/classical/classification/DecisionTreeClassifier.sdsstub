@@ -18,7 +18,7 @@ from safeds.ml.classical.classification import Classifier
  * }
  */
 @PipelineActivity([
-    DSPipelineActivity.ModelingQCreating
+    DSPipelineActivity.ModelingQModelCreation
 ])
 class DecisionTreeClassifier(
     @PythonName("max_depth") maxDepth: Int? = null,
@@ -47,7 +47,7 @@ class DecisionTreeClassifier(
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalClassification)
     @PipelineActivity([
-        DSPipelineActivity.TrainingQFitting
+        DSPipelineActivity.TrainingQModelFitting
     ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset

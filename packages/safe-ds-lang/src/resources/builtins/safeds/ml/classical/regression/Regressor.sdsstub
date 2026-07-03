@@ -20,7 +20,7 @@ class Regressor sub SupervisedModel {
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
     @PipelineActivity([
-        DSPipelineActivity.TrainingQFitting
+        DSPipelineActivity.TrainingQModelFitting
     ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset
@@ -44,8 +44,8 @@ class Regressor sub SupervisedModel {
     @PythonName("summarize_metrics")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     fun summarizeMetrics(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>
@@ -80,8 +80,8 @@ class Regressor sub SupervisedModel {
     @PythonName("coefficient_of_determination")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     fun coefficientOfDetermination(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>
@@ -105,8 +105,8 @@ class Regressor sub SupervisedModel {
     @PythonName("mean_absolute_error")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     fun meanAbsoluteError(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>
@@ -134,8 +134,8 @@ class Regressor sub SupervisedModel {
     @PythonName("mean_directional_accuracy")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     fun meanDirectionalAccuracy(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>
@@ -161,8 +161,8 @@ class Regressor sub SupervisedModel {
     @PythonName("mean_squared_error")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     fun meanSquaredError(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>
@@ -186,8 +186,8 @@ class Regressor sub SupervisedModel {
     @PythonName("median_absolute_deviation")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
     @PipelineActivity([
-        DSPipelineActivity.EvaluationQMetric,
-        DSPipelineActivity.TestingQMetric
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
     ])
     fun medianAbsoluteDeviation(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>

@@ -15,7 +15,7 @@ from safeds.ml.nn.layers import Layer
  */
 @Experimental
 @PipelineActivity([
-    DSPipelineActivity.ModelingQCreating
+    DSPipelineActivity.ModelingQModelCreation
 ])
 class NeuralNetworkClassifier<D, in F>(
     @PythonName("input_conversion") inputConversion: InputConversion<D, F>,
@@ -36,7 +36,7 @@ class NeuralNetworkClassifier<D, in F>(
     @Pure
     @PythonName("from_pretrained_model")
     @PipelineActivity([
-        DSPipelineActivity.ModelingQCreating
+        DSPipelineActivity.ModelingQModelCreation
     ])
     static fun fromPretrainedModel(
         @PythonName("huggingface_repo") huggingfaceRepo: String
@@ -65,7 +65,7 @@ class NeuralNetworkClassifier<D, in F>(
      */
     @Pure
     @PipelineActivity([
-        DSPipelineActivity.TrainingQFitting
+        DSPipelineActivity.TrainingQModelFitting
     ])
     fun fit(
         @PythonName("train_data") trainData: D,

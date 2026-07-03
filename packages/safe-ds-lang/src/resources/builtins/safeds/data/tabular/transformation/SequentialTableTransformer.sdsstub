@@ -9,8 +9,8 @@ from safeds.data.tabular.transformation import InvertibleTableTransformer
  * @param transformers The list of transformers used to transform the table. Used in the order as they are supplied in the list.
  */
 @PipelineActivity([
-    DSPipelineActivity.DataProcessingQDataTransformer,
-    DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+    DSPipelineActivity.DataProcessingQDataTransformation,
+    DSPipelineActivity.FeatureEngineeringQFeatureTransformation
 ])
 class SequentialTableTransformer(
     transformers: List<TableTransformer>
@@ -24,8 +24,8 @@ class SequentialTableTransformer(
      */
     @Pure
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQDataTransformer,
-        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+        DSPipelineActivity.DataProcessingQDataTransformation,
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
     ])
     fun fit(
         table: Table
@@ -44,8 +44,8 @@ class SequentialTableTransformer(
     @Pure
     @PythonName("fit_and_transform")
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQDataTransformer,
-        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+        DSPipelineActivity.DataProcessingQDataTransformation,
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
     ])
     fun fitAndTransform(
         table: Table
@@ -53,8 +53,8 @@ class SequentialTableTransformer(
 
     @Pure
     @PipelineActivity([
-        DSPipelineActivity.DataProcessingQDataTransformer,
-        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+        DSPipelineActivity.DataProcessingQDataTransformation,
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
     ])
     fun transform(
         table: Table

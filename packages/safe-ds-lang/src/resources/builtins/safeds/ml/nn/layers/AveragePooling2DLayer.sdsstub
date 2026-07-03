@@ -13,7 +13,7 @@ from safeds.ml.nn.typing import ModelImageSize
 @Experimental
 @Category(DataScienceCategory.ModelingQNeuralNetwork)
 @PipelineActivity([
-    DSPipelineActivity.ModelingQCreating
+    DSPipelineActivity.ModelingQModelCreation
 ])
 class AveragePooling2DLayer(
     @PythonName("kernel_size") kernelSize: Int,

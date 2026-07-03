@@ -43,7 +43,7 @@ from safeds.data.tabular.transformation import InvertibleTableTransformer
  * }
  */
 @PipelineActivity([
-    DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+    DSPipelineActivity.FeatureEngineeringQFeatureTransformation
 ])
 class OneHotEncoder(
     selector: union<List<String>, String, Nothing?> = null,
@@ -66,7 +66,7 @@ class OneHotEncoder(
     @Pure
     @Category(DataScienceCategory.DataProcessingQTransformer)
     @PipelineActivity([
-        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
     ])
     fun fit(
         table: Table
@@ -86,7 +86,7 @@ class OneHotEncoder(
     @PythonName("fit_and_transform")
     @Category(DataScienceCategory.DataProcessingQTransformer)
     @PipelineActivity([
-        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
     ])
     fun fitAndTransform(
         table: Table
@@ -95,7 +95,7 @@ class OneHotEncoder(
     @Pure
     @Category(DataScienceCategory.DataProcessingQTransformer)
     @PipelineActivity([
-        DSPipelineActivity.FeatureEngineeringQFeatureTransformer
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
     ])
     fun transform(
         table: Table

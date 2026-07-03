@@ -96,8 +96,9 @@ enum DSPipelineActivity {
     /**
      * Acquire data: load from external sources, or build a datatype by hand.
      */
-    DataAcquisitionQLoading
+    DataAcquisitionQDataLoading
     DataAcquisitionQDatatypeConstruction
+    DataAcquisitionQUtilities
 
     /**
      * Prepare data before the split: deterministic cleaning, schema edits, EDA, helpers.
@@ -110,7 +111,7 @@ enum DSPipelineActivity {
     /**
      * Partition data into training, validation and test sets.
      */
-    DataPartitioningQSplit
+    DataPartitioningQDataSplitting
 
     /**
      * Process data after the split. Exploration, post-split cleaning and augmentation are training-only.
@@ -119,7 +120,7 @@ enum DSPipelineActivity {
     DataProcessingQPostSplitCleaning
     DataProcessingQSchemaModification
     DataProcessingQUtilities
-    DataProcessingQDataTransformer
+    DataProcessingQDataTransformation
     DataProcessingQAugmentation
 
 // Model Building Layer
@@ -130,7 +131,7 @@ enum DSPipelineActivity {
     FeatureEngineeringQSchemaModification
     FeatureEngineeringQUtilities
     FeatureEngineeringQEngineering
-    FeatureEngineeringQFeatureTransformer
+    FeatureEngineeringQFeatureTransformation
 
     /**
      * Select features and assemble the dataset for your model.
@@ -141,20 +142,21 @@ enum DSPipelineActivity {
     /**
      * Configure a model.
      */
-    ModelingQCreating
+    ModelingQModelCreation
 
     /**
      * Train the model on the training set.
      */
-    TrainingQFitting
+    TrainingQModelFitting
 
     /**
-     * Predict and score on the validation set, then once on the test set.
+     * Predict and score on the validation set, then once on the test set to assess generality.
      */
     EvaluationQPrediction
+    EvaluationQMetricCalculation
+
     TestingQPrediction
-    EvaluationQMetric
-    TestingQMetric
+    TestingQMetricCalculation
 
     /**
      * Interpret results: inverse-transform predictions back to original units, visualize the model.

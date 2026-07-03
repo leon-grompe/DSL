@@ -12,7 +12,7 @@ from safeds.data.labeled.containers import TabularDataset
  */
 @Experimental
 @PipelineActivity([
-    DSPipelineActivity.ModelingQCreating
+    DSPipelineActivity.ModelingQModelCreation
 ])
 class BaselineClassifier(
     @PythonName("extended_search") extendedSearch: Boolean = false
@@ -33,7 +33,7 @@ class BaselineClassifier(
      */
     @Pure
     @PipelineActivity([
-        DSPipelineActivity.TrainingQFitting
+        DSPipelineActivity.TrainingQModelFitting
     ])
     fun fit(
         @PythonName("train_data") trainData: TabularDataset

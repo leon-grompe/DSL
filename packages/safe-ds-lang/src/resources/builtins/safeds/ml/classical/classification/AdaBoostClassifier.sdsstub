@@ -22,7 +22,7 @@ from safeds.ml.classical.classification import Classifier
  * }
  */
 @PipelineActivity([
-    DSPipelineActivity.ModelingQCreating
+    DSPipelineActivity.ModelingQModelCreation
 ])
 class AdaBoostClassifier(
     learner: Classifier = DecisionTreeClassifier(),
@@ -57,7 +57,7 @@ class AdaBoostClassifier(
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalClassification)
     @PipelineActivity([
-        DSPipelineActivity.TrainingQFitting
+        DSPipelineActivity.TrainingQModelFitting
     ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset

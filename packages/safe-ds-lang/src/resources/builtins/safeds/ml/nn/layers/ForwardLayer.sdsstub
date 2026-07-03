@@ -11,7 +11,7 @@ from safeds.ml.nn.layers import Layer
 @Experimental
 @Category(DataScienceCategory.ModelingQNeuralNetwork)
 @PipelineActivity([
-    DSPipelineActivity.ModelingQCreating
+    DSPipelineActivity.ModelingQModelCreation
 ])
 class ForwardLayer(
     @PythonName("neuron_count") neuronCount: Int,
