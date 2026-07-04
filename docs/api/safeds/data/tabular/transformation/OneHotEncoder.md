@@ -190,9 +190,13 @@ Column order and types may differ from the original table. Likewise, some values
 
 ??? quote "Stub code in `InvertibleTableTransformer.sdsstub`"
 
-    ```sds linenums="51"
+    ```sds linenums="57"
     @Pure
     @PythonName("inverse_transform")
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation,
+        DSPipelineActivity.InterpretationQPostProcessing
+    ])
     fun inverseTransform(
         @PythonName("transformed_table") transformedTable: Table
     ) -> originalTable: Table

@@ -20,6 +20,7 @@ navigational elements to reach one of the following sections:
 |----------------------------------------------------------|--------------------------------------------------------------------------------------------------|
 | [Getting Started](getting-started/installation.md)       | Learn how to configure a development environment for Safe-DS and write your first program.       |
 | [Language Reference](pipeline-language/README.md)        | Learn about the concepts of the Safe-DS language.                                                |
+| [Best Practices](best-practices/README.md)               | Learn how to structure a pipeline to avoid data science pitfalls like data leakage.              |
 | [API Reference][safeds.data.image.containers.Image]      | Learn about the API elements that you can use in Safe-DS programs, like classes and functions.   |
 | [Integrating New Libraries](stub-language/README.md)     | Learn how to integrate new libraries into Safe-DS (:warning: documentation is work in progress). |
 | [Development](development/testing/call-graph-testing.md) | Learn about various aspects of developing Safe-DS itself.                                        |
