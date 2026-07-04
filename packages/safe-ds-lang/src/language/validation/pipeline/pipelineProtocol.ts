@@ -6,7 +6,7 @@ import { DSPipelineActivity } from './protocol/dsPipelineActivity.js';
 import { DSPipelinePhase } from './protocol/dsPipelinePhase.js';
 import { behaviourProtocol } from './behaviourProtocol.js';
 import { ConsistentTransformationObserver, ProtocolObserver } from './protocol/observer.js';
-import { DatasetMismatchError, InconsistentTransformationPresenceError, InconsistentTransformationOrderError, InconsistentTransformationDataflowError } from './protocol/errors.js';
+import { DatasetMismatchError, InconsistentTransformationPresenceError, InconsistentTransformationOrderError, InconsistentTransformationDataflowError, InconsistentTransformationArgumentsError } from './protocol/errors.js';
 import { ValidationResult } from './protocol/validationResult.js';
 
 // protocol error codes
@@ -19,6 +19,7 @@ export const CODE_PIPELINE_OBSERVER = 'pipeline/observer-error';
 export const CODE_INCONSISTENT_TRANSFORMATION_PRESENCE  = 'pipeline/inconsistent-transformation-presence';
 export const CODE_INCONSISTENT_TRANSFORMATION_ORDER     = 'pipeline/inconsistent-transformation-order';
 export const CODE_INCONSISTENT_TRANSFORMATION_DATAFLOW  = 'pipeline/inconsistent-transformation-dataflow';
+export const CODE_INCONSISTENT_TRANSFORMATION_ARGUMENTS = 'pipeline/inconsistent-transformation-arguments';
 
 export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
 
@@ -215,6 +216,8 @@ const generateObserverValidation = (
                 validationCode = CODE_INCONSISTENT_TRANSFORMATION_ORDER;
             } else if (error instanceof InconsistentTransformationDataflowError) {
                 validationCode = CODE_INCONSISTENT_TRANSFORMATION_DATAFLOW;
+            } else if (error instanceof InconsistentTransformationArgumentsError) {
+                validationCode = CODE_INCONSISTENT_TRANSFORMATION_ARGUMENTS;
             }
             
             const msg = error.formatMessage();

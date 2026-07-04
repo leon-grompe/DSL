@@ -197,6 +197,24 @@ export class InconsistentTransformationDataflowError extends InconsistentTransfo
     }
 }
 
+export class InconsistentTransformationArgumentsError extends InconsistentTransformationError {
+    constructor(
+        public readonly callableName: string,
+        public readonly referenceDataset: DataSet,
+        public readonly deviatingDataset: DataSet,
+        public readonly parameterName: string,
+        public readonly referenceValue: string,
+        public readonly deviatingValue: string,
+    ) { super(); }
+
+    formatMessage(): string {
+        return `Inconsistent preprocessing arguments: '${this.callableName}' uses ` +
+               `'${this.parameterName} = ${this.deviatingValue}' on '${this.deviatingDataset}' but ` +
+               `'${this.parameterName} = ${this.referenceValue}' on '${this.referenceDataset}'.\n` +
+               `Fix: use the same arguments on every partition.`;
+    }
+}
+
 // ---------------------------------------------------------------------------
 // String helpers (internal — used by error classes above)
 // ---------------------------------------------------------------------------
