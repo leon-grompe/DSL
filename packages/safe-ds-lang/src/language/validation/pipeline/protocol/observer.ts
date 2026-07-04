@@ -11,13 +11,15 @@ import { Activity } from './model.js';
 import { DSPipelineActivity } from './dsPipelineActivity.js';
 import { DSPipelinePhase } from './dsPipelinePhase.js';
 import {
+    ValidationError,
+} from './protocolErrors.js';
+import {
     InconsistentTransformationPresenceError,
     InconsistentTransformationOrderError,
     InconsistentTransformationDataflowError,
     InconsistentTransformationArgumentsError,
-    SingleTestingAdvice,
-    ValidationError,
-} from './errors.js';
+    SingleTestingAdvice
+} from './observerErrors.js';
 
 /**
  * Provides information to the observer that it uses for checks. 

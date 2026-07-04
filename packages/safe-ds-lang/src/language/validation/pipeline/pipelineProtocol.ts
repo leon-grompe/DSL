@@ -6,7 +6,8 @@ import { DSPipelineActivity } from './protocol/dsPipelineActivity.js';
 import { DSPipelinePhase } from './protocol/dsPipelinePhase.js';
 import { behaviourProtocol } from './behaviourProtocol.js';
 import { ConsistentTransformationObserver, SingleTestingObserver, ProtocolObserver } from './protocol/observer.js';
-import { DatasetMismatchError, InconsistentTransformationPresenceError, InconsistentTransformationOrderError, InconsistentTransformationDataflowError, InconsistentTransformationArgumentsError, SingleTestingAdvice } from './protocol/errors.js';
+import { DatasetMismatchError } from './protocol/protocolErrors.js';
+import { InconsistentTransformationPresenceError, InconsistentTransformationOrderError, InconsistentTransformationDataflowError, InconsistentTransformationArgumentsError, SingleTestingAdvice } from './protocol/observerErrors.js';
 import { ValidationResult } from './protocol/validationResult.js';
 
 // protocol error codes

@@ -1,4 +1,4 @@
-import { ValidationError, ValidationMessage } from './errors.js';
+import { ValidationError } from './protocolErrors.js';
 
 /**
  * Represents the result of the behaviour protocol validation.
@@ -34,4 +34,9 @@ export class ValidationResult {
         // error's own formatMessage can resolve it; '' is just a fallback for errors without a phase.
         return { message: error.formatMessage(), severity: error.severity };
     }
+}
+
+export interface ValidationMessage {
+    message: string;
+    severity: 'error' | 'warning' | 'info';
 }

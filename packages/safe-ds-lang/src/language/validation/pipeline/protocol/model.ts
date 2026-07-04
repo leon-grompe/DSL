@@ -1,4 +1,4 @@
-import { ProtocolViolation, DatasetMismatchError } from './errors.js'
+import { ProtocolViolation, DatasetMismatchError } from './protocolErrors.js'
 import { ValidationResult } from './validationResult.js';
 import { ProtocolObserver } from './observer.js';
 import { SafeDsServices } from '../../../safe-ds-module.js';
