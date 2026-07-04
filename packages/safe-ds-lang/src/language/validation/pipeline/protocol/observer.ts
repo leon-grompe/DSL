@@ -1,7 +1,7 @@
 import { AstNode, AstUtils } from 'langium';
 import {
     isSdsAssignment, isSdsCall, isSdsClass, isSdsFunction, isSdsMemberAccess, isSdsPlaceholder, isSdsReference,
-    SdsCall, SdsCallable, SdsClass, SdsPlaceholder, SdsStatement,
+    isSdsStatement, SdsCall, SdsCallable, SdsClass, SdsPlaceholder, SdsStatement,
 } from '../../../generated/ast.js';
 import { ClassType } from '../../../typing/model.js';
 import { DataSet } from '../../../flow/safe-ds-dataset-identifier.js';
@@ -9,11 +9,13 @@ import { SafeDsServices } from '../../../safe-ds-module.js';
 import { getAssignees, getParameters } from '../../../helpers/nodeProperties.js';
 import { Activity } from './model.js';
 import { DSPipelineActivity } from './dsPipelineActivity.js';
+import { DSPipelinePhase } from './dsPipelinePhase.js';
 import {
     InconsistentTransformationPresenceError,
     InconsistentTransformationOrderError,
     InconsistentTransformationDataflowError,
     InconsistentTransformationArgumentsError,
+    SingleTestingAdvice,
     ValidationError,
 } from './errors.js';
 
@@ -617,4 +619,33 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
         return this.modelFeedingStatements;
     }
 
+}
+
+/**
+ * Observes ElementaryBlock matches during protocol validation and reports an informational advice on
+ * every statement of the testing phase: the test set should be used only once, for a single final
+ * estimate of the model's performance on unseen data. Hyperparameter optimization belongs on the
+ * validation set. The advice is emitted once per statement, even when a statement contains several
+ * matched calls.
+ */
+export class SingleTestingObserver implements ProtocolObserver {
+    // one representative call per testing-phase statement, so each statement is reported exactly once
+    private readonly testingStatements = new Map<SdsStatement, SdsCall>();
+
+    onElementaryMatch(info: MatchInfo): void {
+        // only statements the protocol attributed to the testing phase are of interest
+        if (info.phaseName !== DSPipelinePhase.Testing) return;
+
+        const statement = AstUtils.getContainerOfType(info.call, isSdsStatement);
+        if (!statement) return;
+        // keep the first matched call of the statement as the anchor for the diagnostic
+        if (!this.testingStatements.has(statement)) this.testingStatements.set(statement, info.call);
+    }
+
+    finalize(): ObserverError[] {
+        return [...this.testingStatements.values()].map(call => ({
+            error: new SingleTestingAdvice(),
+            call,
+        }));
+    }
 }

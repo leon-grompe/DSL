@@ -215,6 +215,20 @@ export class InconsistentTransformationArgumentsError extends InconsistentTransf
     }
 }
 
+/**
+ * Informational advice reported on every statement of the testing phase: the test set should be used
+ * only once, for a single final estimate of the model's performance on unseen data. Repeatedly testing
+ * (e.g. to tune the model) leaks the test set; hyperparameter optimization belongs on the validation set.
+ */
+export class SingleTestingAdvice extends ValidationError {
+    readonly severity = 'info' as const;
+
+    formatMessage(): string {
+        return `Testing should only be done once, as a final estimate of the model's performance on unseen data.\n` +
+               `Use the validation set for hyperparameter optimization instead.`;
+    }
+}
+
 // ---------------------------------------------------------------------------
 // String helpers (internal — used by error classes above)
 // ---------------------------------------------------------------------------

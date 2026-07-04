@@ -5,8 +5,8 @@ import { Activity, ValidationContext } from './protocol/model.js';
 import { DSPipelineActivity } from './protocol/dsPipelineActivity.js';
 import { DSPipelinePhase } from './protocol/dsPipelinePhase.js';
 import { behaviourProtocol } from './behaviourProtocol.js';
-import { ConsistentTransformationObserver, ProtocolObserver } from './protocol/observer.js';
-import { DatasetMismatchError, InconsistentTransformationPresenceError, InconsistentTransformationOrderError, InconsistentTransformationDataflowError, InconsistentTransformationArgumentsError } from './protocol/errors.js';
+import { ConsistentTransformationObserver, SingleTestingObserver, ProtocolObserver } from './protocol/observer.js';
+import { DatasetMismatchError, InconsistentTransformationPresenceError, InconsistentTransformationOrderError, InconsistentTransformationDataflowError, InconsistentTransformationArgumentsError, SingleTestingAdvice } from './protocol/errors.js';
 import { ValidationResult } from './protocol/validationResult.js';
 
 // protocol error codes
@@ -20,6 +20,7 @@ export const CODE_INCONSISTENT_TRANSFORMATION_PRESENCE  = 'pipeline/inconsistent
 export const CODE_INCONSISTENT_TRANSFORMATION_ORDER     = 'pipeline/inconsistent-transformation-order';
 export const CODE_INCONSISTENT_TRANSFORMATION_DATAFLOW  = 'pipeline/inconsistent-transformation-dataflow';
 export const CODE_INCONSISTENT_TRANSFORMATION_ARGUMENTS = 'pipeline/inconsistent-transformation-arguments';
+export const CODE_SINGLE_TESTING                        = 'pipeline/single-testing';
 
 export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
 
@@ -41,6 +42,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
                     DSPipelineActivity.FeatureEngineeringQUtilities,
                 ],
             ),
+            new SingleTestingObserver(),
         ];
 
         // create validation context
@@ -218,6 +220,8 @@ const generateObserverValidation = (
                 validationCode = CODE_INCONSISTENT_TRANSFORMATION_DATAFLOW;
             } else if (error instanceof InconsistentTransformationArgumentsError) {
                 validationCode = CODE_INCONSISTENT_TRANSFORMATION_ARGUMENTS;
+            } else if (error instanceof SingleTestingAdvice) {
+                validationCode = CODE_SINGLE_TESTING;
             }
             
             const msg = error.formatMessage();

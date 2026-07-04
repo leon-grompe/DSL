@@ -1,0 +1,16 @@
+package tests.validation.singleTesting
+
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val train, val test = data.splitRows(percentageInFirst = 0.7);
+
+    val trainSet = train.toTabularDataset("survived");
+    val testSet = test.toTabularDataset("survived");
+    val classifier = GradientBoostingClassifier().fit(trainSet);
+
+    // every statement in the testing phase gets the informational single-testing advice
+    // $TEST$ info r"Testing should only be done once"
+    val _accuracy = classifier.accuracy(testSet);
+    // $TEST$ info r"Testing should only be done once"
+    val _accuracyAgain = classifier.accuracy(testSet);
+}
