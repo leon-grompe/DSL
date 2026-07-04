@@ -211,6 +211,14 @@ export class SafeDsDatasetIdentifier {
         return this.getRestSetPlaceholder(statements);
     }
 
+    /**
+     * Returns the rest-set placeholder only when it is genuinely a rest set, i.e. it is split a
+     * second time into validation/test. In a single-split pipeline the second assignee is the test
+     * set, not a rest set, so this returns undefined and callers must not treat it as one.
+     */
+    getChainedRestSetPlaceholder(statements: SdsStatement[]): SdsPlaceholder | undefined {
+        return this.getValidationSplitAssignment(statements) ? this.getRestSetPlaceholder(statements) : undefined;
+    }
 
     /**
      * Returns the first and second placeholder assignees of a split assignment.
