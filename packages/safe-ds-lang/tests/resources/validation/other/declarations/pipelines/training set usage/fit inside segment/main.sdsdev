@@ -8,8 +8,8 @@ segment trainModel(dataset: TabularDataset) -> model: Classifier {
 
 pipeline myPipeline {
     val data = Table.fromCsvFile("data.csv");
-    val train, val test = data.splitRows(percentageInFirst = 0.7);
+    val _train, val test = data.splitRows(percentageInFirst = 0.7);
     val testSet = test.toTabularDataset("label");
-    // $TEST$ error "This segment makes use of a '.fit()' call wich does not use a dataset derived from the training set ('train')."
+    // $TEST$ error "This segment makes use of a '.fit()' call wich does not use a dataset derived from the training set ('_train')."
     val _model = trainModel(testSet);
 }
