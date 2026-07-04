@@ -6,6 +6,6 @@ pipeline myPipeline {
     val data = Table.fromCsvFile("data.csv");
     val _train, val test = data.splitRows(percentageInFirst = 0.7);
     val testSet = test.toTabularDataset("label");
-    // $TEST$ error "Only placeholders derived from the training set ('train') should be used for fitting."
+    // $TEST$ error "Only placeholders derived from the training set ('_train') should be used for fitting."
     val _classifier = GradientBoostingClassifier().fit(testSet);
 }
