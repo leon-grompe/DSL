@@ -1,0 +1,8 @@
+package tests.validation.dataFlow.restSetUsage.noSplit
+
+// No split at all -> there is no rest set, so the rest-set-usage validation must stay silent.
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    // $TEST$ no warning r"should only be used for a second split"
+    val _cleaned = data.removeRowsWithOutliers();
+}

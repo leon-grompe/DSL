@@ -1,0 +1,11 @@
+package tests.validation.dataFlow.restSetUsage.singleSplit
+
+// A single train/test split: the second assignee ('test') is the test set, not a rest set. Using it for
+// evaluation must NOT be flagged as rest-set misuse. Regression test for the false positive that fired
+// whenever the pipeline contained only one split.
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val _train, val test = data.splitRows(percentageInFirst = 0.7);
+    // $TEST$ no warning "The rest set ('test') should only be used for a second split, not for anything else."
+    val _cleaned = test.removeRowsWithOutliers();
+}

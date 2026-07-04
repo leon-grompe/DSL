@@ -1,0 +1,10 @@
+package tests.validation.dataFlow.restSetUsage.chainedClean
+
+// A real 3-way split where 'rest' is used ONLY to feed the second split. That single usage is the legitimate
+// chained split, so nothing should be flagged.
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val _train, val rest = data.splitRows(percentageInFirst = 0.6);
+    // $TEST$ no warning "The rest set ('rest') should only be used for a second split, not for anything else."
+    val _validation, val _test = rest.splitRows(percentageInFirst = 0.5);
+}

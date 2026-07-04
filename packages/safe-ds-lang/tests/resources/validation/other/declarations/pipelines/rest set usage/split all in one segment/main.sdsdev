@@ -1,0 +1,20 @@
+package tests.validation.dataFlow.restSetUsage.splitAllSegment
+
+// A segment performs the full 3-way split internally and yields train/validation/test. There is no genuine
+// pipeline-level rest set here, so the (second) 'validation' output must NOT be treated as a rest set and
+// must NOT be flagged. This is the case where a naive "second assignee of the first split" heuristic would
+// misfire, since that assignee is the validation set, not a rest set.
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val _train, val validation, val _test = splitAll(data);
+    // $TEST$ no warning "The rest set ('validation') should only be used for a second split, not for anything else."
+    val _cleaned = validation.removeRowsWithOutliers();
+}
+
+segment splitAll(data: Table) -> (train: Table, validation: Table, test: Table) {
+    val tr, val rest = data.splitRows(percentageInFirst = 0.6);
+    val va, val te = rest.splitRows(percentageInFirst = 0.5);
+    yield train = tr;
+    yield validation = va;
+    yield test = te;
+}
