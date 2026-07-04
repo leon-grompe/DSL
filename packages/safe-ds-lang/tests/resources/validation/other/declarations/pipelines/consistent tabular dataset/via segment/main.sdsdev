@@ -7,8 +7,8 @@ segment toDataset(table: Table) -> dataset: TabularDataset {
 pipeline myPipeline {
     val data = Table.fromCsvFile("data.csv");
     val train, val test = data.splitRows(percentageInFirst = 0.7);
-    // $TEST$ no warning r"All 'toTabularDataset' calls in a pipeline must have the same arguments"
+    // $TEST$ no warning r"Inconsistent preprocessing arguments"
     val _trainSet = toDataset(train);
-    // $TEST$ no warning r"All 'toTabularDataset' calls in a pipeline must have the same arguments"
+    // $TEST$ no warning r"Inconsistent preprocessing arguments"
     val _testSet = toDataset(test);
 }
