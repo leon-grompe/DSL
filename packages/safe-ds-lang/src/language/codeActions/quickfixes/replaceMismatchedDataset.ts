@@ -15,6 +15,8 @@ export const replaceMismatchedDataset = (services: SafeDsServices) => {
     const identifier = services.flow.DatasetIdentifier;
 
     return (diagnostic: Diagnostic, document: LangiumDocument, acceptor: CodeActionAcceptor) => {
+        if (!diagnostic.data?.path) return;
+        
         // the diagnostic path points directly at the wrong dataset reference
         const node = locator.getAstNode(document.parseResult.value, diagnostic.data?.path);
         if (!isSdsReference(node) || !node.$cstNode) return;

@@ -8,9 +8,10 @@ import { createQuickfixFromTextEditsToSingleDocument } from '../factories.js';
 
 export const fillEmptyPipelineWithSuggestedStructure = (services: SafeDsServices) => {
     const locator = services.workspace.AstNodeLocator;
-    const nodeMapper = services.helpers.NodeMapper;
-
+    
     return (diagnostic: Diagnostic, document: LangiumDocument, acceptor: CodeActionAcceptor) => {
+        if (!diagnostic.data?.path) return;
+        
         const node = locator.getAstNode(document.parseResult.value, diagnostic.data.path);
         if (!isSdsPipeline(node)) {
             return;

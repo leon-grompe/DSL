@@ -16,6 +16,8 @@ export const addThreeWaySplit = (services: SafeDsServices) => {
     const analyzer = services.flow.DataFlowAnalyzer;
 
     return (diagnostic: Diagnostic, document: LangiumDocument, acceptor: CodeActionAcceptor) => {
+        if (!diagnostic.data?.path) return;
+
         // recover the original split assignment from the diagnostic path
         const node = locator.getAstNode(document.parseResult.value, diagnostic.data?.path);
         if (!isSdsAssignment(node) || !node.$cstNode) return;
