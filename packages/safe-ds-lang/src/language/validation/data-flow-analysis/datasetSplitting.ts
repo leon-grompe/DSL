@@ -7,21 +7,12 @@ export const CODE_MISSING_DATASET_SPLITTING = 'data-flow-analysis/missing-datase
 export const CODE_ILLEGAL_DATASET_SPLITTING = 'data-flow-analysis/illegal-dataset-split';
 
 export const pipelineShouldContainMultipleSplits = (services: SafeDsServices) => {
-    const nodeMapper = services.helpers.NodeMapper;
     const analyzer = services.flow.DataFlowAnalyzer;
     const locator = services.workspace.AstNodeLocator;
 
-    const isSplit = (statement: SdsAssignment): boolean =>
-        analyzer.expandCallsInStatement(statement).some(({ call }) => {
-            if (!isSdsCall(call)) return false;
-            const callable = nodeMapper.callToCallable(call);
-            // if its a table 'splitRows'; if its an imageList 'split'
-            return isSdsFunction(callable) && (callable.name === 'splitRows' || callable.name === 'split');
-        });
-
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
         if (!node.body) return;
-        const splits = node.body.statements.filter(isSdsAssignment).filter(isSplit);
+        const splits = analyzer.extractAssignmentsWithSpecificCall(node.body.statements, 'split');
         if (splits.length === 0) return;
 
         // a split is "chained" when it references a placeholder produced by another split.
