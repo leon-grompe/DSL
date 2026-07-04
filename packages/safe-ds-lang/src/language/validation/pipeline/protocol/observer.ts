@@ -6,13 +6,14 @@ import {
 import { ClassType } from '../../../typing/model.js';
 import { DataSet } from '../../../flow/safe-ds-dataset-identifier.js';
 import { SafeDsServices } from '../../../safe-ds-module.js';
-import { getAssignees } from '../../../helpers/nodeProperties.js';
+import { getAssignees, getParameters } from '../../../helpers/nodeProperties.js';
 import { Activity } from './model.js';
 import { DSPipelineActivity } from './dsPipelineActivity.js';
 import {
     InconsistentTransformationPresenceError,
     InconsistentTransformationOrderError,
     InconsistentTransformationDataflowError,
+    InconsistentTransformationArgumentsError,
     ValidationError,
 } from './errors.js';
 
@@ -47,7 +48,10 @@ export interface ProtocolObserver {
     finalize(): ObserverError[];
 }
 
-type ObservedEntry = { callable: SdsCallable; call: SdsCall };
+// 'callable' is the normalized identity used for matching (see normalizeCallable); 'displayName'
+// is the explicit, human-readable name used only in messages (see displayNameOf), combining the
+// class (if any) with the actual call name so diagnostics name the concrete operation.
+type ObservedEntry = { callable: SdsCallable; call: SdsCall; displayName: string };
 
 /**
  * Observes ElementaryBlock matches during protocol validation and checks three levels
@@ -56,12 +60,16 @@ type ObservedEntry = { callable: SdsCallable; call: SdsCall };
  *  1. Presence  — the same callables are applied the same number of times to all datasets (except 'fit' which must only be applied to the training set)
  *  2. Order     — the callables are applied in the same order on all datasets
  *  3. Dataflow  — each callable's output flows into the same successor callables on all datasets
+ *  4. Arguments — each callable is passed the same argument values on all datasets
  */
 export class ConsistentTransformationObserver implements ProtocolObserver {
     // dataset -> (callable, call)[] for every observed call, in order of appearance (occurrences are not deduplicated)
     private readonly datasetCallableMap = new Map<DataSet, ObservedEntry[]>();
     // input placeholder -> the normalized callables that consume it (recorded for every call)
     private readonly consumers = new Map<SdsPlaceholder, SdsCallable[]>();
+    // normalized callable -> a representative explicit display name (used to name dataflow successors,
+    // which are only known as normalized callables via 'consumers')
+    private readonly callableDisplayNames = new Map<SdsCallable, string>();
     // lazily-computed pipeline statements that feed a model (backward slice of every 'toTabularDataset')
     private modelFeedingStatements: Set<SdsStatement> | undefined;
     // lazily-computed map from every expanded call to the pipeline-level statement containing it
@@ -96,9 +104,13 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
         // differentiate different transform calls.
         const normalizedCallable = this.normalizeCallable(info.callable, info.call);
         if (!normalizedCallable) return; // it was a 'fit' call
-        
+
+        // build the explicit display name from the original call name and the normalized class (if any),
+        // so messages name the concrete operation while matching still uses the normalized identity
+        const displayName = this.displayNameOf(info.callable, normalizedCallable);
+
         // record the callable for the detected dataset
-        this.recordEntry(info.detectedDataset, normalizedCallable, info.call);
+        this.recordEntry(info.detectedDataset, normalizedCallable, info.call, displayName);
     }
 
     /**
@@ -108,7 +120,7 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
      * index-by-index (which is sound because count-aware presence guarantees equal lengths first).
      * Every data input of the call is additionally indexed in 'consumers' (used by the dataflow check).
      */
-    private recordEntry(dataset: DataSet, callable: SdsCallable, call: SdsCall): void {
+    private recordEntry(dataset: DataSet, callable: SdsCallable, call: SdsCall, displayName: string): void {
         // index this callable as a consumer of each of the call's data inputs, so the dataflow
         // check can later look up which callables a given placeholder flows into
         for (const inputVariable of this.inputVarsOf(call)) {
@@ -117,9 +129,13 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
             if (!consumingCallables.includes(callable)) consumingCallables.push(callable);
         }
 
+        // remember a representative display name for this normalized callable, so the dataflow check
+        // (which only has normalized callables for successors) can name them explicitly too
+        this.callableDisplayNames.set(callable, displayName);
+
         let datasetOps = this.datasetCallableMap.get(dataset);
         if (!datasetOps) { datasetOps = []; this.datasetCallableMap.set(dataset, datasetOps); }
-        datasetOps.push({ callable, call });
+        datasetOps.push({ callable, call, displayName });
     }
 
     /**
@@ -166,8 +182,8 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
     }
 
     /**
-     * Finalizes the observer by checking calling the checks for presence, order and dataflow 
-     * consistency in this order and returning only the first error found.
+     * Finalizes the observer by checking calling the checks for presence, order, dataflow and
+     * argument consistency in this order and returning only the first error found.
      */
     finalize(): ObserverError[] {
         // make sure every existing dataset partition participates, even one that received no
@@ -176,18 +192,23 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
 
         const presenceCheck = this.checkPresence();
         if (presenceCheck.length > 0) {
-            // presence inconsistencies are a prerequisite for order and dataflow inconsistencies
+            // presence inconsistencies are a prerequisite for order, dataflow and argument inconsistencies
             return presenceCheck;
         }
         const orderCheck = this.checkOrder();
         if (orderCheck.length > 0) {
-            // order inconsistencies are a prerequisite for dataflow inconsistencies
+            // order inconsistencies are a prerequisite for dataflow and argument inconsistencies
             return orderCheck;
         }
         const dataflowCheck = this.checkDataflow();
         if (dataflowCheck.length > 0) {
-            // most specific check, only returned if no presence or order inconsistencies were found
+            // returned before the argument check if any dataflow inconsistency was found
             return dataflowCheck;
+        }
+        const argumentCheck = this.checkArguments();
+        if (argumentCheck.length > 0) {
+            // most specific check, only returned if no presence, order or dataflow inconsistencies were found
+            return argumentCheck;
         }
         return [];
     }
@@ -245,15 +266,15 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
                 const datasetCount = this.countOf(dataset, callable);
                 if (referenceCount === datasetCount) continue;
 
-                // report on a call from whichever dataset actually applies the callable
-                const representativeCall =
-                    this.datasetCallableMap.get(dataset)!.find(e => e.callable === callable)?.call
-                    ?? this.datasetCallableMap.get(referenceDataset)!.find(e => e.callable === callable)!.call;
+                // report on an entry from whichever dataset actually applies the callable
+                const representativeEntry =
+                    this.datasetCallableMap.get(dataset)!.find(e => e.callable === callable)
+                    ?? this.datasetCallableMap.get(referenceDataset)!.find(e => e.callable === callable)!;
                 errors.push({
                     error: new InconsistentTransformationPresenceError(
-                        this.callableName(callable), referenceDataset, referenceCount, dataset, datasetCount,
+                        representativeEntry.displayName, referenceDataset, referenceCount, dataset, datasetCount,
                     ),
-                    call: representativeCall,
+                    call: representativeEntry.call,
                 });
             }
         }
@@ -292,8 +313,8 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
             // at least one difference in callable order was found, report error
             if (firstDiff) {
                 // build readable callable names for error message
-                const refNames = referenceEntries.map(e => this.callableName(e.callable));
-                const devNames = datasetEntries.map(e => this.callableName(e.callable));
+                const refNames = referenceEntries.map(e => e.displayName);
+                const devNames = datasetEntries.map(e => e.displayName);
                 
                 errors.push({
                     error: new InconsistentTransformationOrderError(referenceDataset, refNames, dataset, devNames),
@@ -338,11 +359,11 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
                 if (!this.sameCallables(referenceSuccessors, datasetSuccessors)) {
                     errors.push({
                         error: new InconsistentTransformationDataflowError(
-                            this.callableName(datasetEntry.callable),
+                            datasetEntry.displayName,
                             referenceDataset,
                             dataset,
-                            referenceSuccessors.map(callable => this.callableName(callable)),
-                            datasetSuccessors.map(callable => this.callableName(callable)),
+                            referenceSuccessors.map(callable => this.successorDisplayName(callable)),
+                            datasetSuccessors.map(callable => this.successorDisplayName(callable)),
                         ),
                         call: datasetEntry.call,
                     });
@@ -352,6 +373,88 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
             }
         }
         return errors;
+    }
+
+    /**
+     * Checks for consistent arguments: a callable applied on several partitions must be passed the
+     * same argument values on every one of them. Since this check only happens after presence, order
+     * and dataflow inconsistencies have been ruled out, the same callables appear in the same order on
+     * all datasets, so the per-dataset entry lists line up index-by-index and each aligned pair is the
+     * same callable applied at the same position — only its arguments can still differ.
+     *
+     * Only the argument values literally present on each aligned call are compared. Values are resolved
+     * with the partial evaluator (so named/positional forms compare equal); data inputs — the partition
+     * table, transformer placeholders — do not resolve to a constant and are therefore skipped, leaving
+     * only genuine configuration arguments. Aligned calls may use differing API shapes (e.g. training
+     * 'fitAndTransform' vs held-out 'transform'), so only parameters shared by both signatures are compared.
+     */
+    private checkArguments(): ObserverError[] {
+        const errors: ObserverError[] = [];
+        const usedDatasets = [...this.datasetCallableMap.keys()];
+        if (usedDatasets.length < 2) return errors;
+
+        // choose training as reference dataset for comparison if possible (mirrors checkOrder/checkDataflow)
+        const referenceDataset = usedDatasets.includes(DataSet.Training)
+            ? DataSet.Training : usedDatasets[0]!;
+        const referenceEntries = this.datasetCallableMap.get(referenceDataset)!;
+
+        for (const dataset of usedDatasets) {
+            if (dataset === referenceDataset) continue;
+            const datasetEntries = this.datasetCallableMap.get(dataset)!;
+
+            // presence and order are already guaranteed, so entries line up index-by-index
+            for (let i = 0; i < referenceEntries.length; i++) {
+                const referenceEntry = referenceEntries[i]!;
+                const datasetEntry = datasetEntries[i]!;
+
+                const referenceArgs = this.argValuesOf(referenceEntry.call);
+                const datasetArgs = this.argValuesOf(datasetEntry.call);
+
+                // compare only parameters resolved on both sides; report the first that disagrees
+                let deviation: { parameter: string; referenceValue: string; deviatingValue: string } | undefined;
+                for (const [parameter, deviatingValue] of datasetArgs) {
+                    const referenceValue = referenceArgs.get(parameter);
+                    if (referenceValue !== undefined && referenceValue !== deviatingValue) {
+                        deviation = { parameter, referenceValue, deviatingValue };
+                        break;
+                    }
+                }
+                if (!deviation) continue;
+
+                errors.push({
+                    error: new InconsistentTransformationArgumentsError(
+                        datasetEntry.displayName,
+                        referenceDataset,
+                        dataset,
+                        deviation.parameter,
+                        deviation.referenceValue,
+                        deviation.deviatingValue,
+                    ),
+                    call: datasetEntry.call,
+                });
+                // report only the first deviation per dataset
+                break;
+            }
+        }
+        return errors;
+    }
+
+    /**
+     * Resolves the argument values of a call to canonical strings, keyed by parameter name. Uses the
+     * partial evaluator so named/positional forms and defaults compare equal. Parameters that do not
+     * resolve to a constant (e.g. the partition table or a transformer placeholder — data inputs) are
+     * omitted, leaving only configuration arguments comparable across partitions.
+     */
+    private argValuesOf(call: SdsCall): Map<string, string> {
+        const substitutions = this.services.evaluation.PartialEvaluator.computeParameterSubstitutionsForCall(call);
+        const parameters = getParameters(this.services.helpers.NodeMapper.callToCallable(call));
+
+        const values = new Map<string, string>();
+        for (const parameter of parameters) {
+            const value = substitutions.get(parameter)?.toString();
+            if (value !== undefined) values.set(parameter.name, value);
+        }
+        return values;
     }
 
     /**
@@ -426,6 +529,32 @@ export class ConsistentTransformationObserver implements ProtocolObserver {
      */
     private callableName(callable: SdsCallable): string {
         return isSdsFunction(callable) || isSdsClass(callable) ? callable.name : callable.$type;
+    }
+
+    /**
+     * Returns the explicit display name recorded for a normalized callable (used to name dataflow
+     * successors, which are only known as normalized callables), falling back to the plain callable
+     * name if none was recorded.
+     */
+    private successorDisplayName(callable: SdsCallable): string {
+        return this.callableDisplayNames.get(callable) ?? this.callableName(callable);
+    }
+
+    /**
+     * Builds the explicit display name used in messages. Combines the actual call name (the invoked
+     * function, e.g. 'transformTable', 'fitAndTransform', or a plain function like 'addIndexColumn')
+     * with the class the call was normalized to, when one exists (the container class for
+     * 'transform'/'fitAndTransform', or the transformer-argument class for 'transformTable'). Formatted
+     * as 'callName (ClassName)' so both are visible, or just 'callName' when there is no associated class.
+     */
+    private displayNameOf(originalCallable: SdsCallable, normalizedCallable: SdsCallable): string {
+        const callName = this.callableName(originalCallable);
+        // the normalized callable is a class only for transformer calls; plain functions and segments
+        // normalize to themselves, in which case there is no separate class to show
+        if (isSdsClass(normalizedCallable) && normalizedCallable !== originalCallable) {
+            return `${callName} (${normalizedCallable.name})`;
+        }
+        return callName;
     }
 
     /**
