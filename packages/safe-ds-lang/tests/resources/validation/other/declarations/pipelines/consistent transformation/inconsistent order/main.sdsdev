@@ -10,7 +10,8 @@ pipeline myPipeline {
     val trainImputed = train.transformTable(imputer);
     val _trainScaled = trainImputed.transformTable(scaler);
 
-    // $TEST$ warning r"Inconsistent preprocessing order"
+    // the message names each operation explicitly as 'callName (ClassName)'
+    // $TEST$ warning r"Inconsistent preprocessing order: 'Test' applies \[transformTable \(StandardScaler\), transformTable \(SimpleImputer\)\] but 'Training' applies \[transformTable \(SimpleImputer\), transformTable \(StandardScaler\)\]"
     val testScaled = test.transformTable(scaler);
     val _testImputed = testScaled.transformTable(imputer);
 }
