@@ -34,7 +34,7 @@ export const pipelineShouldContainMultipleSplits = (services: SafeDsServices) =>
                 if (getAssignees(source)[1] !== target) {
                     accept('info',
                         'Only the second assignee should be split a second time, since the first assignee is considered as the training set.', {
-                            node: split.expression ?? node,
+                            node: split.expression ?? split,
                             code: CODE_ILLEGAL_DATASET_SPLITTING,
                             data: { path: locator.getAstNodePath(split) },
                         }
