@@ -20,6 +20,7 @@ export const pipelineShouldContainMultipleSplits = (services: SafeDsServices) =>
         });
 
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
+        if (!node.body) return;
         const splits = node.body.statements.filter(isSdsAssignment).filter(isSplit);
         if (splits.length === 0) return;
 

@@ -13,6 +13,8 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
     const nodeMapper = services.helpers.NodeMapper;
     
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
+        if (!node.body) return;
+        
         const pipelineStatements = node.body.statements;
         const assignments = pipelineStatements.filter(isSdsAssignment);
 
@@ -71,6 +73,8 @@ export const restDataUsedForNonSplitting = (services: SafeDsServices) => {
 
     // recognize when the rest set is used for anything other than splitting
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
+        if (!node.body) return;
+        
         const assignments = node.body.statements.filter(isSdsAssignment);
         const splitAssignments = analyzer.extractAssignmentsWithSpecificCall(assignments, 'split');
 
@@ -108,6 +112,8 @@ export const toTabularDatasetMustUseSameArguments = (services: SafeDsServices) =
         // consistent with itself — only distinct call sites can actually disagree.
         const calls: SdsCall[] = [];
         const seen = new Set<SdsCall>();
+        
+        if (!node.body) return;
         for (const statement of node.body.statements) {
             for (const { call } of analyzer.expandCallsInStatement(statement)) {
                 const callable = nodeMapper.callToCallable(call);
