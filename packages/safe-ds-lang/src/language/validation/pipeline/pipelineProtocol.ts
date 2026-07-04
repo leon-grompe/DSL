@@ -175,7 +175,7 @@ const generateProtocolValidation = (
         const lastSegmentCallSite = context.segmentCallSites.at(calls.length - 1);
         if (!lastCall) {
             // pipeline is empty, so report on the pipeline itself
-            accept(valMessage.severity, 
+            accept('info', 
                 valMessage.message, {
                 node: node.body,
                 code: CODE_PIPELINE_INCOMPLETE,
@@ -183,7 +183,7 @@ const generateProtocolValidation = (
             generatePipelineValidation(node, node.body, accept);
 
         } else {
-            accept(valMessage.severity, 
+            accept('info', 
                 valMessage.message, {
                 node: lastSegmentCallSite ?? lastCall,
                 code: CODE_PIPELINE_INCOMPLETE,
@@ -243,7 +243,7 @@ const generatePipelineValidation = (
     const line = erroneousPoint.$cstNode?.range.start.line! + 1;
     accept('info', 
         `Pipeline has been validated by the behaviour protocol until line ${line}.\n` + 
-        `Read more about pipeline structure, best practices and activities at: ...\n` + 
+        `Read more about best practices, pipeline structure and activities at: ...\n` + 
         `You may disable this validation entirely by adding '@DisableProtocol' before the pipeline declaration.`, {
         node: pipeline,
         property: 'name',
