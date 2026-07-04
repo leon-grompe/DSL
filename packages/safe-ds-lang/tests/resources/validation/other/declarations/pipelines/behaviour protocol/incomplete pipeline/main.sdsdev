@@ -3,6 +3,6 @@ package tests.validation.behaviourProtocol.incompletePipeline
 // the pipeline loads and splits but never builds a model: a required activity is missing
 pipeline myPipeline {
     val data = Table.fromCsvFile("data.csv");
-    // $TEST$ warning r"The Pipeline ended before the required Phase"
+    // $TEST$ info r"The Pipeline ended before the required Phase"
     val _train, val _test = data.splitRows(percentageInFirst = 0.7);
 }
