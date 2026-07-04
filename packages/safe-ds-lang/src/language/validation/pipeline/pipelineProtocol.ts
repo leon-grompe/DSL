@@ -1,4 +1,4 @@
-import { ValidationAcceptor } from 'langium';
+import { AstNode, ValidationAcceptor } from 'langium';
 import { isSdsClass, isSdsFunction, SdsAnnotatedObject, SdsCall, SdsPipeline, SdsExpression } from '../../generated/ast.js';
 import { SafeDsServices } from '../../index.js';
 import { Activity, ValidationContext } from './protocol/model.js';
@@ -23,11 +23,9 @@ export const CODE_INCONSISTENT_TRANSFORMATION_DATAFLOW  = 'pipeline/inconsistent
 export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) => {
 
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
-        // skip this validation if the pipeline is empty to avoid confusion with other validations
-        if (node.body.statements.length < 1){ return; }
+        if (!node.body) return;
         
         const pipelineCalls: SdsCall[] = [];
-
         // pre-define observers to be used in the protocol
         const observers: ProtocolObserver[] = [
             new ConsistentTransformationObserver(
@@ -70,6 +68,8 @@ const extractValidationContext = (
 
     const activitySequence: Activity[][] = [];
     const segmentCallSites: (SdsCall | undefined)[] = [];
+    
+    if (!node.body) return new ValidationContext(activitySequence, pipelineCalls, segmentCallSites, [], observers);
     const pipelineStatements = node.body.statements;
 
     for (const statement of pipelineStatements) {
@@ -173,13 +173,23 @@ const generateProtocolValidation = (
         // specific-call case: if the last call is inside a segment, report on its call site
         const lastCall = calls.at(calls.length - 1);
         const lastSegmentCallSite = context.segmentCallSites.at(calls.length - 1);
-        if (!lastCall) return;
-        accept(valMessage.severity, 
-            valMessage.message, {
-            node: lastSegmentCallSite ?? lastCall,
-            code: CODE_PIPELINE_INCOMPLETE,
-        });
-        generatePipelineValidation(node, lastSegmentCallSite ?? lastCall, accept);
+        if (!lastCall) {
+            // pipeline is empty, so report on the pipeline itself
+            accept(valMessage.severity, 
+                valMessage.message, {
+                node: node.body,
+                code: CODE_PIPELINE_INCOMPLETE,
+            });
+            generatePipelineValidation(node, node.body, accept);
+
+        } else {
+            accept(valMessage.severity, 
+                valMessage.message, {
+                node: lastSegmentCallSite ?? lastCall,
+                code: CODE_PIPELINE_INCOMPLETE,
+            });
+            generatePipelineValidation(node, lastSegmentCallSite ?? lastCall, accept);
+        }
     }
 }
 
@@ -227,14 +237,14 @@ const generateObserverValidation = (
  */
 const generatePipelineValidation = (
     pipeline: SdsPipeline,
-    erroneousPoint: SdsExpression,
+    erroneousPoint: AstNode,
     accept: ValidationAcceptor
 ) => {
     const line = erroneousPoint.$cstNode?.range.start.line! + 1;
     accept('info', 
         `Pipeline has been validated by the behaviour protocol until line ${line}.\n` + 
         `Read more about pipeline structure, best practices and activities at: ...\n` + 
-        `You may disable this validation entirely by adding the annotation '@DisableProtocol' to the pipeline declaration.`, {
+        `You may disable this validation entirely by adding '@DisableProtocol' before the pipeline declaration.`, {
         node: pipeline,
         property: 'name',
         code: CODE_PIPELINE_BEHAVIOUR_PROTOCOL
