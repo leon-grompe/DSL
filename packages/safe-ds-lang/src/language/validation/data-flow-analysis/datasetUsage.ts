@@ -53,7 +53,7 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
                     } else {
                         message = `Only placeholders derived from the training set ('${trainingSetName}') should be used for fitting.`;
                     }
-                    accept('warning',
+                    accept('error',
                         message, {
                         node: argument,
                         property: 'value',

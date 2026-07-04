@@ -1,0 +1,10 @@
+package tests.validation.dataFlow.trainingSetUsage.fitOnTrainingSet
+
+// Fitting on a dataset derived from the training set is the correct usage and must NOT be flagged.
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val train, val _test = data.splitRows(percentageInFirst = 0.7);
+    val trainSet = train.toTabularDataset("label");
+    // $TEST$ no error r"should be used for fitting"
+    val _classifier = GradientBoostingClassifier().fit(trainSet);
+}

@@ -1,0 +1,11 @@
+package tests.validation.dataFlow.trainingSetUsage.fitOnTestSet
+
+// Fitting a model on a dataset derived from the test set (not the training set) is data leakage and must be
+// flagged. 'trainingSetName' is taken from the first assignee of the first split ('train').
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val _train, val test = data.splitRows(percentageInFirst = 0.7);
+    val testSet = test.toTabularDataset("label");
+    // $TEST$ error "Only placeholders derived from the training set ('train') should be used for fitting."
+    val _classifier = GradientBoostingClassifier().fit(testSet);
+}

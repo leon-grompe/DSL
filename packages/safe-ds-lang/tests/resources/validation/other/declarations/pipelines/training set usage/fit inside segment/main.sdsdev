@@ -1,0 +1,15 @@
+package tests.validation.dataFlow.trainingSetUsage.fitInsideSegment
+
+// The '.fit()' happens inside a called segment, on a dataset derived from the test set. The segment-specific
+// message must be reported on the segment call site.
+segment trainModel(dataset: TabularDataset) -> model: Classifier {
+    yield model = GradientBoostingClassifier().fit(dataset);
+}
+
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val train, val test = data.splitRows(percentageInFirst = 0.7);
+    val testSet = test.toTabularDataset("label");
+    // $TEST$ error "This segment makes use of a '.fit()' call wich does not use a dataset derived from the training set ('train')."
+    val _model = trainModel(testSet);
+}
