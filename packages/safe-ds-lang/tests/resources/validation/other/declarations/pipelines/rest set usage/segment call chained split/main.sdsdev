@@ -1,0 +1,19 @@
+package tests.validation.dataFlow.restSetUsage.segmentChained
+
+// The second split is performed via a segment call 'splitData(rest)'. Passing 'rest' as the argument to that
+// split-containing segment feeds the second split, so it must NOT be flagged. Using 'rest' for anything else
+// (here, cleaning it directly) still must be flagged.
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val _train, val rest = splitData(data);
+    // $TEST$ no warning "The rest set ('rest') should only be used for a second split, not for anything else."
+    val _validation, val _test = splitData(»rest«);
+    // $TEST$ warning "The rest set ('rest') should only be used for a second split, not for anything else."
+    val _cleaned = »rest«.removeRowsWithOutliers();
+}
+
+segment splitData(table: Table) -> (first: Table, second: Table) {
+    val a, val b = table.splitRows(percentageInFirst = 0.5);
+    yield first = a;
+    yield second = b;
+}

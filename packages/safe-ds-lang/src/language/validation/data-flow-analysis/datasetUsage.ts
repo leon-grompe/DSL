@@ -77,14 +77,19 @@ export const restDataUsedForNonSplitting = (services: SafeDsServices) => {
         if (!node.body) return;
         
         const assignments = node.body.statements.filter(isSdsAssignment);
-        
+
         const restSetPlaceholder = identifier.getChainedRestSetPlaceholder(assignments);
         if (!restSetPlaceholder) return;
+
+        // a "split" feed can be a direct split call or a segment call that performs a split internally, so
+        // we match the same set of assignments that identify the chained split in the first place. Using
+        // isSpecificCall alone would miss the segment-call case and wrongly flag the rest set feeding it.
+        const splitAssignments = new Set(analyzer.extractAssignmentsWithSpecificCall(assignments, 'split'));
 
         // every usage of the rest set should feed a second split; anything else is flagged
         nodeMapper.placeholderToReferences(restSetPlaceholder).forEach((reference) => {
             const containingStatement = AstUtils.getContainerOfType(reference, isSdsAssignment);
-            if (containingStatement && analyzer.isSpecificCall(containingStatement, 'split')) return;
+            if (containingStatement && splitAssignments.has(containingStatement)) return;
 
             accept('warning',
                 `The rest set ('${restSetPlaceholder.name}') should only be used for a second split, not for anything else.`, {
