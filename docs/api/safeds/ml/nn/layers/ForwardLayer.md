@@ -18,6 +18,9 @@ A fully connected forward layer.
     ```sds linenums="11"
     @Experimental
     @Category(DataScienceCategory.ModelingQNeuralNetwork)
+    @PipelineActivity([
+        DSPipelineActivity.ModelingQModelCreation
+    ])
     class ForwardLayer(
         @PythonName("neuron_count") neuronCount: Int,
         @PythonName("overwrite_activation_function") activationFunction: literal<"sigmoid", "relu", "softmax", "none", "notset"> = "notset"

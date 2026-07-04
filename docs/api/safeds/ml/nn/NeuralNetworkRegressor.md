@@ -22,6 +22,9 @@ A NeuralNetworkRegressor is a neural network that is used for regression tasks.
 
     ```sds linenums="16"
     @Experimental
+    @PipelineActivity([
+        DSPipelineActivity.ModelingQModelCreation
+    ])
     class NeuralNetworkRegressor<D, F>(
         @PythonName("input_conversion") inputConversion: InputConversion<D, F>,
         layers: List<Layer>
@@ -40,6 +43,9 @@ A NeuralNetworkRegressor is a neural network that is used for regression tasks.
          */
         @Pure
         @PythonName("from_pretrained_model")
+        @PipelineActivity([
+            DSPipelineActivity.ModelingQModelCreation
+        ])
         static fun fromPretrainedModel(
             @PythonName("huggingface_repo") huggingfaceRepo: String
         ) -> pretrainedModel: NeuralNetworkRegressor<Any, Any>
@@ -66,6 +72,9 @@ A NeuralNetworkRegressor is a neural network that is used for regression tasks.
          * }
          */
         @Pure
+        @PipelineActivity([
+            DSPipelineActivity.TrainingQModelFitting
+        ])
         fun fit(
             @PythonName("train_data") trainData: D,
             @PythonName("epoch_count") const epochCount: Int = 25,
@@ -93,6 +102,10 @@ A NeuralNetworkRegressor is a neural network that is used for regression tasks.
          * }
          */
         @Pure
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQPrediction,
+            DSPipelineActivity.TestingQPrediction
+        ])
         fun predict(
             @PythonName("test_data") testData: F
         ) -> prediction: D
@@ -139,8 +152,11 @@ pipeline example {
 
 ??? quote "Stub code in `NeuralNetworkRegressor.sdsstub`"
 
-    ```sds linenums="60"
+    ```sds linenums="66"
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQModelFitting
+    ])
     fun fit(
         @PythonName("train_data") trainData: D,
         @PythonName("epoch_count") const epochCount: Int = 25,
@@ -183,8 +199,12 @@ pipeline example {
 
 ??? quote "Stub code in `NeuralNetworkRegressor.sdsstub`"
 
-    ```sds linenums="87"
+    ```sds linenums="96"
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQPrediction,
+        DSPipelineActivity.TestingQPrediction
+    ])
     fun predict(
         @PythonName("test_data") testData: F
     ) -> prediction: D
@@ -209,9 +229,12 @@ Load a pretrained model from a [Huggingface repository](https://huggingface.co/m
 
 ??? quote "Stub code in `NeuralNetworkRegressor.sdsstub`"
 
-    ```sds linenums="33"
+    ```sds linenums="36"
     @Pure
     @PythonName("from_pretrained_model")
+    @PipelineActivity([
+        DSPipelineActivity.ModelingQModelCreation
+    ])
     static fun fromPretrainedModel(
         @PythonName("huggingface_repo") huggingfaceRepo: String
     ) -> pretrainedModel: NeuralNetworkRegressor<Any, Any>

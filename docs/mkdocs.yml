@@ -44,6 +44,12 @@ nav:
       - Types: pipeline-language/types.md
       - Comments: pipeline-language/comments.md
       - Imports: pipeline-language/imports.md
+  - Best Practices:
+    - best-practices/README.md
+    - Pipeline Structure: best-practices/pipeline-structure.md
+    - Behaviour Protocol: best-practices/behaviour-protocol.md
+    - Activities: best-practices/activities.md
+    - API by Activity: api/by-activity.md
   - API Reference: api/
   - Integrating New Libraries:
     - stub-language/README.md

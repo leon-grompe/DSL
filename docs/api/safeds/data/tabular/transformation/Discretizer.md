@@ -27,6 +27,9 @@ pipeline example {
 ??? quote "Stub code in `Discretizer.sdsstub`"
 
     ```sds linenums="20"
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+    ])
     class Discretizer(
         @PythonName("bin_count") const binCount: Int = 5,
         selector: union<List<String>, String, Nothing?> = null
@@ -48,6 +51,9 @@ pipeline example {
          * @result fittedTransformer The fitted transformer.
          */
         @Pure
+        @PipelineActivity([
+            DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+        ])
         fun fit(
             table: Table
         ) -> fittedTransformer: Discretizer
@@ -64,9 +70,20 @@ pipeline example {
          */
         @Pure
         @PythonName("fit_and_transform")
+        @PipelineActivity([
+            DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+        ])
         fun fitAndTransform(
             table: Table
         ) -> (fittedTransformer: Discretizer, transformedTable: Table)
+
+        @Pure
+        @PipelineActivity([
+            DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+        ])
+        fun transform(
+            table: Table
+        ) -> transformedTable: Table
     }
     ```
     { data-search-exclude }
@@ -103,8 +120,11 @@ This transformer is not modified.
 
 ??? quote "Stub code in `Discretizer.sdsstub`"
 
-    ```sds linenums="40"
+    ```sds linenums="43"
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+    ])
     fun fit(
         table: Table
     ) -> fittedTransformer: Discretizer
@@ -132,9 +152,12 @@ Learn a transformation for a set of columns in a table and apply the learned tra
 
 ??? quote "Stub code in `Discretizer.sdsstub`"
 
-    ```sds linenums="55"
+    ```sds linenums="61"
     @Pure
     @PythonName("fit_and_transform")
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+    ])
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: Discretizer, transformedTable: Table)
@@ -143,26 +166,25 @@ Learn a transformation for a set of columns in a table and apply the learned tra
 
 ## <code class="doc-symbol doc-symbol-function"></code> `transform` {#safeds.data.tabular.transformation.Discretizer.transform data-toc-label='[function] transform'}
 
-Apply the learned transformation to a table.
-
-**Note:** The given table is not modified.
-
 **Parameters:**
 
 | Name | Type | Description | Default |
 |------|------|-------------|---------|
-| `table` | [`Table`][safeds.data.tabular.containers.Table] | The table to which the learned transformation is applied. | - |
+| `table` | [`Table`][safeds.data.tabular.containers.Table] | - | - |
 
 **Results:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| `transformedTable` | [`Table`][safeds.data.tabular.containers.Table] | The transformed table. |
+| `transformedTable` | [`Table`][safeds.data.tabular.containers.Table] | - |
 
-??? quote "Stub code in `TableTransformer.sdsstub`"
+??? quote "Stub code in `Discretizer.sdsstub`"
 
-    ```sds linenums="37"
+    ```sds linenums="70"
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+    ])
     fun transform(
         table: Table
     ) -> transformedTable: Table

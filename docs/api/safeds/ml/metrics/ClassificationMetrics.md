@@ -19,6 +19,10 @@ A collection of classification metrics.
          */
         @Pure
         @Category(DataScienceCategory.ModelEvaluationQMetric)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQMetricCalculation,
+            DSPipelineActivity.TestingQMetricCalculation
+        ])
         static fun summarize(
             predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
             expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -38,6 +42,10 @@ A collection of classification metrics.
          */
         @Pure
         @Category(DataScienceCategory.ModelEvaluationQMetric)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQMetricCalculation,
+            DSPipelineActivity.TestingQMetricCalculation
+        ])
         static fun accuracy(
             predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
             expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>
@@ -58,6 +66,10 @@ A collection of classification metrics.
         @Pure
         @PythonName("f1_score")
         @Category(DataScienceCategory.ModelEvaluationQMetric)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQMetricCalculation,
+            DSPipelineActivity.TestingQMetricCalculation
+        ])
         static fun f1Score(
             predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
             expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -78,6 +90,10 @@ A collection of classification metrics.
          */
         @Pure
         @Category(DataScienceCategory.ModelEvaluationQMetric)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQMetricCalculation,
+            DSPipelineActivity.TestingQMetricCalculation
+        ])
         static fun precision(
             predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
             expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -98,6 +114,10 @@ A collection of classification metrics.
          */
         @Pure
         @Category(DataScienceCategory.ModelEvaluationQMetric)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQMetricCalculation,
+            DSPipelineActivity.TestingQMetricCalculation
+        ])
         static fun recall(
             predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
             expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -129,9 +149,13 @@ better. Results range from 0.0 to 1.0.
 
 ??? quote "Stub code in `ClassificationMetrics.sdsstub`"
 
-    ```sds linenums="38"
+    ```sds linenums="42"
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     static fun accuracy(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
         expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>
@@ -162,10 +186,14 @@ classifier. Results range from 0.0 to 1.0.
 
 ??? quote "Stub code in `ClassificationMetrics.sdsstub`"
 
-    ```sds linenums="57"
+    ```sds linenums="65"
     @Pure
     @PythonName("f1_score")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     static fun f1Score(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
         expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -197,9 +225,13 @@ better the classifier. Results range from 0.0 to 1.0.
 
 ??? quote "Stub code in `ClassificationMetrics.sdsstub`"
 
-    ```sds linenums="78"
+    ```sds linenums="90"
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     static fun precision(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
         expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -231,9 +263,13 @@ better the classifier. Results range from 0.0 to 1.0.
 
 ??? quote "Stub code in `ClassificationMetrics.sdsstub`"
 
-    ```sds linenums="98"
+    ```sds linenums="114"
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     static fun recall(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
         expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
@@ -265,6 +301,10 @@ Summarize classification metrics on the given data.
     ```sds linenums="19"
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     static fun summarize(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
         expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>,

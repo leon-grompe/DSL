@@ -16,7 +16,10 @@ The KNearestNeighborsImputer replaces missing values in given Columns with the m
 
 ??? quote "Stub code in `KNearestNeighborsImputer.sdsstub`"
 
-    ```sds linenums="13"
+    ```sds linenums="14"
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation
+    ])
     class KNearestNeighborsImputer(
         @PythonName("neighbor_count") neighborCount: Int,
         selector: union<List<String>, String, Nothing?> = null,
@@ -42,6 +45,9 @@ The KNearestNeighborsImputer replaces missing values in given Columns with the m
          */
         @Pure
         @Category(DataScienceCategory.DataProcessingQTransformer)
+        @PipelineActivity([
+            DSPipelineActivity.DataProcessingQDataTransformation
+        ])
         fun fit(
             table: Table
         ) -> fittedTransformer: KNearestNeighborsImputer
@@ -59,9 +65,21 @@ The KNearestNeighborsImputer replaces missing values in given Columns with the m
         @Pure
         @PythonName("fit_and_transform")
         @Category(DataScienceCategory.DataProcessingQTransformer)
+        @PipelineActivity([
+            DSPipelineActivity.DataProcessingQDataTransformation
+        ])
         fun fitAndTransform(
             table: Table
         ) -> (fittedTransformer: KNearestNeighborsImputer, transformedTable: Table)
+
+        @Pure
+        @Category(DataScienceCategory.DataProcessingQTransformer)
+        @PipelineActivity([
+            DSPipelineActivity.DataProcessingQDataTransformation
+        ])
+        fun transform(
+            table: Table
+        ) -> transformedTable: Table
     }
     ```
     { data-search-exclude }
@@ -104,9 +122,12 @@ Learn a transformation for a set of columns in a table.
 
 ??? quote "Stub code in `KNearestNeighborsImputer.sdsstub`"
 
-    ```sds linenums="36"
+    ```sds linenums="40"
     @Pure
     @Category(DataScienceCategory.DataProcessingQTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation
+    ])
     fun fit(
         table: Table
     ) -> fittedTransformer: KNearestNeighborsImputer
@@ -134,10 +155,13 @@ Learn a transformation for a set of columns in a table and apply the learned tra
 
 ??? quote "Stub code in `KNearestNeighborsImputer.sdsstub`"
 
-    ```sds linenums="52"
+    ```sds linenums="59"
     @Pure
     @PythonName("fit_and_transform")
     @Category(DataScienceCategory.DataProcessingQTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation
+    ])
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: KNearestNeighborsImputer, transformedTable: Table)
@@ -146,26 +170,26 @@ Learn a transformation for a set of columns in a table and apply the learned tra
 
 ## <code class="doc-symbol doc-symbol-function"></code> `transform` {#safeds.data.tabular.transformation.KNearestNeighborsImputer.transform data-toc-label='[function] transform'}
 
-Apply the learned transformation to a table.
-
-**Note:** The given table is not modified.
-
 **Parameters:**
 
 | Name | Type | Description | Default |
 |------|------|-------------|---------|
-| `table` | [`Table`][safeds.data.tabular.containers.Table] | The table to which the learned transformation is applied. | - |
+| `table` | [`Table`][safeds.data.tabular.containers.Table] | - | - |
 
 **Results:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| `transformedTable` | [`Table`][safeds.data.tabular.containers.Table] | The transformed table. |
+| `transformedTable` | [`Table`][safeds.data.tabular.containers.Table] | - |
 
-??? quote "Stub code in `TableTransformer.sdsstub`"
+??? quote "Stub code in `KNearestNeighborsImputer.sdsstub`"
 
-    ```sds linenums="37"
+    ```sds linenums="69"
     @Pure
+    @Category(DataScienceCategory.DataProcessingQTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation
+    ])
     fun transform(
         table: Table
     ) -> transformedTable: Table

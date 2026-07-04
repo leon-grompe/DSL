@@ -16,6 +16,9 @@ A dropout layer.
 
     ```sds linenums="11"
     @Category(DataScienceCategory.ModelingQNeuralNetwork)
+    @PipelineActivity([
+        DSPipelineActivity.ModelingQModelCreation
+    ])
     class DropoutLayer(
         probability: Float
     ) sub Layer {

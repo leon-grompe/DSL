@@ -36,6 +36,9 @@ pipeline example {
 ??? quote "Stub code in `SimpleImputer.sdsstub`"
 
     ```sds linenums="29"
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation
+    ])
     class SimpleImputer(
         strategy: SimpleImputer.Strategy,
         selector: union<List<String>, String, Nothing?> = null,
@@ -91,6 +94,9 @@ pipeline example {
          * @result fittedTransformer The fitted transformer.
          */
         @Pure
+        @PipelineActivity([
+            DSPipelineActivity.DataProcessingQDataTransformation
+        ])
         fun fit(
             table: Table
         ) -> fittedTransformer: SimpleImputer
@@ -107,9 +113,20 @@ pipeline example {
          */
         @Pure
         @PythonName("fit_and_transform")
+        @PipelineActivity([
+            DSPipelineActivity.DataProcessingQDataTransformation
+        ])
         fun fitAndTransform(
             table: Table
         ) -> (fittedTransformer: SimpleImputer, transformedTable: Table)
+
+        @Pure
+        @PipelineActivity([
+            DSPipelineActivity.DataProcessingQDataTransformation
+        ])
+        fun transform(
+            table: Table
+        ) -> transformedTable: Table
     }
     ```
     { data-search-exclude }
@@ -152,8 +169,11 @@ This transformer is not modified.
 
 ??? quote "Stub code in `SimpleImputer.sdsstub`"
 
-    ```sds linenums="83"
+    ```sds linenums="86"
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation
+    ])
     fun fit(
         table: Table
     ) -> fittedTransformer: SimpleImputer
@@ -181,9 +201,12 @@ Learn a transformation for a set of columns in a table and apply the learned tra
 
 ??? quote "Stub code in `SimpleImputer.sdsstub`"
 
-    ```sds linenums="98"
+    ```sds linenums="104"
     @Pure
     @PythonName("fit_and_transform")
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation
+    ])
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: SimpleImputer, transformedTable: Table)
@@ -192,26 +215,25 @@ Learn a transformation for a set of columns in a table and apply the learned tra
 
 ## <code class="doc-symbol doc-symbol-function"></code> `transform` {#safeds.data.tabular.transformation.SimpleImputer.transform data-toc-label='[function] transform'}
 
-Apply the learned transformation to a table.
-
-**Note:** The given table is not modified.
-
 **Parameters:**
 
 | Name | Type | Description | Default |
 |------|------|-------------|---------|
-| `table` | [`Table`][safeds.data.tabular.containers.Table] | The table to which the learned transformation is applied. | - |
+| `table` | [`Table`][safeds.data.tabular.containers.Table] | - | - |
 
 **Results:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| `transformedTable` | [`Table`][safeds.data.tabular.containers.Table] | The transformed table. |
+| `transformedTable` | [`Table`][safeds.data.tabular.containers.Table] | - |
 
-??? quote "Stub code in `TableTransformer.sdsstub`"
+??? quote "Stub code in `SimpleImputer.sdsstub`"
 
-    ```sds linenums="37"
+    ```sds linenums="113"
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation
+    ])
     fun transform(
         table: Table
     ) -> transformedTable: Table
@@ -224,7 +246,7 @@ Various strategies to replace missing values.
 
 ??? quote "Stub code in `SimpleImputer.sdsstub`"
 
-    ```sds linenums="37"
+    ```sds linenums="40"
     enum Strategy {
         /**
          * Replace missing values with the given constant value.

@@ -21,6 +21,9 @@ A convolutional transpose 2D Layer.
     ```sds linenums="15"
     @Experimental
     @Category(DataScienceCategory.ModelingQNeuralNetwork)
+    @PipelineActivity([
+        DSPipelineActivity.ModelingQModelCreation
+    ])
     class ConvolutionalTranspose2DLayer(
         @PythonName("output_channel") outputChannel: Int,
         @PythonName("kernel_size") kernelSize: Int,

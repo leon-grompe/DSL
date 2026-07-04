@@ -15,6 +15,10 @@ Wraps a callable so that it conforms to the TableTransformer interface.
 ??? quote "Stub code in `FunctionalTableTransformer.sdsstub`"
 
     ```sds linenums="11"
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation,
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+    ])
     class FunctionalTableTransformer(
         transformer: (table: Table) -> transformedTable: Table
     ) sub TableTransformer {
@@ -27,6 +31,10 @@ Wraps a callable so that it conforms to the TableTransformer interface.
          */
         @Pure
         @Category(DataScienceCategory.DataProcessingQTransformer)
+        @PipelineActivity([
+            DSPipelineActivity.DataProcessingQDataTransformation,
+            DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+        ])
         fun fit(
             table: Table
         ) -> fittedTransformer: FunctionalTableTransformer
@@ -42,9 +50,23 @@ Wraps a callable so that it conforms to the TableTransformer interface.
         @Pure
         @PythonName("fit_and_transform")
         @Category(DataScienceCategory.DataProcessingQTransformer)
+        @PipelineActivity([
+            DSPipelineActivity.DataProcessingQDataTransformation,
+            DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+        ])
         fun fitAndTransform(
             table: Table
         ) -> (fittedTransformer: FunctionalTableTransformer, transformedTable: Table)
+
+        @Pure
+        @Category(DataScienceCategory.DataProcessingQTransformer)
+        @PipelineActivity([
+            DSPipelineActivity.DataProcessingQDataTransformation,
+            DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+        ])
+        fun transform(
+            table: Table
+        ) -> transformedTable: Table
     }
     ```
     { data-search-exclude }
@@ -73,9 +95,13 @@ Whether the transformer is fitted.
 
 ??? quote "Stub code in `FunctionalTableTransformer.sdsstub`"
 
-    ```sds linenums="21"
+    ```sds linenums="25"
     @Pure
     @Category(DataScienceCategory.DataProcessingQTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation,
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+    ])
     fun fit(
         table: Table
     ) -> fittedTransformer: FunctionalTableTransformer
@@ -101,10 +127,14 @@ Whether the transformer is fitted.
 
 ??? quote "Stub code in `FunctionalTableTransformer.sdsstub`"
 
-    ```sds linenums="35"
+    ```sds linenums="43"
     @Pure
     @PythonName("fit_and_transform")
     @Category(DataScienceCategory.DataProcessingQTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation,
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+    ])
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: FunctionalTableTransformer, transformedTable: Table)
@@ -113,26 +143,27 @@ Whether the transformer is fitted.
 
 ## <code class="doc-symbol doc-symbol-function"></code> `transform` {#safeds.data.tabular.transformation.FunctionalTableTransformer.transform data-toc-label='[function] transform'}
 
-Apply the learned transformation to a table.
-
-**Note:** The given table is not modified.
-
 **Parameters:**
 
 | Name | Type | Description | Default |
 |------|------|-------------|---------|
-| `table` | [`Table`][safeds.data.tabular.containers.Table] | The table to which the learned transformation is applied. | - |
+| `table` | [`Table`][safeds.data.tabular.containers.Table] | - | - |
 
 **Results:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| `transformedTable` | [`Table`][safeds.data.tabular.containers.Table] | The transformed table. |
+| `transformedTable` | [`Table`][safeds.data.tabular.containers.Table] | - |
 
-??? quote "Stub code in `TableTransformer.sdsstub`"
+??? quote "Stub code in `FunctionalTableTransformer.sdsstub`"
 
-    ```sds linenums="37"
+    ```sds linenums="54"
     @Pure
+    @Category(DataScienceCategory.DataProcessingQTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation,
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+    ])
     fun transform(
         table: Table
     ) -> transformedTable: Table

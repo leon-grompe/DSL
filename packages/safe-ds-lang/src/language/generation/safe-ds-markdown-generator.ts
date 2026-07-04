@@ -82,8 +82,9 @@ export class SafeDsMarkdownGenerator {
         const knownPaths = new Set(documents.map((document) => document.uri.fsPath));
         const details = documents.flatMap((document) => this.generateDetailsForDocument(document, knownPaths, options));
         const summary = this.generateSummary(details, options);
+        const activityOverview = this.generateActivityOverview(documents, options);
 
-        return [...details, summary];
+        return [...details, summary, activityOverview];
     }
 
     private generateDetailsForDocument(
@@ -691,6 +692,131 @@ export class SafeDsMarkdownGenerator {
         return result + '\n';
     }
 
+    /**
+     * Generates a lookup page that lists every documented declaration grouped by the pipeline activities it is
+     * annotated with (via `@PipelineActivity`). Activities are ordered as declared in the `DSPipelineActivity` enum
+     * (i.e. by pipeline phase), and the operations within each activity are listed alphabetically. Regenerated
+     * automatically whenever the API docs are rebuilt from the stubs (`npm run docs:api`).
+     */
+    private generateActivityOverview(documents: LangiumDocument[], options: GenerateOptions): TextDocument {
+        const uri = UriUtils.joinPath(options.destination, 'by-activity.md').toString();
+
+        const entries: ActivityEntry[] = [];
+        for (const document of documents) {
+            const root = document.parseResult.value;
+            if (!isSdsModule(root)) {
+                continue;
+            }
+            getModuleMembers(root).forEach((member) => this.collectActivities(member, entries));
+        }
+
+        return TextDocument.create(uri, 'md', 0, this.describeActivityOverview(entries));
+    }
+
+    /**
+     * Collects the `@PipelineActivity` annotations of a declaration (and, recursively, of its class members) into
+     * `entries`, one entry per (declaration, activity) pair. Private declarations are skipped, mirroring the rest of
+     * the documentation.
+     */
+    private collectActivities(node: SdsDeclaration, entries: ActivityEntry[]): void {
+        if (isPrivate(node)) {
+            return;
+        }
+
+        for (const activity of this.builtinAnnotations.streamDSPipelineActivities(node)) {
+            entries.push({ id: getQualifiedName(node), label: this.activityLabel(node), activity });
+        }
+
+        if (isSdsClass(node)) {
+            getClassMembers(node).forEach((member) => this.collectActivities(member, entries));
+        }
+    }
+
+    /**
+     * Builds the label shown for a declaration on the activity lookup page: `Class.member` for class members and the
+     * plain name for top-level declarations.
+     */
+    private activityLabel(node: SdsDeclaration): string {
+        const containerClass = AstUtils.getContainerOfType(node.$container, isSdsClass);
+        if (containerClass?.name) {
+            return `${containerClass.name}.${node.name}`;
+        }
+        return node.name;
+    }
+
+    private describeActivityOverview(entries: ActivityEntry[]): string {
+        // Group entries by the activity they were annotated with
+        const groups = new Map<string, ActivityEntry[]>();
+        for (const entry of entries) {
+            const key = entry.activity.name;
+            if (!groups.has(key)) {
+                groups.set(key, []);
+            }
+            groups.get(key)!.push(entry);
+        }
+
+        // Order activities as declared in the DSPipelineActivity enum (i.e. by pipeline phase)
+        const order = this.activityOrder(entries);
+        const orderedKeys = [...groups.keys()].sort(
+            (a, b) => (order.get(a) ?? Number.MAX_SAFE_INTEGER) - (order.get(b) ?? Number.MAX_SAFE_INTEGER),
+        );
+
+        let result = `---\nsearch:\n  boost: 0.5\n---\n\n`;
+        result += GENERATED_WARNING;
+        result += `# API by Activity\n\n`;
+        result +=
+            `Every API operation grouped by the [activity](../best-practices/activities.md) it is annotated with, ` +
+            `ordered by [pipeline phase](../best-practices/pipeline-structure.md). Use it as a lookup: pick the activity ` +
+            `you need in your pipeline and jump straight to the operations that perform it.\n`;
+
+        for (const key of orderedKeys) {
+            const [phase, type] = this.splitActivityName(key);
+            const heading = type ? `${spaceCamelCase(phase)} — ${spaceCamelCase(type)}` : spaceCamelCase(phase);
+            result += `\n## ${heading}\n\n`;
+
+            // De-duplicate by declaration (a declaration listed once per activity) and sort alphabetically
+            const seen = new Set<string>();
+            groups
+                .get(key)!
+                .filter((entry) => {
+                    if (seen.has(entry.id)) {
+                        return false;
+                    }
+                    seen.add(entry.id);
+                    return true;
+                })
+                .sort((a, b) => a.label.localeCompare(b.label))
+                .forEach((entry) => {
+                    result += `- [\`${entry.label}\`][${entry.id}]\n`;
+                });
+        }
+
+        return result;
+    }
+
+    /**
+     * Maps each activity name to its position in the `DSPipelineActivity` enum, so the overview can be ordered by
+     * pipeline phase. Falls back to an empty map if no annotated declaration was found.
+     */
+    private activityOrder(entries: ActivityEntry[]): Map<string, number> {
+        const order = new Map<string, number>();
+        const enumNode = entries
+            .map((entry) => AstUtils.getContainerOfType(entry.activity, isSdsEnum))
+            .find((it) => it !== undefined);
+
+        if (enumNode) {
+            getEnumVariants(enumNode).forEach((variant, index) => order.set(variant.name, index));
+        }
+
+        return order;
+    }
+
+    /** Splits an activity name like `DataAcquisitionQDataLoading` into its phase and type parts around the `Q`. */
+    private splitActivityName(name: string): [string, string] {
+        const index = name.indexOf('Q');
+        return index === -1 ? [name, ''] : [name.slice(0, index), name.slice(index + 1)];
+    }
+
     private uriForModuleMember(node: SdsModuleMember, options: GenerateOptions): URI {
         const packageName = getPackageName(node) ?? '';
         const name = node.name;
@@ -830,8 +956,25 @@ interface Summary {
     leaves: string[];
 }
 
+/**
+ * A single (declaration, activity) pairing on the "API by Activity" lookup page.
+ */
+interface ActivityEntry {
+    /** Qualified name of the declaration, used as the auto-reference id to link into the API docs. */
+    id: string;
+    /** Human-readable label shown in the list (`Class.member` or a plain name). */
+    label: string;
+    /** The activity the declaration is annotated with. */
+    activity: SdsEnumVariant;
+}
+
 const indent = (text: string): string => {
     return addLinePrefix(text, INDENTATION);
+};
+
+/** Inserts spaces at camelCase boundaries, e.g. `DataAcquisition` -> `Data Acquisition`. */
+const spaceCamelCase = (text: string): string => {
+    return text.replaceAll(/([a-z0-9])([A-Z])/gu, '$1 $2');
 };
 
 type Tag =

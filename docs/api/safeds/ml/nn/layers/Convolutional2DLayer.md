@@ -24,6 +24,9 @@ A convolutional 2D Layer.
     ```sds linenums="14"
     @Experimental
     @Category(DataScienceCategory.ModelingQNeuralNetwork)
+    @PipelineActivity([
+        DSPipelineActivity.ModelingQModelCreation
+    ])
     class Convolutional2DLayer(
         @PythonName("output_channel") outputChannel: Int,
         @PythonName("kernel_size") kernelSize: Int,

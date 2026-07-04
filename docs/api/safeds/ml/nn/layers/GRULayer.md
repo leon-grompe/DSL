@@ -16,17 +16,20 @@ A gated recurrent unit (GRU) layer.
 
     ```sds linenums="10"
     @Category(DataScienceCategory.ModelingQNeuralNetwork)
+    @PipelineActivity([
+        DSPipelineActivity.ModelingQModelCreation
+    ])
     class GRULayer(
-       @PythonName("neuron_count") neuronCount: Int
+        @PythonName("neuron_count") neuronCount: Int
     ) sub Layer {
-       /**
-        * Get the input_size of this layer.
-        */
-       @PythonName("input_size") attr inputSize: Int
-       /**
-        * Get the output_size of this layer.
-        */
-       @PythonName("output_size") attr outputSize: Int
+        /**
+         * Get the input_size of this layer.
+         */
+        @PythonName("input_size") attr inputSize: Int
+        /**
+         * Get the output_size of this layer.
+         */
+        @PythonName("output_size") attr outputSize: Int
     }
     ```
     { data-search-exclude }

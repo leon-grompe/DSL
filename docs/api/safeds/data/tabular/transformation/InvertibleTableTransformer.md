@@ -29,6 +29,9 @@ A `TableTransformer` that can also undo the learned transformation after it has 
          * @result fittedTransformer The fitted transformer.
          */
         @Pure
+        @PipelineActivity([
+            DSPipelineActivity.DataProcessingQDataTransformation
+        ])
         fun fit(
             table: Table
         ) -> fittedTransformer: InvertibleTableTransformer
@@ -45,6 +48,9 @@ A `TableTransformer` that can also undo the learned transformation after it has 
          */
         @Pure
         @PythonName("fit_and_transform")
+        @PipelineActivity([
+            DSPipelineActivity.DataProcessingQDataTransformation
+        ])
         fun fitAndTransform(
             table: Table
         ) -> (fittedTransformer: InvertibleTableTransformer, transformedTable: Table)
@@ -62,6 +68,10 @@ A `TableTransformer` that can also undo the learned transformation after it has 
          */
         @Pure
         @PythonName("inverse_transform")
+        @PipelineActivity([
+            DSPipelineActivity.DataProcessingQDataTransformation,
+            DSPipelineActivity.InterpretationQPostProcessing
+        ])
         fun inverseTransform(
             @PythonName("transformed_table") transformedTable: Table
         ) -> originalTable: Table
@@ -97,6 +107,9 @@ Learn a transformation for a set of columns in a table.
 
     ```sds linenums="19"
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation
+    ])
     fun fit(
         table: Table
     ) -> fittedTransformer: InvertibleTableTransformer
@@ -124,9 +137,12 @@ Learn a transformation for a set of columns in a table and apply the learned tra
 
 ??? quote "Stub code in `InvertibleTableTransformer.sdsstub`"
 
-    ```sds linenums="34"
+    ```sds linenums="37"
     @Pure
     @PythonName("fit_and_transform")
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation
+    ])
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: InvertibleTableTransformer, transformedTable: Table)
@@ -155,9 +171,13 @@ Column order and types may differ from the original table. Likewise, some values
 
 ??? quote "Stub code in `InvertibleTableTransformer.sdsstub`"
 
-    ```sds linenums="51"
+    ```sds linenums="57"
     @Pure
     @PythonName("inverse_transform")
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation,
+        DSPipelineActivity.InterpretationQPostProcessing
+    ])
     fun inverseTransform(
         @PythonName("transformed_table") transformedTable: Table
     ) -> originalTable: Table

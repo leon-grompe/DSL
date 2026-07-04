@@ -18,6 +18,10 @@ A collection of regression metrics.
          */
         @Pure
         @Category(DataScienceCategory.ModelEvaluationQMetric)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQMetricCalculation,
+            DSPipelineActivity.TestingQMetricCalculation
+        ])
         static fun summarize(
             predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
             expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>
@@ -49,6 +53,10 @@ A collection of regression metrics.
         @Pure
         @PythonName("coefficient_of_determination")
         @Category(DataScienceCategory.ModelEvaluationQMetric)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQMetricCalculation,
+            DSPipelineActivity.TestingQMetricCalculation
+        ])
         static fun coefficientOfDetermination(
             predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
             expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>
@@ -69,6 +77,10 @@ A collection of regression metrics.
         @Pure
         @PythonName("mean_absolute_error")
         @Category(DataScienceCategory.ModelEvaluationQMetric)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQMetricCalculation,
+            DSPipelineActivity.TestingQMetricCalculation
+        ])
         static fun meanAbsoluteError(
             predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
             expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>
@@ -93,6 +105,10 @@ A collection of regression metrics.
         @Pure
         @PythonName("mean_directional_accuracy")
         @Category(DataScienceCategory.ModelEvaluationQMetric)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQMetricCalculation,
+            DSPipelineActivity.TestingQMetricCalculation
+        ])
         static fun meanDirectionalAccuracy(
             predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
             expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>
@@ -115,6 +131,10 @@ A collection of regression metrics.
         @Pure
         @PythonName("mean_squared_error")
         @Category(DataScienceCategory.ModelEvaluationQMetric)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQMetricCalculation,
+            DSPipelineActivity.TestingQMetricCalculation
+        ])
         static fun meanSquaredError(
             predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
             expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>
@@ -135,6 +155,10 @@ A collection of regression metrics.
         @Pure
         @PythonName("median_absolute_deviation")
         @Category(DataScienceCategory.ModelEvaluationQMetric)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQMetricCalculation,
+            DSPipelineActivity.TestingQMetricCalculation
+        ])
         static fun medianAbsoluteDeviation(
             predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
             expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>
@@ -177,10 +201,14 @@ to 1.0. You can interpret the coefficient of determination as follows:
 
 ??? quote "Stub code in `RegressionMetrics.sdsstub`"
 
-    ```sds linenums="48"
+    ```sds linenums="52"
     @Pure
     @PythonName("coefficient_of_determination")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     static fun coefficientOfDetermination(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
         expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>
@@ -211,10 +239,14 @@ infinity.
 
 ??? quote "Stub code in `RegressionMetrics.sdsstub`"
 
-    ```sds linenums="68"
+    ```sds linenums="76"
     @Pure
     @PythonName("mean_absolute_error")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     static fun meanAbsoluteError(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
         expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>
@@ -249,10 +281,14 @@ for other types of data. Because of this, it is not included in the `summarize` 
 
 ??? quote "Stub code in `RegressionMetrics.sdsstub`"
 
-    ```sds linenums="92"
+    ```sds linenums="104"
     @Pure
     @PythonName("mean_directional_accuracy")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     static fun meanDirectionalAccuracy(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
         expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>
@@ -285,10 +321,14 @@ infinity.
 
 ??? quote "Stub code in `RegressionMetrics.sdsstub`"
 
-    ```sds linenums="114"
+    ```sds linenums="130"
     @Pure
     @PythonName("mean_squared_error")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     static fun meanSquaredError(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
         expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>
@@ -319,10 +359,14 @@ positive infinity.
 
 ??? quote "Stub code in `RegressionMetrics.sdsstub`"
 
-    ```sds linenums="134"
+    ```sds linenums="154"
     @Pure
     @PythonName("median_absolute_deviation")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     static fun medianAbsoluteDeviation(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
         expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>
@@ -352,6 +396,10 @@ Summarize regression metrics on the given data.
     ```sds linenums="18"
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     static fun summarize(
         predicted: union<Column<Any>, TabularDataset, TimeSeriesDataset>,
         expected: union<Column<Any>, TabularDataset, TimeSeriesDataset>

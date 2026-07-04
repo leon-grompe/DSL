@@ -29,6 +29,9 @@ pipeline example {
 ??? quote "Stub code in `LabelEncoder.sdsstub`"
 
     ```sds linenums="23"
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+    ])
     class LabelEncoder(
         selector: union<List<String>, String, Nothing?> = null,
         @PythonName("partial_order") partialOrder: List<Any?> = []
@@ -48,6 +51,9 @@ pipeline example {
          * @result fittedTransformer The fitted transformer.
          */
         @Pure
+        @PipelineActivity([
+            DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+        ])
         fun fit(
             table: Table
         ) -> fittedTransformer: LabelEncoder
@@ -64,9 +70,20 @@ pipeline example {
          */
         @Pure
         @PythonName("fit_and_transform")
+        @PipelineActivity([
+            DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+        ])
         fun fitAndTransform(
             table: Table
         ) -> (fittedTransformer: LabelEncoder, transformedTable: Table)
+
+        @Pure
+        @PipelineActivity([
+            DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+        ])
+        fun transform(
+            table: Table
+        ) -> transformedTable: Table
     }
     ```
     { data-search-exclude }
@@ -103,8 +120,11 @@ This transformer is not modified.
 
 ??? quote "Stub code in `LabelEncoder.sdsstub`"
 
-    ```sds linenums="41"
+    ```sds linenums="44"
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+    ])
     fun fit(
         table: Table
     ) -> fittedTransformer: LabelEncoder
@@ -132,9 +152,12 @@ Learn a transformation for a set of columns in a table and apply the learned tra
 
 ??? quote "Stub code in `LabelEncoder.sdsstub`"
 
-    ```sds linenums="56"
+    ```sds linenums="62"
     @Pure
     @PythonName("fit_and_transform")
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+    ])
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: LabelEncoder, transformedTable: Table)
@@ -163,9 +186,13 @@ Column order and types may differ from the original table. Likewise, some values
 
 ??? quote "Stub code in `InvertibleTableTransformer.sdsstub`"
 
-    ```sds linenums="51"
+    ```sds linenums="57"
     @Pure
     @PythonName("inverse_transform")
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation,
+        DSPipelineActivity.InterpretationQPostProcessing
+    ])
     fun inverseTransform(
         @PythonName("transformed_table") transformedTable: Table
     ) -> originalTable: Table
@@ -174,26 +201,25 @@ Column order and types may differ from the original table. Likewise, some values
 
 ## <code class="doc-symbol doc-symbol-function"></code> `transform` {#safeds.data.tabular.transformation.LabelEncoder.transform data-toc-label='[function] transform'}
 
-Apply the learned transformation to a table.
-
-**Note:** The given table is not modified.
-
 **Parameters:**
 
 | Name | Type | Description | Default |
 |------|------|-------------|---------|
-| `table` | [`Table`][safeds.data.tabular.containers.Table] | The table to which the learned transformation is applied. | - |
+| `table` | [`Table`][safeds.data.tabular.containers.Table] | - | - |
 
 **Results:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| `transformedTable` | [`Table`][safeds.data.tabular.containers.Table] | The transformed table. |
+| `transformedTable` | [`Table`][safeds.data.tabular.containers.Table] | - |
 
-??? quote "Stub code in `TableTransformer.sdsstub`"
+??? quote "Stub code in `LabelEncoder.sdsstub`"
 
-    ```sds linenums="37"
+    ```sds linenums="71"
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+    ])
     fun transform(
         table: Table
     ) -> transformedTable: Table

@@ -33,6 +33,9 @@ A model for supervised learning tasks.
          * @result fittedModel The fitted model.
          */
         @Pure
+        @PipelineActivity([
+            DSPipelineActivity.TrainingQModelFitting
+        ])
         fun fit(
             @PythonName("training_set") trainingSet: TabularDataset
         ) -> fittedModel: SupervisedModel
@@ -47,6 +50,10 @@ A model for supervised learning tasks.
          * @result prediction The given dataset with an additional column for the predicted target values.
          */
         @Pure
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQPrediction,
+            DSPipelineActivity.TestingQPrediction
+        ])
         fun predict(
             dataset: union<Table, TabularDataset>
         ) -> prediction: TabularDataset
@@ -126,6 +133,9 @@ Create a copy of this model and fit it with the given training data.
 
     ```sds linenums="26"
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQModelFitting
+    ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset
     ) -> fittedModel: SupervisedModel
@@ -146,7 +156,7 @@ Return the names of the feature columns.
 
 ??? quote "Stub code in `SupervisedModel.sdsstub`"
 
-    ```sds linenums="52"
+    ```sds linenums="59"
     @Pure
     @PythonName("get_feature_names")
     fun getFeatureNames() -> featureNames: List<String>
@@ -167,7 +177,7 @@ Return the schema of the feature columns.
 
 ??? quote "Stub code in `SupervisedModel.sdsstub`"
 
-    ```sds linenums="63"
+    ```sds linenums="70"
     @Pure
     @PythonName("get_features_schema")
     fun getFeaturesSchema() -> featureSchema: Schema
@@ -188,7 +198,7 @@ Return the name of the target column.
 
 ??? quote "Stub code in `SupervisedModel.sdsstub`"
 
-    ```sds linenums="74"
+    ```sds linenums="81"
     @Pure
     @PythonName("get_target_name")
     fun getTargetName() -> targetName: String
@@ -209,7 +219,7 @@ Return the type of the target column.
 
 ??? quote "Stub code in `SupervisedModel.sdsstub`"
 
-    ```sds linenums="85"
+    ```sds linenums="92"
     @Pure
     @PythonName("get_target_type")
     fun getTargetType() -> targetType: ColumnType
@@ -236,8 +246,12 @@ Predict the target values on the given dataset.
 
 ??? quote "Stub code in `SupervisedModel.sdsstub`"
 
-    ```sds linenums="40"
+    ```sds linenums="43"
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQPrediction,
+        DSPipelineActivity.TestingQPrediction
+    ])
     fun predict(
         dataset: union<Table, TabularDataset>
     ) -> prediction: TabularDataset

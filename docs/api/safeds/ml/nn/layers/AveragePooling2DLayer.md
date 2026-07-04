@@ -19,6 +19,9 @@ An average pooling 2D Layer.
     ```sds linenums="13"
     @Experimental
     @Category(DataScienceCategory.ModelingQNeuralNetwork)
+    @PipelineActivity([
+        DSPipelineActivity.ModelingQModelCreation
+    ])
     class AveragePooling2DLayer(
         @PythonName("kernel_size") kernelSize: Int,
         stride: Int = -1,

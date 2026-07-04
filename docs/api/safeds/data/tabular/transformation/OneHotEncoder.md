@@ -52,6 +52,9 @@ pipeline example {
 ??? quote "Stub code in `OneHotEncoder.sdsstub`"
 
     ```sds linenums="45"
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+    ])
     class OneHotEncoder(
         selector: union<List<String>, String, Nothing?> = null,
         separator: String = "__"
@@ -72,6 +75,9 @@ pipeline example {
          */
         @Pure
         @Category(DataScienceCategory.DataProcessingQTransformer)
+        @PipelineActivity([
+            DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+        ])
         fun fit(
             table: Table
         ) -> fittedTransformer: OneHotEncoder
@@ -89,9 +95,21 @@ pipeline example {
         @Pure
         @PythonName("fit_and_transform")
         @Category(DataScienceCategory.DataProcessingQTransformer)
+        @PipelineActivity([
+            DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+        ])
         fun fitAndTransform(
             table: Table
         ) -> (fittedTransformer: OneHotEncoder, transformedTable: Table)
+
+        @Pure
+        @Category(DataScienceCategory.DataProcessingQTransformer)
+        @PipelineActivity([
+            DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+        ])
+        fun transform(
+            table: Table
+        ) -> transformedTable: Table
     }
     ```
     { data-search-exclude }
@@ -128,9 +146,12 @@ This transformer is not modified.
 
 ??? quote "Stub code in `OneHotEncoder.sdsstub`"
 
-    ```sds linenums="63"
+    ```sds linenums="66"
     @Pure
     @Category(DataScienceCategory.DataProcessingQTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+    ])
     fun fit(
         table: Table
     ) -> fittedTransformer: OneHotEncoder
@@ -158,10 +179,13 @@ Learn a transformation for a set of columns in a table and apply the learned tra
 
 ??? quote "Stub code in `OneHotEncoder.sdsstub`"
 
-    ```sds linenums="79"
+    ```sds linenums="85"
     @Pure
     @PythonName("fit_and_transform")
     @Category(DataScienceCategory.DataProcessingQTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+    ])
     fun fitAndTransform(
         table: Table
     ) -> (fittedTransformer: OneHotEncoder, transformedTable: Table)
@@ -190,9 +214,13 @@ Column order and types may differ from the original table. Likewise, some values
 
 ??? quote "Stub code in `InvertibleTableTransformer.sdsstub`"
 
-    ```sds linenums="51"
+    ```sds linenums="57"
     @Pure
     @PythonName("inverse_transform")
+    @PipelineActivity([
+        DSPipelineActivity.DataProcessingQDataTransformation,
+        DSPipelineActivity.InterpretationQPostProcessing
+    ])
     fun inverseTransform(
         @PythonName("transformed_table") transformedTable: Table
     ) -> originalTable: Table
@@ -201,26 +229,26 @@ Column order and types may differ from the original table. Likewise, some values
 
 ## <code class="doc-symbol doc-symbol-function"></code> `transform` {#safeds.data.tabular.transformation.OneHotEncoder.transform data-toc-label='[function] transform'}
 
-Apply the learned transformation to a table.
-
-**Note:** The given table is not modified.
-
 **Parameters:**
 
 | Name | Type | Description | Default |
 |------|------|-------------|---------|
-| `table` | [`Table`][safeds.data.tabular.containers.Table] | The table to which the learned transformation is applied. | - |
+| `table` | [`Table`][safeds.data.tabular.containers.Table] | - | - |
 
 **Results:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| `transformedTable` | [`Table`][safeds.data.tabular.containers.Table] | The transformed table. |
+| `transformedTable` | [`Table`][safeds.data.tabular.containers.Table] | - |
 
-??? quote "Stub code in `TableTransformer.sdsstub`"
+??? quote "Stub code in `OneHotEncoder.sdsstub`"
 
-    ```sds linenums="37"
+    ```sds linenums="95"
     @Pure
+    @Category(DataScienceCategory.DataProcessingQTransformer)
+    @PipelineActivity([
+        DSPipelineActivity.FeatureEngineeringQFeatureTransformation
+    ])
     fun transform(
         table: Table
     ) -> transformedTable: Table

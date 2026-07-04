@@ -36,6 +36,9 @@ A model for classification tasks.
          */
         @Pure
         @Category(DataScienceCategory.ModelingQClassicalClassification)
+        @PipelineActivity([
+            DSPipelineActivity.TrainingQModelFitting
+        ])
         fun fit(
             @PythonName("training_set") trainingSet: TabularDataset
         ) -> fittedModel: Classifier
@@ -58,6 +61,10 @@ A model for classification tasks.
         @Pure
         @PythonName("summarize_metrics")
         @Category(DataScienceCategory.ModelEvaluationQMetric)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQMetricCalculation,
+            DSPipelineActivity.TestingQMetricCalculation
+        ])
         fun summarizeMetrics(
             @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>,
             @PythonName("positive_class") positiveClass: Any
@@ -77,6 +84,10 @@ A model for classification tasks.
          */
         @Pure
         @Category(DataScienceCategory.ModelEvaluationQMetric)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQMetricCalculation,
+            DSPipelineActivity.TestingQMetricCalculation
+        ])
         fun accuracy(
             @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>
         ) -> accuracy: Float
@@ -97,6 +108,10 @@ A model for classification tasks.
         @Pure
         @PythonName("f1_score")
         @Category(DataScienceCategory.ModelEvaluationQMetric)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQMetricCalculation,
+            DSPipelineActivity.TestingQMetricCalculation
+        ])
         fun f1Score(
             @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>,
             @PythonName("positive_class") positiveClass: Any
@@ -117,6 +132,10 @@ A model for classification tasks.
          */
         @Pure
         @Category(DataScienceCategory.ModelEvaluationQMetric)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQMetricCalculation,
+            DSPipelineActivity.TestingQMetricCalculation
+        ])
         fun precision(
             @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>,
             @PythonName("positive_class") positiveClass: Any
@@ -137,6 +156,10 @@ A model for classification tasks.
          */
         @Pure
         @Category(DataScienceCategory.ModelEvaluationQMetric)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQMetricCalculation,
+            DSPipelineActivity.TestingQMetricCalculation
+        ])
         fun recall(
             @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>,
             @PythonName("positive_class") positiveClass: Any
@@ -174,9 +197,13 @@ better. Results range from 0.0 to 1.0.
 
 ??? quote "Stub code in `Classifier.sdsstub`"
 
-    ```sds linenums="61"
+    ```sds linenums="68"
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     fun accuracy(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>
     ) -> accuracy: Float
@@ -207,10 +234,14 @@ classifier. Results range from 0.0 to 1.0.
 
 ??? quote "Stub code in `Classifier.sdsstub`"
 
-    ```sds linenums="80"
+    ```sds linenums="91"
     @Pure
     @PythonName("f1_score")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     fun f1Score(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>,
         @PythonName("positive_class") positiveClass: Any
@@ -241,6 +272,9 @@ Create a copy of this model and fit it with the given training data.
     ```sds linenums="20"
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalClassification)
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQModelFitting
+    ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset
     ) -> fittedModel: Classifier
@@ -261,7 +295,7 @@ Return the names of the feature columns.
 
 ??? quote "Stub code in `SupervisedModel.sdsstub`"
 
-    ```sds linenums="52"
+    ```sds linenums="59"
     @Pure
     @PythonName("get_feature_names")
     fun getFeatureNames() -> featureNames: List<String>
@@ -282,7 +316,7 @@ Return the schema of the feature columns.
 
 ??? quote "Stub code in `SupervisedModel.sdsstub`"
 
-    ```sds linenums="63"
+    ```sds linenums="70"
     @Pure
     @PythonName("get_features_schema")
     fun getFeaturesSchema() -> featureSchema: Schema
@@ -303,7 +337,7 @@ Return the name of the target column.
 
 ??? quote "Stub code in `SupervisedModel.sdsstub`"
 
-    ```sds linenums="74"
+    ```sds linenums="81"
     @Pure
     @PythonName("get_target_name")
     fun getTargetName() -> targetName: String
@@ -324,7 +358,7 @@ Return the type of the target column.
 
 ??? quote "Stub code in `SupervisedModel.sdsstub`"
 
-    ```sds linenums="85"
+    ```sds linenums="92"
     @Pure
     @PythonName("get_target_type")
     fun getTargetType() -> targetType: ColumnType
@@ -355,9 +389,13 @@ better the classifier. Results range from 0.0 to 1.0.
 
 ??? quote "Stub code in `Classifier.sdsstub`"
 
-    ```sds linenums="101"
+    ```sds linenums="116"
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     fun precision(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>,
         @PythonName("positive_class") positiveClass: Any
@@ -385,8 +423,12 @@ Predict the target values on the given dataset.
 
 ??? quote "Stub code in `SupervisedModel.sdsstub`"
 
-    ```sds linenums="40"
+    ```sds linenums="43"
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQPrediction,
+        DSPipelineActivity.TestingQPrediction
+    ])
     fun predict(
         dataset: union<Table, TabularDataset>
     ) -> prediction: TabularDataset
@@ -417,9 +459,13 @@ better the classifier. Results range from 0.0 to 1.0.
 
 ??? quote "Stub code in `Classifier.sdsstub`"
 
-    ```sds linenums="121"
+    ```sds linenums="140"
     @Pure
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     fun recall(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>,
         @PythonName("positive_class") positiveClass: Any
@@ -453,10 +499,14 @@ Summarize the classifier's metrics on the given data.
 
 ??? quote "Stub code in `Classifier.sdsstub`"
 
-    ```sds linenums="41"
+    ```sds linenums="44"
     @Pure
     @PythonName("summarize_metrics")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     fun summarizeMetrics(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>,
         @PythonName("positive_class") positiveClass: Any

@@ -19,6 +19,9 @@ A maximum Pooling 2D Layer.
     ```sds linenums="13"
     @Experimental
     @Category(DataScienceCategory.ModelingQNeuralNetwork)
+    @PipelineActivity([
+        DSPipelineActivity.ModelingQModelCreation
+    ])
     class MaxPooling2DLayer(
         @PythonName("kernel_size") kernelSize: Int,
         stride: Int = -1,

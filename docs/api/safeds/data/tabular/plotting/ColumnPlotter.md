@@ -23,6 +23,10 @@ pipeline example {
 
     ```sds linenums="16"
     @Category(DataScienceCategory.BasicElement)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     class ColumnPlotter(
         column: Column<Any>
     ) {
@@ -42,6 +46,10 @@ pipeline example {
         @Pure
         @PythonName("box_plot")
         @Category(DataScienceCategory.DataExplorationQVisualization)
+        @PipelineActivity([
+            DSPipelineActivity.DataPreparationQExploration,
+            DSPipelineActivity.DataProcessingQExploration
+        ])
         fun boxPlot(
             theme: literal<"dark", "light"> = "light"
         ) -> plot: Image
@@ -62,6 +70,10 @@ pipeline example {
          */
         @Pure
         @Category(DataScienceCategory.DataExplorationQVisualization)
+        @PipelineActivity([
+            DSPipelineActivity.DataPreparationQExploration,
+            DSPipelineActivity.DataProcessingQExploration
+        ])
         fun histogram(
             @PythonName("max_bin_count") const maxBinCount: Int = 10,
             theme: literal<"dark", "light"> = "light"
@@ -86,6 +98,10 @@ pipeline example {
         @Pure
         @PythonName("lag_plot")
         @Category(DataScienceCategory.DataExplorationQVisualization)
+        @PipelineActivity([
+            DSPipelineActivity.DataPreparationQExploration,
+            DSPipelineActivity.DataProcessingQExploration
+        ])
         fun lagPlot(
             lag: Int,
             theme: literal<"dark", "light"> = "light"
@@ -107,6 +123,10 @@ pipeline example {
         @Pure
         @PythonName("violin_plot")
         @Category(DataScienceCategory.DataExplorationQVisualization)
+        @PipelineActivity([
+            DSPipelineActivity.DataPreparationQExploration,
+            DSPipelineActivity.DataProcessingQExploration
+        ])
         fun violinPlot(
             theme: literal<"dark", "light"> = "light"
         ) -> plot: Image
@@ -141,10 +161,14 @@ pipeline example {
 
 ??? quote "Stub code in `ColumnPlotter.sdsstub`"
 
-    ```sds linenums="33"
+    ```sds linenums="37"
     @Pure
     @PythonName("box_plot")
     @Category(DataScienceCategory.DataExplorationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun boxPlot(
         theme: literal<"dark", "light"> = "light"
     ) -> plot: Image
@@ -179,9 +203,13 @@ pipeline example {
 
 ??? quote "Stub code in `ColumnPlotter.sdsstub`"
 
-    ```sds linenums="54"
+    ```sds linenums="62"
     @Pure
     @Category(DataScienceCategory.DataExplorationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun histogram(
         @PythonName("max_bin_count") const maxBinCount: Int = 10,
         theme: literal<"dark", "light"> = "light"
@@ -219,10 +247,14 @@ pipeline example {
 
 ??? quote "Stub code in `ColumnPlotter.sdsstub`"
 
-    ```sds linenums="77"
+    ```sds linenums="89"
     @Pure
     @PythonName("lag_plot")
     @Category(DataScienceCategory.DataExplorationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun lagPlot(
         lag: Int,
         theme: literal<"dark", "light"> = "light"
@@ -257,10 +289,14 @@ pipeline example {
 
 ??? quote "Stub code in `ColumnPlotter.sdsstub`"
 
-    ```sds linenums="98"
+    ```sds linenums="114"
     @Pure
     @PythonName("violin_plot")
     @Category(DataScienceCategory.DataExplorationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.DataPreparationQExploration,
+        DSPipelineActivity.DataProcessingQExploration
+    ])
     fun violinPlot(
         theme: literal<"dark", "light"> = "light"
     ) -> plot: Image

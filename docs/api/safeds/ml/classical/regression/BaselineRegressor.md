@@ -16,6 +16,9 @@ Get a baseline by fitting data on multiple different models and comparing the be
 
     ```sds linenums="13"
     @Experimental
+    @PipelineActivity([
+        DSPipelineActivity.ModelingQModelCreation
+    ])
     class BaselineRegressor(
         @PythonName("extended_search") extendedSearch: Boolean = false
     ) {
@@ -34,6 +37,9 @@ Get a baseline by fitting data on multiple different models and comparing the be
          * @result trainedClassifier The trained Regressor
          */
         @Pure
+        @PipelineActivity([
+            DSPipelineActivity.TrainingQModelFitting
+        ])
         fun fit(
             @PythonName("train_data") trainData: TabularDataset
         ) -> trainedClassifier: BaselineRegressor
@@ -48,6 +54,10 @@ Get a baseline by fitting data on multiple different models and comparing the be
          * @result bestMetrics A dictionary with the best metrics that were achieved.
          */
         @Pure
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQPrediction,
+            DSPipelineActivity.TestingQPrediction
+        ])
         fun predict(
             @PythonName("test_data") testData: TabularDataset
         ) -> bestMetrics: Map<String, Float>
@@ -81,8 +91,11 @@ The original model is not modified.
 
 ??? quote "Stub code in `BaselineRegressor.sdsstub`"
 
-    ```sds linenums="31"
+    ```sds linenums="34"
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQModelFitting
+    ])
     fun fit(
         @PythonName("train_data") trainData: TabularDataset
     ) -> trainedClassifier: BaselineRegressor
@@ -109,8 +122,12 @@ The original Model is not modified.
 
 ??? quote "Stub code in `BaselineRegressor.sdsstub`"
 
-    ```sds linenums="45"
+    ```sds linenums="51"
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQPrediction,
+        DSPipelineActivity.TestingQPrediction
+    ])
     fun predict(
         @PythonName("test_data") testData: TabularDataset
     ) -> bestMetrics: Map<String, Float>

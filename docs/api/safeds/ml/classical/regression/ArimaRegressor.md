@@ -17,6 +17,9 @@ pipeline example {
     ```sds linenums="14"
     @Experimental
     @PythonName("ArimaModelRegressor")
+    @PipelineActivity([
+        DSPipelineActivity.ModelingQModelCreation
+    ])
     class ArimaRegressor() {
         /**
          * Whether the regressor is fitted.
@@ -34,6 +37,9 @@ pipeline example {
          */
         @Pure
         @Category(DataScienceCategory.ModelingQClassicalRegression)
+        @PipelineActivity([
+            DSPipelineActivity.TrainingQModelFitting
+        ])
         fun fit(
             @PythonName("time_series") timeSeries: TimeSeriesDataset
         ) -> fittedArima: ArimaRegressor
@@ -47,6 +53,10 @@ pipeline example {
          */
         @Pure
         @Category(DataScienceCategory.ModelingQClassicalRegression)
+        @PipelineActivity([
+            DSPipelineActivity.EvaluationQPrediction,
+            DSPipelineActivity.TestingQPrediction
+        ])
         fun predict(
             @PythonName("time_series") timeSeries: TimeSeriesDataset
         ) -> prediction: Table
@@ -61,6 +71,9 @@ pipeline example {
         @Pure
         @PythonName("plot_predictions")
         @Category(DataScienceCategory.ModelEvaluationQVisualization)
+        @PipelineActivity([
+            DSPipelineActivity.InterpretationQVisualization
+        ])
         fun plotPredictions(
             @PythonName("test_series") testSeries: TimeSeriesDataset
         ) -> image: Image
@@ -94,9 +107,12 @@ This ARIMA Model is not modified.
 
 ??? quote "Stub code in `ArimaRegressor.sdsstub`"
 
-    ```sds linenums="31"
+    ```sds linenums="34"
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQModelFitting
+    ])
     fun fit(
         @PythonName("time_series") timeSeries: TimeSeriesDataset
     ) -> fittedArima: ArimaRegressor
@@ -121,10 +137,13 @@ Plot the predictions of the trained model to the given target of the time series
 
 ??? quote "Stub code in `ArimaRegressor.sdsstub`"
 
-    ```sds linenums="57"
+    ```sds linenums="67"
     @Pure
     @PythonName("plot_predictions")
     @Category(DataScienceCategory.ModelEvaluationQVisualization)
+    @PipelineActivity([
+        DSPipelineActivity.InterpretationQVisualization
+    ])
     fun plotPredictions(
         @PythonName("test_series") testSeries: TimeSeriesDataset
     ) -> image: Image
@@ -149,9 +168,13 @@ Predict a target vector using a time series target column. The model has to be t
 
 ??? quote "Stub code in `ArimaRegressor.sdsstub`"
 
-    ```sds linenums="44"
+    ```sds linenums="50"
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQPrediction,
+        DSPipelineActivity.TestingQPrediction
+    ])
     fun predict(
         @PythonName("time_series") timeSeries: TimeSeriesDataset
     ) -> prediction: Table

@@ -251,7 +251,7 @@ const generatePipelineValidation = (
     const line = erroneousPoint.$cstNode?.range.start.line! + 1;
     accept('info', 
         `Pipeline has been validated by the behaviour protocol until line ${line}.\n` + 
-        `Read more about best practices, pipeline structure and activities at: ...\n` + 
+        `Read more about best practices, pipeline structure and activities under 'Best Practices' in the Safe-DS Documentation.\n` + 
         `You may disable this validation entirely by adding '@DisableProtocol' before the pipeline declaration.`, {
         node: pipeline,
         property: 'name',

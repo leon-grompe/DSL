@@ -11,6 +11,9 @@ A flatten layer.
     ```sds linenums="9"
     @Experimental
     @Category(DataScienceCategory.ModelingQNeuralNetwork)
+    @PipelineActivity([
+        DSPipelineActivity.ModelingQModelCreation
+    ])
     class FlattenLayer() sub Layer {
         /**
          * Get the input_size of this layer.

@@ -26,6 +26,9 @@ pipeline example {
 ??? quote "Stub code in `KNearestNeighborsRegressor.sdsstub`"
 
     ```sds linenums="21"
+    @PipelineActivity([
+        DSPipelineActivity.ModelingQModelCreation
+    ])
     class KNearestNeighborsRegressor(
         @PythonName("neighbor_count") const neighborCount: Int
     ) sub Regressor where {
@@ -47,6 +50,9 @@ pipeline example {
          */
         @Pure
         @Category(DataScienceCategory.ModelingQClassicalRegression)
+        @PipelineActivity([
+            DSPipelineActivity.TrainingQModelFitting
+        ])
         fun fit(
             @PythonName("training_set") trainingSet: TabularDataset
         ) -> fittedRegressor: KNearestNeighborsRegressor
@@ -102,10 +108,14 @@ to 1.0. You can interpret the coefficient of determination as follows:
 
 ??? quote "Stub code in `Regressor.sdsstub`"
 
-    ```sds linenums="72"
+    ```sds linenums="79"
     @Pure
     @PythonName("coefficient_of_determination")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     fun coefficientOfDetermination(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>
     ) -> coefficientOfDetermination: Float
@@ -132,9 +142,12 @@ This regressor is not modified.
 
 ??? quote "Stub code in `KNearestNeighborsRegressor.sdsstub`"
 
-    ```sds linenums="40"
+    ```sds linenums="43"
     @Pure
     @Category(DataScienceCategory.ModelingQClassicalRegression)
+    @PipelineActivity([
+        DSPipelineActivity.TrainingQModelFitting
+    ])
     fun fit(
         @PythonName("training_set") trainingSet: TabularDataset
     ) -> fittedRegressor: KNearestNeighborsRegressor
@@ -155,7 +168,7 @@ Return the names of the feature columns.
 
 ??? quote "Stub code in `SupervisedModel.sdsstub`"
 
-    ```sds linenums="52"
+    ```sds linenums="59"
     @Pure
     @PythonName("get_feature_names")
     fun getFeatureNames() -> featureNames: List<String>
@@ -176,7 +189,7 @@ Return the schema of the feature columns.
 
 ??? quote "Stub code in `SupervisedModel.sdsstub`"
 
-    ```sds linenums="63"
+    ```sds linenums="70"
     @Pure
     @PythonName("get_features_schema")
     fun getFeaturesSchema() -> featureSchema: Schema
@@ -197,7 +210,7 @@ Return the name of the target column.
 
 ??? quote "Stub code in `SupervisedModel.sdsstub`"
 
-    ```sds linenums="74"
+    ```sds linenums="81"
     @Pure
     @PythonName("get_target_name")
     fun getTargetName() -> targetName: String
@@ -218,7 +231,7 @@ Return the type of the target column.
 
 ??? quote "Stub code in `SupervisedModel.sdsstub`"
 
-    ```sds linenums="85"
+    ```sds linenums="92"
     @Pure
     @PythonName("get_target_type")
     fun getTargetType() -> targetType: ColumnType
@@ -250,10 +263,14 @@ infinity.
 
 ??? quote "Stub code in `Regressor.sdsstub`"
 
-    ```sds linenums="93"
+    ```sds linenums="104"
     @Pure
     @PythonName("mean_absolute_error")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     fun meanAbsoluteError(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>
     ) -> meanAbsoluteError: Float
@@ -289,10 +306,14 @@ for other types of data. Because of this, it is not included in the `summarize_m
 
 ??? quote "Stub code in `Regressor.sdsstub`"
 
-    ```sds linenums="118"
+    ```sds linenums="133"
     @Pure
     @PythonName("mean_directional_accuracy")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     fun meanDirectionalAccuracy(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>
     ) -> meanDirectionalAccuracy: Float
@@ -326,10 +347,14 @@ infinity.
 
 ??? quote "Stub code in `Regressor.sdsstub`"
 
-    ```sds linenums="141"
+    ```sds linenums="160"
     @Pure
     @PythonName("mean_squared_error")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     fun meanSquaredError(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>
     ) -> meanSquaredError: Float
@@ -361,10 +386,14 @@ positive infinity.
 
 ??? quote "Stub code in `Regressor.sdsstub`"
 
-    ```sds linenums="162"
+    ```sds linenums="185"
     @Pure
     @PythonName("median_absolute_deviation")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     fun medianAbsoluteDeviation(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>
     ) -> medianAbsoluteDeviation: Float
@@ -391,8 +420,12 @@ Predict the target values on the given dataset.
 
 ??? quote "Stub code in `SupervisedModel.sdsstub`"
 
-    ```sds linenums="40"
+    ```sds linenums="43"
     @Pure
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQPrediction,
+        DSPipelineActivity.TestingQPrediction
+    ])
     fun predict(
         dataset: union<Table, TabularDataset>
     ) -> prediction: TabularDataset
@@ -424,10 +457,14 @@ Summarize the regressor's metrics on the given data.
 
 ??? quote "Stub code in `Regressor.sdsstub`"
 
-    ```sds linenums="40"
+    ```sds linenums="43"
     @Pure
     @PythonName("summarize_metrics")
     @Category(DataScienceCategory.ModelEvaluationQMetric)
+    @PipelineActivity([
+        DSPipelineActivity.EvaluationQMetricCalculation,
+        DSPipelineActivity.TestingQMetricCalculation
+    ])
     fun summarizeMetrics(
         @PythonName("validation_or_test_set") validationOrTestSet: union<Table, TabularDataset>
     ) -> metrics: Table

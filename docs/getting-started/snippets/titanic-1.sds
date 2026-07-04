@@ -20,10 +20,10 @@ pipeline titanic {
     val rawTraining, val rawTest = preprocessedBeforeSplit.splitRows(percentageInFirst = 0.7);
 
     // Fit an imputer to replace missing values with the median of the respective column
-    val imputer = SimpleImputer(SimpleImputer.Strategy.Median, columnNames = ["age", "fare"]).fit(rawTraining);
+    val imputer = SimpleImputer(SimpleImputer.Strategy.Median, selector = ["age", "fare"]).fit(rawTraining);
 
     // Fit a one-hot encoder to convert nominal categorical data into numerical data
-    val encoder = OneHotEncoder(columnNames = ["sex"]).fit(rawTraining);
+    val encoder = OneHotEncoder(selector = ["sex"]).fit(rawTraining);
 
     // Transform the training data using the imputer and the encoder
     val transformedTraining = rawTraining.transformTable(imputer).transformTable(encoder);

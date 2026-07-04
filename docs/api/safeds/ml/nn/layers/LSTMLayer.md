@@ -16,6 +16,9 @@ A long short-term memory (LSTM) layer.
 
     ```sds linenums="10"
     @Experimental
+    @PipelineActivity([
+        DSPipelineActivity.ModelingQModelCreation
+    ])
     class LSTMLayer(
         @PythonName("neuron_count") neuronCount: Int
     ) sub Layer {

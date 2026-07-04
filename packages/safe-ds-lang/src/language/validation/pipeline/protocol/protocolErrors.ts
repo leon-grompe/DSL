@@ -53,7 +53,7 @@ export class ProtocolViolation extends ValidationError {
         if (ranPastEnd(this.found)) {
             // pipeline is incomplete -> a required phase is missing
             lines.push(`The Pipeline ended before the required Phase '${this.phase}' is complete.`);
-            lines.push(`To satisfy the phase, use the following Activities ${describeAllowed(this.expected)} to ${guidanceForPhase(this.phase!)}`);
+            lines.push(`To satisfy the phase, use ${describeAllowed(this.expected)} to ${guidanceForPhase(this.phase!)}`);
         } else {
             // pipeline is complete, but the activity at this position is not allowed here
             lines.push(`The Activity ${describeFound(this.found)} is not allowed in current Phase '${this.phase}'.`);
