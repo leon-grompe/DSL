@@ -273,6 +273,105 @@ describe('getTestSetPlaceholder', async () => {
 });
 
 // ---------------------------------------------------------------------------
+// getChainedRestSetPlaceholder
+// ---------------------------------------------------------------------------
+
+describe('getChainedRestSetPlaceholder', async () => {
+    const cases: GetPlaceholderTest[] = [
+        {
+            description: 'returns undefined when no split exists',
+            code: `
+                package test
+                fun getTable() -> result: Table
+                pipeline myPipeline { val data = getTable(); }
+            `,
+            expectedName: undefined,
+        },
+        {
+            description: 'returns undefined for a single split (the second assignee is the test set, not a rest set)',
+            code: `
+                package test
+                fun getTable() -> result: Table
+                pipeline myPipeline {
+                    val data = getTable();
+                    val trainSet, val testSet = data.splitRows(percentageInFirst = 0.7);
+                }
+            `,
+            expectedName: undefined,
+        },
+        {
+            description: 'returns the rest set when it is split a second time directly',
+            code: `
+                package test
+                fun getTable() -> result: Table
+                pipeline myPipeline {
+                    val data = getTable();
+                    val trainSet, val restSet = data.splitRows(percentageInFirst = 0.6);
+                    val valSet, val testSet = restSet.splitRows(percentageInFirst = 0.5);
+                }
+            `,
+            expectedName: 'restSet',
+        },
+        {
+            description: 'returns the rest set when the second split is performed via a segment call',
+            code: `
+                package test
+                fun getTable() -> result: Table
+                segment splitData(table: Table) -> (first: Table, second: Table) {
+                    val a, val b = table.splitRows(percentageInFirst = 0.5)
+                    yield first = a
+                    yield second = b
+                }
+                pipeline myPipeline {
+                    val data = getTable();
+                    val trainSet, val restSet = data.splitRows(percentageInFirst = 0.6);
+                    val valSet, val testSet = splitData(restSet);
+                }
+            `,
+            expectedName: 'restSet',
+        },
+        {
+            description: 'returns undefined for a split-all segment (no genuine pipeline-level rest set)',
+            code: `
+                package test
+                fun getTable() -> result: Table
+                segment splitAll(data: Table) -> (trainSet: Table, valSet: Table, testSet: Table) {
+                    val trainSet, val restSet = data.splitRows(percentageInFirst = 0.7)
+                    val valSet, val testSet = restSet.splitRows(percentageInFirst = 0.5)
+                    yield trainSet = trainSet
+                    yield valSet = valSet
+                    yield testSet = testSet
+                }
+                pipeline myPipeline {
+                    val data = getTable();
+                    val trainSet, val valSet, val testSet = splitAll(data);
+                }
+            `,
+            expectedName: undefined,
+        },
+        {
+            description: 'returns undefined for multiple independent splits that do not chain off the rest set',
+            code: `
+                package test
+                fun getTable() -> result: Table
+                pipeline myPipeline {
+                    val data = getTable();
+                    val trainSet, val restSet = data.splitRows(percentageInFirst = 0.6);
+                    val otherTrain, val otherTest = data.splitRows(percentageInFirst = 0.8);
+                }
+            `,
+            expectedName: undefined,
+        },
+    ];
+
+    it.each(cases)('$description', async ({ code, expectedName }) => {
+        const pipeline = await getNodeOfType(services, code, isSdsPipeline);
+        const result = identifier.getChainedRestSetPlaceholder(pipeline.body.statements);
+        expect(result?.name).toBe(expectedName);
+    });
+});
+
+// ---------------------------------------------------------------------------
 // callReferences*Set  (integration — uses callRefPipeline parsed above)
 // ---------------------------------------------------------------------------
 
