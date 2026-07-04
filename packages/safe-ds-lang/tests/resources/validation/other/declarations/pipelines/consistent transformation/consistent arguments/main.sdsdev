@@ -1,0 +1,13 @@
+package tests.validation.consistentTransformation.consistentArguments
+
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val train, val test = data.splitRows(percentageInFirst = 0.7);
+
+    // same callable, same order, same dataflow AND the same arguments on every partition —
+    // no inconsistent-arguments warning must be reported.
+    val _trainIndexed = train.addIndexColumn("id", firstIndex = 0);
+
+    // $TEST$ no warning r"Inconsistent preprocessing arguments"
+    val _testIndexed = test.addIndexColumn("id", firstIndex = 0);
+}

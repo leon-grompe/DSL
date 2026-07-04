@@ -1,0 +1,13 @@
+package tests.validation.consistentTransformation.inconsistentArguments
+
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val train, val test = data.splitRows(percentageInFirst = 0.7);
+
+    // 'addIndexColumn' is applied once on each partition, in the same order, feeding nothing —
+    // so presence, order and dataflow all pass and only the arguments differ (firstIndex 0 vs 10).
+    val _trainIndexed = train.addIndexColumn("id", firstIndex = 0);
+
+    // $TEST$ warning r"Inconsistent preprocessing arguments: 'addIndexColumn' uses 'firstIndex = 10' on 'Test' but 'firstIndex = 0' on 'Training'\."
+    val _testIndexed = test.addIndexColumn("id", firstIndex = 10);
+}
