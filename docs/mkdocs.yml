@@ -46,6 +46,7 @@ nav:
       - Imports: pipeline-language/imports.md
   - Best Practices:
     - best-practices/README.md
+    - Common Mistakes: best-practices/common-errors.md
     - Pipeline Structure: best-practices/pipeline-structure.md
   - API Reference: api/
   - Integrating New Libraries:

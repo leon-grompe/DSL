@@ -18,7 +18,7 @@ earlier, to achieve better results.
 | **Model Building** (orange) | Decide on relevant features, then select, train, and evaluate a model. |
 | **Post-Processing** (blue) | Translate the model performance back to the target domain. |
 
-Each layer consists of multiple phases, each including multiple [activities](activities.md) that may be performed there.
+Each layer consists of multiple phases, each including multiple activities that may be performed there.
 
 ```mermaid
 flowchart TD
@@ -84,10 +84,6 @@ processing (Data Processing). Operations whose result depends on the *values* in
 or an encoder — must be **fitted on the training set only**, and then applied to the other partitions. If you fit them
 before the split, information from the test set (e.g. distribution-based statistics like the mean) leaks into training.
 Learn more about data leakage [here](common-errors.md#data-leakage).
-
-## See also
-
-- [Activities](activities.md) — the full list of activities available in each phase.
 
 ## Read more
 
