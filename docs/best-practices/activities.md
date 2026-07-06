@@ -1,7 +1,7 @@
 # Activities
 
-Every function in the standard library that matters to the behaviour protocol is tagged with one or more **activities**
-via the `@PipelineActivity` annotation. An activity names both the *phase* it belongs to and the *kind* of work it does.
+Every function in the integrated API that matters to the behaviour protocol is tagged with one or more **activities**
+via the `@PipelineActivity` annotation.
 
 ## Naming
 
@@ -13,7 +13,6 @@ The same activity *type* can appear in several phases. *Exploration*, for instan
 once, together with the phases it appears in and what it does.
 
 !!! info "Experimental"
-
     Activities are **experimental** and defined in the `safeds.lang` builtin module. The exact set may change.
 
 ## Activity reference
@@ -40,24 +39,32 @@ once, together with the phases it appears in and what it does.
 | `PostProcessing` | Interpretation | Post-process features to derive information (inverse-transform feature columns). |
 | `Visualization` | Interpretation | Plot the model. |
 
-!!! note "Augmentation"
+**Augmentation**
 
-    The `Augmentation` activity currently has no functions attached to it, since there are no specific augmentation
-    operations in the standard library yet. It is reserved for future use.
+The `Augmentation` activity currently has no functions attached to it, since there are no specific augmentation
+operations in the standard library yet. It is reserved for future use.
 
-## The wildcard
+## Data-partition rules
 
-| Activity | Meaning |
-|----------|---------|
-| `Any` | A wildcard that matches in any phase. Used sparingly for functions that do not belong to a single phase. |
+After splitting the data, some activities should only ever touch a specific partition. Applying them to the wrong one
+risks data leakage.
 
-## Data-partition restrictions
+| Phase | Activity | Allowed partition |
+|-------|----------|-------------------|
+| Data Processing | Exploration, post-split cleaning, augmentation | Training only |
+| Data Processing | Data transformation, schema modification, utilities | Any partition |
+| Evaluation | Prediction, metric calculation | Validation only |
+| Testing | Prediction, metric calculation | Test only |
 
-Some activities may only touch a specific data partition after the split — for example, `Exploration`,
-`PostSplitCleaning`, and `Augmentation` are restricted to the *training* set, while `Prediction` and `MetricCalculation`
-are split between the *validation* set (Evaluation phase) and the *test* set (Testing phase). Safe-DS reports a **dataset
-mismatch** error when an activity touches the wrong partition. See
-[Data-partition rules](pipeline-structure.md#data-partition-rules) for the full list and the reasoning behind it.
+The reason exploration, cleaning, and augmentation are training-only is the same as above: they are decisions you make by
+looking at the data, and you must not make them by looking at data the model will later be judged on.
+
+**Do not tune on the test set**
+
+Evaluation runs on only the **validation** set. That is the set you are allowed to look at repeatedly while tuning
+hyperparameters. The **test** set is used *once*, in the Testing phase, to estimate how the model generalizes to unseen
+data. The moment you make a modeling decision based on the test score, that score stops being an honest estimate of
+generality.
 
 ## See also
 

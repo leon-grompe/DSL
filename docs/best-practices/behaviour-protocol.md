@@ -1,33 +1,32 @@
 # Behaviour Protocol
 
-The best practices in [Pipeline Structure](pipeline-structure.md) and [Avoiding common mistakes](README.md) are easy to
-state but also easy to get wrong — and the mistakes are usually *silent*. A pipeline that fits a scaler before the split, or
-computes its final score on data it already tuned against, runs without error and reports great numbers.
-
-The **behaviour protocol** turns these best practices into rules that Safe-DS checks while you type. It is a formal
-description of how a well-formed pipeline should be shaped; when your pipeline deviates from it, Safe-DS statically reports a
-validation message that explains what is expected and why.
+The best practices in [Pipeline Structure](pipeline-structure.md) and [Avoiding common mistakes](common-errors.md) are
+easy to state but also easy to get wrong, and the mistakes are usually *silent*. A pipeline that fits an imputer before
+the split, or computes its final score on data it already tuned against, runs without error and reports great numbers.
+The **behaviour protocol** turns these best practices into rules that Safe-DS checks while you create a pipeline. It is a
+formal description of how a well-formed pipeline should be shaped; when your pipeline deviates from it, Safe-DS statically
+reports a validation message that explains what is expected and why.
 
 !!! info "Experimental"
-
-    The behaviour protocol and its activity annotations are **experimental**. The set of phases, activities, and rules
-    may change as the feature matures.
+    The behaviour protocol and its activity annotations are **experimental**. The set of phases, activities, and rules may change as the feature matures.
 
 ## How it works
 
-Every relevant function in the Safe-DS standard library is annotated with one or more [activities](activities.md) — small
-labels like *DataLoading*, *DataSplitting*, or *ModelCreation* — via the `@PipelineActivity` annotation. As you write a
-pipeline, Safe-DS reads these annotations to reconstruct the sequence of activities your program performs, and matches
-that sequence against the protocol.
+Every relevant function in the Safe-DS standard library is annotated with one or more [activities](activities.md). An
+activity describes a use case for this function. As you write a pipeline, Safe-DS reads these annotations to reconstruct
+the sequence of activities your program performs, and matches that sequence against the protocol.
 
 The protocol is expressed as a regular-expression-like structure over the ordered [phases](pipeline-structure.md): each
 phase allows a set of activities, states whether it is required, how often it may repeat, and which data partition
 (training, validation, or test) its activities may touch.
 
-!!! note "Calls without an activity"
+**Calls without an activity**
 
-    A call that carries no activity annotation is treated as a wildcard (`Any`) and matches in any phase, so custom or
-    un-annotated functions never break the protocol. Only annotated standard-library calls drive the checks.
+A call that carries no activity annotation is treated as a wildcard (`Any`) and matches in any phase, so custom or
+un-annotated functions never break the protocol. Only annotated standard-library calls drive the checks.
+
+When you create your own function or segment, you may also use the `@PipelineActivity([])` annotation to describe where
+it should be used.
 
 ## What it checks
 
@@ -35,7 +34,7 @@ phase allows a set of activities, states whether it is required, how often it ma
 
 The activities must appear in [phase order](pipeline-structure.md#the-three-layers), and the essential phases
 (**Data Acquisition**, **Data Partitioning**, **Feature Selection**, **Modeling**) must be present. A missing or
-out-of-place activity produces a **protocol violation** (a warning).
+out-of-place activity produces a **protocol violation** which reads in the code as a warning.
 
 If the pipeline ends before an essential phase is satisfied, the message says what to add:
 
@@ -54,19 +53,20 @@ Use 'DataSplitting' during the current Phase to split the data into at least tra
 
 ### 2. Data-partition restrictions
 
-After the split, some activities may only touch a specific partition (see
-[Data-partition rules](pipeline-structure.md#data-partition-rules)). Safe-DS traces which partition each value flows from,
-and a call on the wrong partition produces a **dataset mismatch** — an error, since it usually means data leakage. It
-comes with a quick-fix:
+After the split, some activities may only touch a specific partition. Safe-DS traces which partition each value flows
+from, and a call on the wrong partition produces a **dataset mismatch** which reads as an error, since it usually means
+data leakage. It comes with a quick-fix:
 
 ```
 During Phase 'DataProcessing' the Activity 'PostSplitCleaning' should only be performed on 'Training'.
 Change 'Test' to 'Training' to avoid data leakage.
 ```
 
+The quickfix changes your selected dataset to the most specific placeholder available of the correct dataset.
+
 ### 3. Consistent preprocessing across partitions
 
-Whatever transformations feed the model must be applied *identically* to every partition — otherwise the training and
+Whatever transformations feed the model must be applied *identically* to every partition, otherwise the training and
 held-out data are no longer comparable. Safe-DS checks, in order, that each transformer is:
 
 - applied the **same number of times** on every partition (`fit` is training-only and excluded);
@@ -81,28 +81,15 @@ Inconsistent preprocessing: 'transformTable (StandardScaler)' is applied once on
 Fix: apply 'transformTable (StandardScaler)' the same number of times on every partition.
 ```
 
-Encapsulating post-split steps in a [segment](../pipeline-language/segments.md) and calling it once per partition is the
-easiest way to satisfy this check — see
-[Reusing Code with Segments](../getting-started/first-classification-program.md#reusing-code-with-segments).
+### 4. Test set usage
 
-### 4. Use the test set only once
-
-The test set exists for a single final estimate of the model's performance on unseen data. Every statement in the Testing
-phase carries an informational reminder:
+The test set (see [The three datasets](pipeline-structure.md#the-three-datasets)) exists for a single final estimate of
+the model's performance on unseen data. Every statement in the Testing phase carries an informational reminder:
 
 ```
 Testing should only be done once, as a final estimate of the model's performance on unseen data.
 Use the validation set for hyperparameter optimization instead.
 ```
-
-## Severity summary
-
-| Check | Severity | Meaning |
-|-------|----------|---------|
-| Phase order / essential phases | Warning | The pipeline is not shaped like a well-formed pipeline. |
-| Data-partition restriction | Error | An activity touches the wrong partition — likely data leakage. |
-| Consistent preprocessing | Warning | A transformation is applied differently across partitions. |
-| Single-use test set | Info | A reminder not to tune on the test set. |
 
 ## See also
 

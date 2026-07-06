@@ -46,6 +46,7 @@ nav:
       - Imports: pipeline-language/imports.md
   - Best Practices:
     - best-practices/README.md
+    - Common Mistakes: best-practices/common-errors.md
     - Pipeline Structure: best-practices/pipeline-structure.md
     - Behaviour Protocol: best-practices/behaviour-protocol.md
     - Activities: best-practices/activities.md
