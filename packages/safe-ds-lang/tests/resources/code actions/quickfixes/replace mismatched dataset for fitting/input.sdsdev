@@ -1,0 +1,11 @@
+// $TEST$ apply "Use the training set ('trainSet') instead."
+
+package tests.codeActions.quickfixes.replaceMismatchedDatasetForFitting
+
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val train, val test = data.splitRows(percentageInFirst = 0.7);
+    val trainSet = train.toTabularDataset("label");
+    val testSet = test.toTabularDataset("label");
+    val classifier = GradientBoostingClassifier().fit(testSet);
+}

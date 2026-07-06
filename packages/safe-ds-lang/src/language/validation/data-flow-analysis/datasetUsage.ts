@@ -1,6 +1,7 @@
 import { AstUtils, ValidationAcceptor } from 'langium';
 import { SafeDsServices } from '../../safe-ds-module.js';
 import { SdsCall, SdsPipeline, isSdsReference, isSdsPlaceholder, isSdsAssignment, SdsLocalVariable, isSdsSegment } from '../../generated/ast.js';
+import { DataSet } from '../../flow/safe-ds-dataset-identifier.js';
 
 export const CODE_TEST_DATA_USED_FOR_TRAINING = 'data-flow-analysis/test-data-used-for-training';
 export const CODE_REST_DATA_USED_FOR_NON_SPLITTING = 'data-flow-analysis/rest-data-used-for-non-splitting';
@@ -31,34 +32,29 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
         const forwardVariables = services.flow.Slicer.computeForwardSliceFromVariable(trainingSetPlaceholder as SdsLocalVariable);
 
         for (const call of fitCalls) {
-            const argumentArray = call.argumentList.arguments;
             const callable = nodeMapper.callToCallable(call);
-            
-            for (const argument of argumentArray) {
+
+            for (const argument of call.argumentList.arguments) {
                 if (!isSdsReference(argument.value)) continue;
                 const argRef = argument.value.target.ref;
-                
-                // Skip non-data variables
+
+                // Only data placeholders can be a fitting target; ignore everything else
                 if (!isSdsPlaceholder(argRef) || !analyzer.isData(argRef)) continue;
 
-                // Skip if 'argRef' references a variable in the forward slice of the training set
-                if (forwardVariables.some(variable => variable === argRef)) {
-                    continue;
-                } else {
-                    let message: string = ``;
-                    if (isSdsSegment(callable)) {
-                        message = `This segment makes use of a '.fit()' call wich does not use a dataset derived from the training set ('${trainingSetName}').`
-                    } else {
-                        message = `Only placeholders derived from the training set ('${trainingSetName}') should be used for fitting.`;
-                    }
-                    accept('error',
-                        message, {
-                        node: argument,
-                        property: 'value',
-                        code: CODE_TEST_DATA_USED_FOR_TRAINING,
-                        data: { path: locator.getAstNodePath(argument) },
-                    });
-                }
+                // A placeholder derived from the training set is exactly what we want — skip it
+                if (forwardVariables.some((variable) => variable === argRef)) continue;
+
+                const message = isSdsSegment(callable)
+                    ? `This segment makes use of a '.fit()' call which does not use a dataset derived from the training set ('${trainingSetName}').`
+                    : `Only placeholders derived from the training set ('${trainingSetName}') should be used for fitting.`;
+
+                accept('error', message, {
+                    node: argument,
+                    property: 'value',
+                    // point at the reference itself (not its target declaration) so the quickfix can swap it
+                    code: CODE_TEST_DATA_USED_FOR_TRAINING,
+                    data: { path: locator.getAstNodePath(argument.value), expected: DataSet.Training },
+                });
             }
         }
     }

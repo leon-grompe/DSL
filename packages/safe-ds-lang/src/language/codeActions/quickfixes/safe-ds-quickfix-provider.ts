@@ -4,6 +4,7 @@ import { CODE_ARGUMENT_POSITIONAL } from '../../validation/other/expressions/arg
 import { CODE_SUGGEST_PIPELINE_STRUCTURE } from '../../validation/pipeline/pipelineStructure.js';
 import { CODE_ILLEGAL_DATASET_SPLITTING, CODE_MISSING_DATASET_SPLITTING } from '../../validation/data-flow-analysis/datasetSplitting.js';
 import { CODE_DATASET_MISMATCH } from '../../validation/pipeline/pipelineProtocol.js';
+import { CODE_TEST_DATA_USED_FOR_TRAINING } from '../../validation/data-flow-analysis/datasetUsage.js';
 import { SafeDsServices } from '../../safe-ds-module.js';
 import { makeArgumentsAssignedToOptionalParametersNamed } from './arguments.js';
 import { fillEmptyPipelineWithSuggestedStructure } from './fillPipelineWithStructure.js';
@@ -20,7 +21,8 @@ export class SafeDsQuickfixProvider {
             [CODE_SUGGEST_PIPELINE_STRUCTURE]: [fillEmptyPipelineWithSuggestedStructure(services)],
             [CODE_MISSING_DATASET_SPLITTING]: [addThreeWaySplit(services)],
             [CODE_ILLEGAL_DATASET_SPLITTING]: [correctThreeWaySplit(services)],
-            [CODE_DATASET_MISMATCH]: [replaceMismatchedDataset(services)]
+            [CODE_DATASET_MISMATCH]: [replaceMismatchedDataset(services)],
+            [CODE_TEST_DATA_USED_FOR_TRAINING] : [replaceMismatchedDataset(services)],
         };
     }
 
