@@ -38,7 +38,6 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
                 [
                     DSPipelineActivity.DataProcessingQExploration,
                     DSPipelineActivity.DataProcessingQPostSplitCleaning,
-                    DSPipelineActivity.DataProcessingQAugmentation,
                     DSPipelineActivity.DataProcessingQUtilities,
                     DSPipelineActivity.FeatureEngineeringQUtilities,
                 ],

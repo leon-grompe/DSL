@@ -47,8 +47,7 @@ nav:
   - Best Practices:
     - best-practices/README.md
     - Common Mistakes: best-practices/common-errors.md
-    - Pipeline Structure: best-practices/pipeline-structure.md
-    - Behaviour Protocol: best-practices/behaviour-protocol.md
+    - Data Science Workflow: best-practices/ds-workflow.md
     - Activities: best-practices/activities.md
     - API by Activity: api/by-activity.md
   - API Reference: api/

@@ -7,7 +7,7 @@ search:
 
 # API by Activity
 
-Every API operation grouped by the [activity](../best-practices/activities.md) it is annotated with, ordered by [pipeline phase](../best-practices/pipeline-structure.md). Use it as a lookup: pick the activity you need in your pipeline and jump straight to the operations that perform it.
+Every API operation grouped by the [activity](../best-practices/activities.md) it is annotated with, ordered by [pipeline phase](../best-practices/ds-workflow.md). Use it as a lookup: pick the activity you need in your pipeline and get all operations that are part of the activity.
 
 ## Data Acquisition — Data Loading
 

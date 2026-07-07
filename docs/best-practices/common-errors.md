@@ -21,12 +21,10 @@ Generally, there are three kinds of data leakage relevant for Safe-DS:
 - **Multi-test leakage:** The same test data is used repeatedly for decisions like model selection or hyperparameter
   tuning, so it is effectively no longer independent test data.
 
-    *Avoid this by splitting into three data sets ([learn more here](pipeline-structure.md#the-three-datasets)) and
-    use the validation set for all development decisions and only touch the test set once at the very end to assess the
-    generality of your model.*
+    *Avoid this by splitting into [three data sets](ds-workflow.md#partitioning-of-data) and using the validation set for all development decisions and only touching the test set once at the very end to assess the generality of the model.*
 
 These problems can be solved rather easily by splitting the data correctly. Learn more about data partitioning
-[here](pipeline-structure.md#the-three-datasets).
+[here](ds-workflow.md#partitioning-of-data).
 
 ## Overfitting
 

@@ -4,8 +4,7 @@ When creating a data science pipeline one should consider existing best practice
 common mistakes and make your pipeline more understandable for other developers.
 
 - To learn about best practices to avoid common mistakes, see [Common Mistakes](common-errors.md).
-- To learn about best practices for pipeline structure, see [Pipeline Structure](pipeline-structure.md).
+- To learn about best practices for the data science workflow, see [Data Science Workflow](ds-workflow.md).
 
-- To learn about how best practices are enforced, see [Behaviour Protocol](behaviour-protocol.md).
-- To learn about activities in the behaviour protocol, see [Activities](activities.md).
+- To learn about implemented activities in each phase, see [Activities](activities.md).
 - For a full list of the integrated API sorted by activity, see [API by Activity](../api/by-activity.md).
