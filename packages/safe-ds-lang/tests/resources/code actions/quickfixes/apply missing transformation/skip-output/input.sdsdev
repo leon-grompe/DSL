@@ -1,0 +1,17 @@
+// $TEST$ apply "Apply 'transformTable' to the test set ('_testImputed') as well."
+
+package tests.codeActions.quickfixes.applyMissingTransformation
+
+pipeline myPipeline {
+    val data = Table.fromCsvFile("data.csv");
+    val train, val test = data.splitRows(percentageInFirst = 0.7);
+
+    val imputer = SimpleImputer(SimpleImputer.Strategy.Median).fit(train);
+    val trainImputed = train.transformTable(imputer);
+    val _testImputed = test.transformTable(imputer);
+
+    val encoder = OneHotEncoder();
+
+    val _trainEncoded = trainImputed.transformTable(encoder);
+    val testTransformTable = _testImputed.transformTable(encoder);
+}

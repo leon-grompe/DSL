@@ -56,7 +56,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
         if (!result.isValid){
             generateProtocolValidation(node, context, result, accept, services);
         }
-        generateObserverValidation(observers, accept);
+        generateObserverValidation(observers, accept, services);
     };
 };
 
@@ -204,17 +204,29 @@ const generateProtocolValidation = (
  */
 const generateObserverValidation = (
     observers: ProtocolObserver[],
-    accept: ValidationAcceptor
+    accept: ValidationAcceptor,
+    services: SafeDsServices,
 ) : void => {
+    const locator = services.workspace.AstNodeLocator;
+
     for (const observer of observers) {
         const observerErrors = observer.finalize();
         // set general validation code
         let validationCode = CODE_PIPELINE_OBSERVER;
-        
+
+        // extra data attached to the diagnostic, enabling quickfixes for the errors that support one
+        let data: Record<string, unknown> | undefined;
+
         for (const { error, call } of observerErrors) {
+            data = undefined;
             // specify validation code depending on concrete instance of the error
             if (error instanceof InconsistentTransformationPresenceError) {
                 validationCode = CODE_INCONSISTENT_TRANSFORMATION_PRESENCE;
+                data = {
+                    path: locator.getAstNodePath(call),
+                    referenceDataset: error.referenceDataset, referenceCount: error.referenceCount,
+                    deviatingDataset: error.deviatingDataset, deviatingCount: error.deviatingCount,
+                };
             } else if (error instanceof InconsistentTransformationOrderError) {
                 validationCode = CODE_INCONSISTENT_TRANSFORMATION_ORDER;
             } else if (error instanceof InconsistentTransformationDataflowError) {
@@ -227,11 +239,12 @@ const generateObserverValidation = (
             
             const msg = error.formatMessage();
             if (!msg) continue;
-            
+
             accept(error.severity,
                 msg, {
                     node: call,
-                    code: validationCode
+                    code: validationCode,
+                    data,
                 }
             );
         }
