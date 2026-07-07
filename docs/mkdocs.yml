@@ -47,7 +47,7 @@ nav:
   - Best Practices:
     - best-practices/README.md
     - Common Mistakes: best-practices/common-errors.md
-    - Pipeline Structure: best-practices/pipeline-structure.md
+    - Data Science Workflow: best-practices/ds-workflow.md
   - API Reference: api/
   - Integrating New Libraries:
     - stub-language/README.md
