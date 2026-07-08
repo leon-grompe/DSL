@@ -23,20 +23,7 @@ A well-structured pipeline consists of three **layers**.
 
 Each layer consists of multiple **phases** that each describe a concept in a data science pipeline.
 
-```mermaid
-flowchart TD
-    A[Data Acquisition] --> B[Data Preparation] --> C[Data Partitioning] --> D[Data Processing]
-    D --> E[Feature Engineering] --> F[Feature Selection] --> G[Modeling] --> H[Training] --> I[Evaluation] --> J[Testing]
-    J --> K[Interpretation] --> L[Communication] --> M[Deployment]
-
-    classDef pre fill:#a9d08e,stroke:#548235,color:#000
-    classDef model fill:#f4b183,stroke:#c55a11,color:#000
-    classDef post fill:#9dc3e6,stroke:#2e75b6,color:#000
-
-    class A,B,C,D pre
-    class E,F,G,H,I,J model
-    class K,L,M post
-```
+![Phases with Layers](../img/best-practices/LayersWithPhases.png)
 
 #### Pre-Processing Layer
 
