@@ -263,14 +263,14 @@
         "deploy": "vsce publish"
     },
     "dependencies": {
-        "semver": "^7.7.2",
+        "semver": "^7.7.4",
         "vscode-languageclient": "^9.0.1"
     },
     "devDependencies": {
         "@types/node": "^18.19.62",
         "@types/vscode": "^1.87.0",
-        "@vscode/vsce": "^3.6.2",
-        "esbuild": "^0.25.10",
+        "@vscode/vsce": "^3.7.1",
+        "esbuild": "^0.27.2",
         "esbuild-plugin-copy": "^2.1.1"
     },
     "engines": {
