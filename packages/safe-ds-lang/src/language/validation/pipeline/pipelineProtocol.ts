@@ -28,6 +28,8 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
         if (!node.body) return;
         
+        // stream DisableProtocol Annotation; skip
+
         const pipelineCalls: SdsCall[] = [];
         // pre-define observers to be used in the protocol
         const observers: ProtocolObserver[] = [
@@ -40,6 +42,7 @@ export const pipelineMustFollowBehaviourProtocol = (services: SafeDsServices) =>
                     DSPipelineActivity.DataProcessingQPostSplitCleaning,
                     DSPipelineActivity.DataProcessingQUtilities,
                     DSPipelineActivity.FeatureEngineeringQUtilities,
+                    DSPipelineActivity.FeatureEngineeringQSchemaModification
                 ],
             ),
             new SingleTestingObserver(),

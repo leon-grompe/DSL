@@ -48,7 +48,7 @@ Decide on relevant features, then select, train, and evaluate a model.
 | **Modeling** | Yes | Decide on and build an appropriate model for the data. |
 | Training | No | Train the selected model on the training data. (Optional, since you may have loaded a pretrained model during Modeling.) |
 | Evaluation | No | After training, evaluate the model on the **validation** set (see [Partitioning of data](#partitioning-of-data)) by calculating metrics like accuracy, precision, and recall. The state of the model may also be plotted (e.g. a decision tree classifier). |
-| **Testing** | Yes | After optimizing the hyperparameters to a point where the validation result is satisfactory, use another completely unseen set, the **test** set, to test the generality of the model. Metrics are computed again to examine generality and test for overfitting. In the final instance of the pipeline, this phase is required. |
+| Testing | No | After optimizing the hyperparameters to a point where the validation result is satisfactory, use another completely unseen set, the **test** set, to test the generality of the model. Metrics are computed again to examine generality and test for overfitting. In the final instance of the pipeline, this phase is required. |
 
 #### Post-Processing Layer
 
@@ -56,7 +56,7 @@ Translate the model performance back to the target domain.
 
 | Phase | Required? | Description |
 |-------|-----------|-------------|
-| Interpretation | Yes | Translate results to the target domain by inverse-transforming the target feature or visualizing the model structure (currently available for decision-tree based models). |
+| Interpretation | No | Translate results to the target domain by inverse-transforming the target feature or visualizing the model structure (currently available for decision-tree based models). |
 | Communication | No | Sharing or publishing the results. Not part of the Safe-DS pipeline. |
 | Deployment | No | Installing the model in its problem domain and monitoring its performance over time. Not part of the Safe-DS pipeline. |
 

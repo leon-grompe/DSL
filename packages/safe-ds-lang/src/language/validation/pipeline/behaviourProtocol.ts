@@ -63,11 +63,11 @@ export const behaviourProtocol = new SequenceBlock([
         DSPipelinePhase.FeatureEngineering
     ),
 
-    // Feature Selection (at least once: every group must conclude with a selection)
+    // Feature Selection
     new RepetitionBlock(
         new AlternativeBlock([
             new ElementaryBlock(DSPipelineActivity.FeatureSelectionQTabularDatasetConversion),
-            new ElementaryBlock(DSPipelineActivity.FeatureSelectionQSchemaModification),
+            // new ElementaryBlock(DSPipelineActivity.FeatureSelectionQSchemaModification),
         ]),
         DSPipelinePhase.FeatureSelection, 1
     ),
@@ -80,7 +80,7 @@ export const behaviourProtocol = new SequenceBlock([
 
     // Training (optional: a loaded pretrained model may be used without fitting)
     new RepetitionBlock(
-        new ElementaryBlock(DSPipelineActivity.TrainingQModelFitting),
+        new ElementaryBlock(DSPipelineActivity.TrainingQModelFitting, DataSet.Training),
         DSPipelinePhase.Training
     ),
 

@@ -35,7 +35,7 @@ const PHASE_EXPLANATION: Record<DSPipelinePhase, string> = {
     [DSPipelinePhase.DataPartitioning]:     'split the data into at least training and test sets.',
     [DSPipelinePhase.DataProcessing]:       'process data consistently on every partition, or explore/clean/augment the training set only.',
     [DSPipelinePhase.FeatureEngineering]:   'engineer features consistently on every partition.',
-    [DSPipelinePhase.FeatureSelection]:     'convert the table to a tabular dataset and optionally trim columns.',
+    [DSPipelinePhase.FeatureSelection]:     'convert the table to a tabular dataset to make it usable for training.',
     [DSPipelinePhase.Modeling]:             'select and create a model.',
     [DSPipelinePhase.Training]:             'fit the model on the training set.',
     [DSPipelinePhase.Evaluation]:           'evaluate the model on the validation set to optimize hyperparameters.',

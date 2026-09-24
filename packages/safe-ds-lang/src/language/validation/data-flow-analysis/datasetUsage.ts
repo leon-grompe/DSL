@@ -10,6 +10,7 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
     const analyzer = services.flow.DataFlowAnalyzer;
     const locator = services.workspace.AstNodeLocator;
     const nodeMapper = services.helpers.NodeMapper;
+    const identifier = services.flow.DatasetIdentifier;
     
     return (node: SdsPipeline, accept: ValidationAcceptor) => {
         if (!node.body) return;
@@ -18,14 +19,20 @@ export const testDataUsedForTraining = (services: SafeDsServices) => {
         const assignments = pipelineStatements.filter(isSdsAssignment);
 
         // Extract assignments with split calls
-        const splitAssignments = analyzer.extractAssignmentsWithSpecificCall(assignments, 'split');
+        // const splitAssignments = analyzer.extractAssignmentsWithSpecificCall(assignments, 'split');
 
         // Extract training calls
+        // Should use annotation (DataPartitioningQDataSplitting)
         const fitAssignments = analyzer.extractAssignmentsWithSpecificCall(assignments, 'fit');
         const fitCalls = fitAssignments.map(assignment => assignment.expression as SdsCall);
 
-        // Determine placeholder to compute forward slice from
-        const trainingSetPlaceholder = splitAssignments[0]?.assigneeList?.assignees[0];
+        // Determine placeholder to compute forward slice from.
+        // This takes the first assignee of the first split directly instead of going through
+        // DatasetIdentifier.getTrainingSetPlaceholder. Both agree for a direct split; a segment that
+        // performs the whole partitioning internally is not resolved through its yields here.
+        const trainingSetPlaceholder = identifier.getTrainingSetPlaceholder(node.body.statements);
+
+        //const trainingSetPlaceholder = splitAssignments[0]?.assigneeList?.assignees[0];
         const trainingSetName = trainingSetPlaceholder?.$cstNode?.text.slice(4)
 
         // Compute all forward references of the training set
@@ -74,7 +81,7 @@ export const restDataUsedForNonSplitting = (services: SafeDsServices) => {
 
         const restSetPlaceholder = identifier.getChainedRestSetPlaceholder(assignments);
         if (!restSetPlaceholder) return;
-
+  
         // a "split" feed can be a direct split call or a segment call that performs a split internally, so
         // we match the same set of assignments that identify the chained split in the first place. Using
         // isSpecificCall alone would miss the segment-call case and wrongly flag the rest set feeding it.

@@ -295,6 +295,30 @@ describe('SafeDsCodeLensProvider', () => {
                 ],
             },
             {
+                testName: 'suppresses output statements with nested test references',
+                code: `
+                    pipeline myPipeline {
+                        val data = Table();
+                        val trainSet, val restSet = data.splitRows(percentageInFirst = 0.7);
+                        val valSet, val testSet = restSet.splitRows(percentageInFirst = 0.5);
+                        out testSet.summarizeStatistics();
+                    }
+                `,
+                expectedCodeLensTitles: ['Run myPipeline', 'Explore data', 'Explore trainSet'],
+            },
+            {
+                testName: 'shows output lenses for direct testing calls',
+                code: `
+                    pipeline myPipeline {
+                        val data = Table();
+                        val trainSet, val restSet = data.splitRows(percentageInFirst = 0.7);
+                        val valSet, val testSet = restSet.splitRows(percentageInFirst = 0.5);
+                        out DecisionTreeClassifier().summarizeMetrics(testSet, 1);
+                    }
+                `,
+                expectedCodeLensTitles: ['Run myPipeline', 'Explore data', 'Explore trainSet', 'Explore metrics'],
+            },
+            {
                 testName: 'suppresses validation/test lenses when the split happens inside a segment',
                 code: `
                     segment splitAll(data: Table) -> (trainSet: Table, valSet: Table, testSet: Table) {
@@ -312,7 +336,7 @@ describe('SafeDsCodeLensProvider', () => {
                 expectedCodeLensTitles: ['Run myPipeline', 'Explore data', 'Explore trainSet'],
             },
             {
-                testName: 'unlocks validation/test outputs in their evaluation/testing phase',
+                testName: 'unlocks validation/test assignments and outputs in their evaluation/testing phase',
                 code: `
                     pipeline myPipeline {
                         val data = Table();

@@ -13,6 +13,7 @@ import {
     isSdsPlaceholder,
     isSdsReference,
     SdsAssignment,
+    SdsCall,
     SdsLocalVariable,
     SdsModuleMember,
     SdsOutputStatement,
@@ -177,10 +178,17 @@ export class SafeDsCodeLensProvider implements CodeLensProvider {
         holdoutVariables: HoldoutVariables,
         cancelToken: CancellationToken = CancellationToken.None,
     ): Promise<void> {
-        // `out <holdout reference>` follows the same rule as the placeholder it points to.
-        const reference = node.expression;
-        if (isSdsReference(reference) && reference.target.ref &&
-            this.isHoldoutSuppressed(reference.target.ref as SdsLocalVariable, holdoutVariables)) {
+        // `out <holdout expression>` follows the same rule as the variables it references.
+        const hasUnlockingCall = this.dataFlowAnalyzer
+            .expandCallsInStatement(node)
+            .some(({ call }) => this.isUnlockingCall(call));
+        const references = isSdsReference(node.expression)
+            ? [node.expression]
+            : [...AstUtils.streamAllContents(node.expression)].filter(isSdsReference);
+        if (!hasUnlockingCall && references.some((reference) => {
+            const variable = reference.target.ref;
+            return variable && this.isHoldoutSuppressed(variable as SdsLocalVariable, holdoutVariables);
+        })) {
             return;
         }
 
@@ -266,15 +274,18 @@ export class SafeDsCodeLensProvider implements CodeLensProvider {
         if (!definition) return true;
 
         for (const { call } of this.dataFlowAnalyzer.expandCallsInStatement(definition)) {
-            const callable = this.nodeMapper.callToCallable(call);
-            if (!isSdsFunction(callable) && !isSdsClass(callable)) continue;
-
-            const isEvaluationOrTesting = this.annotations
-                .streamDSPipelineActivities(callable)
-                .some((variant) => UNLOCK_PHASES.has(phaseOf(variant.name as DSPipelineActivity)));
-            if (isEvaluationOrTesting) return false;
+            if (this.isUnlockingCall(call)) return false;
         }
         return true;
+    }
+
+    private isUnlockingCall(call: SdsCall): boolean {
+        const callable = this.nodeMapper.callToCallable(call);
+        if (!isSdsFunction(callable) && !isSdsClass(callable)) return false;
+
+        return this.annotations
+            .streamDSPipelineActivities(callable)
+            .some((variant) => UNLOCK_PHASES.has(phaseOf(variant.name as DSPipelineActivity)));
     }
 
     private computeNodeId(node: AstNode): NodeId {

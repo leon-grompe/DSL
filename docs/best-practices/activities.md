@@ -21,7 +21,7 @@ once, together with the phases it appears in and what it does.
 | `Utilities` | Data Acquisition, Data Preparation, Data Processing, Feature Engineering | Helper operations for many different contexts. |
 | `Exploration` | Data Preparation, Data Processing | Exploratory data analysis (statistics, plots, …). |
 | `PreSplitCleaning` | Data Preparation | Deterministic pre-split cleaning (row removal). |
-| `SchemaModification` | Data Preparation, Data Processing, Feature Engineering, Feature Selection | Change the column structure (rename/add/remove, join). |
+| `SchemaModification` | Data Preparation, Data Processing, Feature Engineering | Change the column structure (rename/add/remove, join). |
 | `DataSplitting` | Data Partitioning | Split the dataset into training, test, and (optionally) validation sets. |
 | `PostSplitCleaning` | Data Processing | Distribution-based cleaning (row removal). |
 | `DataTransformation` | Data Processing | Transform existing values with transformers (scale, impute). |
